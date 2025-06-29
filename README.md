@@ -226,3 +226,14 @@ class MyPreset(Preset):
             b = dependencies["Record"]  # The Record has been built at this point and is a valid class
         yield AddClass("MyClass", MyClass)
 ```
+
+## Internal
+
+### Adding license headers
+
+```bash
+uv pip install licenseheaders
+
+( cd src; licenseheaders -t ../.licenseheaders.tmpl -y 2025 -o "CESNET z.s.p.o" -n oarepo-model -u http://github.com/oarepo/oarepo-model )
+
+```
