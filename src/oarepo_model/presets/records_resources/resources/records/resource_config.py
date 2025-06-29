@@ -31,7 +31,7 @@ class RecordResourceConfigPreset(Preset):
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        build_dependencies: dict[str, Any],
+        dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         class RecordResourceConfigMixin:
             # Blueprint configuration

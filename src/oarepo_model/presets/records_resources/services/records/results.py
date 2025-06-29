@@ -28,7 +28,7 @@ class RecordResultComponentsPreset(Preset):
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        build_dependencies: dict[str, Any],
+        dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         yield AddList(
             "record_result_item_components",
@@ -49,7 +49,7 @@ class RecordResultItemPreset(Preset):
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        build_dependencies: dict[str, Any],
+        dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         class RecordItemMixin:
 
@@ -59,7 +59,7 @@ class RecordResultItemPreset(Preset):
                     *super().components,
                     *[
                         component(RecordItemMixin, self)
-                        for component in build_dependencies.get(
+                        for component in dependencies.get(
                             "record_result_item_components"
                         )
                     ],
@@ -80,7 +80,7 @@ class RecordResultListPreset(Preset):
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        build_dependencies: dict[str, Any],
+        dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         class RecordListMixin:
 
@@ -90,7 +90,7 @@ class RecordResultListPreset(Preset):
                     *super(RecordListMixin, self).components,
                     *[
                         component()
-                        for component in build_dependencies.get(
+                        for component in dependencies.get(
                             "record_result_list_components"
                         )
                     ],

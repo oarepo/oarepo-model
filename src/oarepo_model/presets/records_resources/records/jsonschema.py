@@ -23,7 +23,7 @@ class JSONSchemaPreset(Preset):
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        build_dependencies: dict[str, Any],
+        dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         # TODO: this is a hack, need to fix invenio-jsonschemas to use importlib.resources
         # instead of direct file system access

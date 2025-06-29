@@ -182,12 +182,13 @@ within a function or a method. This can not be used in static initialization.
 
 ```python
 
-def apply(self, builder, model, built_dependencies):
-    runtime_deps = builder.get_runtime_dependencies()
-    class A:
-        def __init__(self):
-            self.b = runtime_deps.get("B")
-    yield AddClass("A", A)
+class MyPreset:
+    def apply(self, builder, model, ...):
+        runtime_deps = builder.get_runtime_dependencies()
+        class A:
+            def __init__(self):
+                self.b = runtime_deps.get("B")
+        yield AddClass("A", A)
 ```
 
 #### Injected properties
@@ -218,10 +219,10 @@ class MyPreset(Preset):
     provides = ["MyClass"]
     depends_on = ["Record"]
 
-    def apply(self, builder, model, built_dependencies):
+    def apply(self, builder, model, dependencies):
         # built_dependencies is a dict of classes that were built during the model building process
         class MyClass(metaclass=MetaThatNeedsToHaveBProperty):
             # 
-            b = built_dependencies["Record"]
+            b = dependencies["Record"]  # The Record has been built at this point and is a valid class
         yield AddClass("MyClass", MyClass)
 ```

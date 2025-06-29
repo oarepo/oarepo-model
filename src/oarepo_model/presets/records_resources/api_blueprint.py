@@ -25,7 +25,7 @@ class APIBlueprintPreset(Preset):
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        build_dependencies: dict[str, Any],
+        dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         yield AddModule("blueprints", exists_ok=True)
 

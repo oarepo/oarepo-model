@@ -39,7 +39,7 @@ class RecordServiceConfigPreset(Preset):
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        build_dependencies: dict[str, Any],
+        dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         api_base = "{+api}/" + builder.model.slug + "/"
         ui_base = "{+ui}/" + builder.model.slug + "/"

@@ -32,7 +32,7 @@ class RecordMetadataPreset(Preset):
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        build_dependencies: dict[str, Any],
+        dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         class RecordMetadataMixin:
             __tablename__ = f"{builder.model.base_name}_metadata"
