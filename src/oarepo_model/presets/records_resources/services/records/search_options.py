@@ -25,6 +25,8 @@ class RecordSearchOptionsPreset(Preset):
     Preset for record search options class.
     """
 
+    provides = ["RecordSearchOptions"]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

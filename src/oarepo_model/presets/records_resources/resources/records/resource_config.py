@@ -35,6 +35,8 @@ class RecordResourceConfigPreset(Preset):
     Preset for record resource config class.
     """
 
+    provides = ["RecordResourceConfig", "record_api_routes", "record_response_handlers"]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

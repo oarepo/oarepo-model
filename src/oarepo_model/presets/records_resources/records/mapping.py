@@ -27,6 +27,8 @@ class MappingPreset(Preset):
     Preset for records_resources.records.mapping
     """
 
+    provides = ["mappings"]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

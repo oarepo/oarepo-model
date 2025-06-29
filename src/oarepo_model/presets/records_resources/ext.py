@@ -32,6 +32,12 @@ class ExtPreset(Preset):
     Preset for extension class.
     """
 
+    provides = [
+        "Ext",
+        "app_application_blueprint_initializers",
+        "api_application_blueprint_initializers",
+    ]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

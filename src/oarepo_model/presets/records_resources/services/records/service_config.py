@@ -43,6 +43,13 @@ class RecordServiceConfigPreset(Preset):
     Preset for record service config class.
     """
 
+    provides = [
+        "RecordServiceConfig",
+        "record_service_components",
+        "record_links_item",
+        "record_search_item",
+    ]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

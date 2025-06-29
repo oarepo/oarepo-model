@@ -25,6 +25,8 @@ class RecordServicePreset(Preset):
     Preset for record service class.
     """
 
+    provides = ["RecordService"]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

@@ -25,6 +25,8 @@ class RecordResourcePreset(Preset):
     Preset for record resource class.
     """
 
+    provides = ["RecordResource"]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

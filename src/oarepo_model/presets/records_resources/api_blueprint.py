@@ -29,6 +29,8 @@ class APIBlueprintPreset(Preset):
     Preset for api blueprint.
     """
 
+    provides = ["blueprints", "api_application_blueprint_initializers"]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

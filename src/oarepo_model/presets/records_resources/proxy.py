@@ -23,6 +23,8 @@ class ProxyPreset(Preset):
     Preset for proxy class.
     """
 
+    provides = ["proxies"]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

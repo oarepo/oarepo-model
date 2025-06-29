@@ -29,6 +29,8 @@ class AppBlueprintPreset(Preset):
     Preset for app blueprint.
     """
 
+    provides = ["blueprints", "app_application_blueprint_initializers"]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

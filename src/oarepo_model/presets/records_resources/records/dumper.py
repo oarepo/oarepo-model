@@ -25,6 +25,8 @@ class RecordDumperPreset(Preset):
     Preset for record dumper class.
     """
 
+    provides = ["RecordDumper", "record_dumper_extensions"]
+
     def apply(
         self,
         builder: InvenioModelBuilder,

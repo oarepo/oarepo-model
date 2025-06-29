@@ -52,6 +52,7 @@ class RecordResultItemPreset(Preset):
     """
 
     depends_on = ["record_result_item_components"]
+    provides = ["RecordItem"]
 
     def apply(
         self,
@@ -83,6 +84,7 @@ class RecordResultListPreset(Preset):
     """
 
     depends_on = ["record_result_list_components"]
+    provides = ["RecordList"]
 
     def apply(
         self,

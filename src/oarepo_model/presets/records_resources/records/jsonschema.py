@@ -27,6 +27,8 @@ class JSONSchemaPreset(Preset):
     Preset for records_resources.records.jsonschema
     """
 
+    provides = ["jsonschemas"]
+
     def apply(
         self,
         builder: InvenioModelBuilder,
