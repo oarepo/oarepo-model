@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
+from flask import Blueprint
+
 from oarepo_model.customizations import (
     AddDictionary,
     AddEntryPoint,
@@ -47,9 +49,9 @@ class AppBlueprintPreset(Preset):
         def create_app_blueprint(app):
             """Create DocumentsRecord blueprint."""
             with app.app_context():
-                blueprint = app.extensions[
-                    model.base_name
-                ].records_resource.as_blueprint()
+                blueprint = Blueprint(
+                    f"{model.base_name}_app", __name__, url_prefix="/{model.slug}/"
+                )
 
                 for initializer_name, initializer_func in dependencies.get(
                     "app_application_blueprint_initializers"

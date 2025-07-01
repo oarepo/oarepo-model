@@ -8,7 +8,7 @@
 #
 from importlib.metadata import EntryPoint
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Iterable, cast
 
 from werkzeug.local import LocalProxy
 
@@ -18,12 +18,14 @@ from .model import InvenioModel, RuntimeDependencies
 from .utils import (
     is_mro_consistent,
     make_mro_consistent,
+    title_case,
 )
 
 
 class Partial:
     def __init__(self, key: str):
         self.key = key
+        self.built = False
 
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
         """Build the class from the partial."""
@@ -39,22 +41,29 @@ class BuilderClass(Partial):
         class_name: str,
         mixins: list[type] | None = None,
         base_classes: list[type] | None = None,
+        fields: dict[str, Any] | None = None,
     ):
         super().__init__(key=class_name)
         self.class_name = class_name
         self.mixins = list(mixins) if mixins else []
         self.base_classes = list(base_classes) if base_classes else []
+        self.fields = fields if fields else {}
 
     def add_base_classes(self, *classes: type) -> None:
         """Add base classes to the class."""
+        if self.built:
+            raise RuntimeError("Cannot add base classes after the class is built.")
         self.base_classes.extend(classes)
 
     def add_mixins(self, *classes: type) -> None:
         """Add mixins to the class."""
+        if self.built:
+            raise RuntimeError("Cannot add mixins after the class is built.")
         for clazz in reversed(classes):
             self.mixins.insert(0, clazz)  # Prepend to preserve MRO
 
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> type:
+        self.built = True
         base_list: list[type] = [
             *self.mixins,
             *self.base_classes,
@@ -71,33 +80,58 @@ class BuilderClass(Partial):
                 "__qualname__": self.class_name,
                 "oarepo_model": model,
                 "oarepo_model_namespace": namespace,
+                **self.fields,
             },
         )
 
 
 class BuilderClassList(Partial, list[type]):
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> list[type]:
+        """Build a class list from the partial."""
+        self.built = True
         if not is_mro_consistent(self):
             # If the MRO is not consistent, we need to make it consistent
             return make_mro_consistent(self)
         return list(self)
 
+    def append(self, object: type) -> None:
+        if self.built:
+            raise RuntimeError("Cannot append to class list after it is built.")
+        return super().append(object)
+
+    def extend(self, iterable: Iterable[type]) -> None:
+        if self.built:
+            raise RuntimeError("Cannot append to class list after it is built.")
+        return super().extend(iterable)
+
 
 class BuilderList(Partial, list[Any]):
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> list[Any]:
+        self.built = True
         return list(self)
+
+    def append(self, object: type) -> None:
+        if self.built:
+            raise RuntimeError("Cannot append to class list after it is built.")
+        return super().append(object)
+
+    def extend(self, iterable: Iterable[type]) -> None:
+        if self.built:
+            raise RuntimeError("Cannot append to class list after it is built.")
+        return super().extend(iterable)
 
 
 class BuilderDict(Partial, dict[str, Any]):
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> dict[str, Any]:
         """Build a dictionary from the partial."""
+        self.built = True
         return {k: v for k, v in self.items() if v is not None}
 
 
 class BuilderModule(Partial, SimpleNamespace):
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
         """Build a module from the partial."""
-
+        self.built = True
         # iterate through all attributes of the simple namespace and
         # if any of those has a __get__ method, call it. This will handle
         # Dependency descriptors and other similar cases.
@@ -122,6 +156,8 @@ class BuilderModule(Partial, SimpleNamespace):
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Simulate a dictionary's x["key"] = value."""
+        if self.built:
+            raise RuntimeError("Cannot set item after the module is built.")
         setattr(self, key, value)
 
 
@@ -142,7 +178,7 @@ class InvenioModelBuilder:
                 return cast(BuilderClass, self.partials[name])
             raise AlreadyRegisteredError(f"Class {name} already exists.")
         self.partials[name] = clz = BuilderClass(
-            self.model.title_name + name.title().replace("_", ""),
+            self.model.title_name + title_case(name).replace("_", ""),
             base_classes=[clazz] if clazz else [],
         )
         return clz

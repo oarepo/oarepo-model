@@ -10,13 +10,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_db import db
-from invenio_records.models import RecordMetadataBase
+from invenio_records.systemfields import ModelField
+from invenio_records_resources.records.systemfields import (
+    FilesField,
+)
 
 from oarepo_model.customizations import (
-    AddBaseClasses,
-    AddClass,
-    AddEntryPoint,
     AddMixins,
     Customization,
 )
@@ -27,14 +26,15 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class RecordMetadataPreset(Preset):
+class RecordWithFilesPreset(Preset):
     """
-    Preset for record metadata class
+    Preset for records_resources.records
     """
 
-    provides = [
-        "RecordMetadata",
+    depends_on = [
+        "FileRecord",  # need to have this dependency because of system fields
     ]
+    modifies = ["Record"]
 
     def apply(
         self,
@@ -42,14 +42,12 @@ class RecordMetadataPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class RecordMetadataMixin:
-            __tablename__ = f"{builder.model.base_name}_metadata"
-            __table_args__ = {"extend_existing": True}
-            __versioned__: dict[Any, Any] = {}
+        class RecordWithFilesMixin:
+            files = FilesField(store=False, file_cls=dependencies.get("FileRecord"))
+            bucket_id = ModelField()
+            bucket = ModelField(dump=False)
 
-        yield AddClass("RecordMetadata")
-        yield AddBaseClasses("RecordMetadata", db.Model, RecordMetadataBase)
-        yield AddMixins("RecordMetadata", RecordMetadataMixin)
-        yield AddEntryPoint(
-            group="invenio_db.models", name=model.base_name, separator="", value=""
+        yield AddMixins(
+            "Record",
+            RecordWithFilesMixin,
         )

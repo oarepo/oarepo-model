@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Generator
 
 from oarepo_model.customizations import (
-    AddDictionary,
     AddEntryPoint,
     AddModule,
     AddToModule,
@@ -24,12 +23,12 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class APIBlueprintPreset(Preset):
+class ApiFilesBlueprintPreset(Preset):
     """
     Preset for api blueprint.
     """
 
-    provides = ["blueprints", "api_application_blueprint_initializers"]
+    provides = ["blueprints"]
 
     def apply(
         self,
@@ -39,31 +38,23 @@ class APIBlueprintPreset(Preset):
     ) -> Generator[Customization, None, None]:
         yield AddModule("blueprints", exists_ok=True)
 
-        yield AddDictionary("api_application_blueprint_initializers", exists_ok=True)
-
-        dependencies = builder.get_runtime_dependencies()
-
         @staticmethod  # need to use staticmethod as python's magic always passes self as the first argument
-        def create_api_blueprint(app):
-            """Create DocumentsRecord blueprint."""
+        def create_files_api_blueprint(app):
+            """Create FilesRecord blueprint."""
             with app.app_context():
                 blueprint = app.extensions[
                     model.base_name
-                ].records_resource.as_blueprint()
-
-                for (
-                    initializer_name,
-                    initializer_func,
-                ) in dependencies.get("api_application_blueprint_initializers").items():
-                    blueprint.record_once(initializer_func)
+                ].files_resource.as_blueprint()
 
             return blueprint
 
-        yield AddToModule("blueprints", "create_api_blueprint", create_api_blueprint)
+        yield AddToModule(
+            "blueprints", "create_files_api_blueprint", create_files_api_blueprint
+        )
 
         yield AddEntryPoint(
             group="invenio_base.api_blueprints",
-            name=model.base_name,
-            value="blueprints:create_api_blueprint",
+            name=f"{model.base_name}_files",
+            value="blueprints:create_files_api_blueprint",
             separator=".",
         )

@@ -133,7 +133,7 @@ class RecordServiceConfigPreset(Preset):
                 }
                 return {k: v for k, v in links.items() if v is not None}
 
-        yield AddClassList("record_service_components")
+        yield AddClassList("record_service_components", exists_ok=True)
 
         yield AddClass("RecordServiceConfig", clazz=RecordServiceConfig)
         yield AddMixins("RecordServiceConfig", ServiceConfigMixin)

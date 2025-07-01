@@ -61,7 +61,6 @@ class RecordResultItemPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         class RecordItemMixin:
-
             @property
             def components(self):
                 return [
@@ -93,7 +92,6 @@ class RecordResultListPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         class RecordListMixin:
-
             @property
             def components(self):
                 return [

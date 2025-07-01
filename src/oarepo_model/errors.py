@@ -20,3 +20,7 @@ class PartialNotFoundError(ModelBuildError):
 
 class BaseClassNotFoundError(ModelBuildError):
     """Exception raised when a base class is not found in the model."""
+
+
+class ApplyCustomizationError(ModelBuildError):
+    """Exception raised when applying a customization fails."""

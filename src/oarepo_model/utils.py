@@ -7,6 +7,7 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 #
 import inspect
+import re
 
 
 def add_to_class_list_preserve_mro(
@@ -102,3 +103,12 @@ def make_mro_consistent(class_list: list[type]) -> list[type]:
             "Ensure that the classes are compatible."
         ) from e
     return result
+
+
+def camel_case_split(s):
+    return re.findall(r"([A-Z]?[a-z]+)", s)
+
+
+def title_case(s):
+    parts = camel_case_split(s)
+    return "".join(part.capitalize() for part in parts)
