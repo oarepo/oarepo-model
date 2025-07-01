@@ -14,6 +14,12 @@ def test_service(app):
     return app.extensions["test"].records_service
 
 
+@pytest.fixture(scope="module")
+def file_service(app):
+    """Service instance."""
+    return app.extensions["test"].files_service
+
+
 @pytest.fixture(scope="function")
 def input_data():
     """Input data (as coming from the view layer)."""

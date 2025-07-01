@@ -42,7 +42,7 @@ class FileRecordPreset(Preset):
         class FileRecordMixin:
             """Mixin for the file record."""
 
-            model_cls = Dependency("FileRecordMetadata")
+            model_cls = Dependency("FileMetadata")
             record_cls = Dependency("Record")
 
         yield AddClass(
