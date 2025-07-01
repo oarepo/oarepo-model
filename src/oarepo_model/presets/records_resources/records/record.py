@@ -48,7 +48,7 @@ class RecordPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class RecordMixin(InvenioRecord):
+        class RecordMixin:
             """Base class for records in the model.
             This class extends InvenioRecord and can be customized further.
             """

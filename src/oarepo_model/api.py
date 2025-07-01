@@ -6,12 +6,15 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
-from functools import cmp_to_key, partial
+from collections import defaultdict
+from functools import partial
+from itertools import chain
 from types import SimpleNamespace
 from typing import Any
 
 from .builder import InvenioModelBuilder
 from .customizations import Customization
+from .errors import ApplyCustomizationError
 from .model import InvenioModel
 from .presets import Preset
 from .register import register_model
@@ -56,38 +59,42 @@ def model(
             preset = preset_cls()
             sorted_presets.append(preset)
 
-    # reorder customizations to ensure dependencies are respected
-    def reorder_cmp(a: Preset, b: Preset):
-        # if a depends on b
-        if any(bb in a.provides for bb in b.depends_on):
-            # b depends on a, so a should come after a
-            return -1
-        if any(aa in b.provides for aa in a.depends_on):
-            # a depends on b, so a should come before b
-            return 1
-        # otherwise, they are independent, so keep the original order
-        return 0
-
-    sorted_presets.sort(key=cmp_to_key(reorder_cmp))
+    sorted_presets = sort_presets(sorted_presets)
 
     user_customizations = [*(customizations or [])]
 
-    for preset in sorted_presets:
+    preset_idx = 0
+    while preset_idx < len(sorted_presets):
+
+        preset = sorted_presets[preset_idx]
+        preset_idx += 1
+
         # if preset depends on something, make sure user customizations
         # for that dependency are applied
         idx = 0
         while idx < len(user_customizations):
             customization = user_customizations[idx]
             if customization.name in preset.depends_on:
-                customization.apply(builder, model)
+                try:
+                    customization.apply(builder, model)
+                except Exception as e:
+                    raise ApplyCustomizationError(
+                        f"Error evaluating user customization {customization} while applying preset {preset}"
+                    ) from e
                 user_customizations.pop(idx)
             else:
                 idx += 1
+
         build_dependencies = {
             dep: builder.build_partial(dep) for dep in preset.depends_on
         }
         for customization in preset.apply(builder, model, build_dependencies):
-            customization.apply(builder, model)
+            try:
+                customization.apply(builder, model)
+            except Exception as e:
+                raise ApplyCustomizationError(
+                    f"Error evaluating user customization {customization} while applying preset {preset}: {e}"
+                ) from e
 
     for customization in user_customizations:
         # apply user customizations that were not handled by presets
@@ -98,3 +105,76 @@ def model(
 
     ret.register = partial(register_model, model=model, namespace=ret)
     return ret
+
+
+def sort_presets(presets: list[Preset]) -> list[Preset]:
+    """
+    Sort presets based on their dependencies.
+
+    :param presets: List of presets to sort.
+    :return: Sorted list of presets.
+    """
+
+    preset_provides_counts = defaultdict[str, int](lambda: 0)
+    already_seen_provides_counts = defaultdict[str, int](lambda: 0)
+
+    done: list[Preset] = []
+
+    done_dependencies = set()
+    created_dependencies = set()
+
+    for preset in presets:
+        for provide in preset.provides or []:
+            preset_provides_counts[provide] += 1
+        for provide in preset.modifies or []:
+            preset_provides_counts[provide] += 1
+
+    while presets:
+        remaining: list[Preset] = []
+        anything_resolved = False
+
+        # First pass: collect presets that can be immediately applied
+        for preset in presets:
+            # has build-time dependency that is not resolved yet
+            if any(dep not in done_dependencies for dep in preset.depends_on or []):
+                remaining.append(preset)
+                continue
+
+            # modifies something that has not yet been created
+            if any(dep not in created_dependencies for dep in preset.modifies or []):
+                remaining.append(preset)
+                continue
+
+            done.append(preset)
+
+            # add to created dependencies
+            for provide in preset.provides or []:
+                created_dependencies.add(provide)
+
+            for provide in chain(preset.provides or [], preset.modifies or []):
+                # add to done dependencies if it has been fully resolved
+                already_seen_provides_counts[provide] += 1
+                if (
+                    already_seen_provides_counts[provide]
+                    == preset_provides_counts[provide]
+                ):
+                    # If we have seen all provides of this preset, we can mark it as done
+                    done_dependencies.add(provide)
+
+            anything_resolved = True
+
+        if not anything_resolved:
+            # If nothing was resolved, we have a circular dependency or unresolved dependencies
+            formatted_remaining: list[str] = []
+            for preset in remaining:
+                formatted_remaining.append(f"{preset}")
+                formatted_remaining.append(f"    Provides: {preset.provides}")
+                formatted_remaining.append(f"    Depends on: {preset.depends_on}")
+                formatted_remaining.append(f"    Modifies: {preset.modifies}")
+            raise RuntimeError(
+                "Cannot resolve presets due to circular dependencies or unresolved dependencies:\n"
+                + "\n".join(formatted_remaining)
+            )
+        presets = remaining
+
+    return done

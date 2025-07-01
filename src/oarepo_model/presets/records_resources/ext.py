@@ -18,6 +18,7 @@ from oarepo_model.customizations import (
     AddEntryPoint,
     AddMixins,
     AddToDictionary,
+    AddToList,
     Customization,
 )
 from oarepo_model.model import InvenioModel, ModelMixin
@@ -44,6 +45,9 @@ class ExtPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
+
+        runtime_dependencies = builder.get_runtime_dependencies()
+
         class ExtBase:
             """
             Base class for extension.
@@ -74,7 +78,7 @@ class ExtPreset(Preset):
 
             @cached_property
             def records_service(self):
-                return self.get_model_dependency("RecordService")(
+                return runtime_dependencies.get("RecordService")(
                     **self.records_service_params,
                 )
 
@@ -85,13 +89,13 @@ class ExtPreset(Preset):
                 """
                 return {
                     "config": build_config(
-                        self.get_model_dependency("RecordServiceConfig"), self.app
+                        runtime_dependencies.get("RecordServiceConfig"), self.app
                     )
                 }
 
             @cached_property
             def records_resource(self):
-                return self.get_model_dependency("RecordResource")(
+                return runtime_dependencies.get("RecordResource")(
                     **self.records_resource_params,
                 )
 
@@ -103,7 +107,7 @@ class ExtPreset(Preset):
                 return {
                     "service": self.records_service,
                     "config": build_config(
-                        self.get_model_dependency("RecordResourceConfig"), self.app
+                        runtime_dependencies.get("RecordResourceConfig"), self.app
                     ),
                 }
 
@@ -113,6 +117,22 @@ class ExtPreset(Preset):
         yield AddEntryPoint("invenio_base.apps", model.base_name, "Ext")
         yield AddEntryPoint("invenio_base.api_apps", model.base_name, "Ext")
 
+        yield AddToList(
+            "services_registry_list",
+            (
+                lambda ext: ext.records_service,
+                lambda ext: ext.records_service.config.service_id,
+            ),
+        )
+
+        yield AddToList(
+            "indexers_registry_list",
+            (
+                lambda ext: getattr(ext.records_service, "indexer", None),
+                lambda ext: ext.records_service.config.service_id,
+            ),
+        )
+
         def add_to_service_and_indexer_registry(state):
             """Init app."""
             app = state.app
@@ -120,18 +140,23 @@ class ExtPreset(Preset):
 
             # register service
             sregistry = app.extensions["invenio-records-resources"].registry
-            service_id = ext.records_service.config.service_id
-            if service_id not in sregistry._services:
-                sregistry.register(ext.records_service, service_id=service_id)
+            for service_getter, service_id_getter in runtime_dependencies.get(
+                "services_registry_list",
+            ):
+                service = service_getter(ext)
+                service_id = service_id_getter(ext)
+                if service_id not in sregistry._services:
+                    sregistry.register(service, service_id=service_id)
 
             # Register indexer
-            if hasattr(ext.records_service, "indexer"):
-                iregistry = app.extensions["invenio-indexer"].registry
-                if service_id not in iregistry._indexers:
-                    iregistry.register(
-                        ext.records_service.indexer,
-                        indexer_id=ext.records_service.config.service_id,
-                    )
+            iregistry = app.extensions["invenio-indexer"].registry
+            for indexer_getter, service_id_getter in runtime_dependencies.get(
+                "indexers_registry_list",
+            ):
+                indexer = indexer_getter(ext)
+                service_id = service_id_getter(ext)
+                if indexer and service_id not in iregistry._indexers:
+                    iregistry.register(indexer, indexer_id=service_id)
 
         add_to_service_and_indexer_registry.__name__ = (
             f"{model.base_name}_add_to_service_and_indexer_registry"

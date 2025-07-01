@@ -3,7 +3,7 @@ from invenio_pidstore.errors import PIDDeletedError
 
 
 def test_simple_flow(
-    app, test_service, identity_simple, input_data, empty_model, search_clear
+    app, test_service, identity_simple, input_data, empty_model, search_clear, location
 ):
     Record = empty_model.Record
 

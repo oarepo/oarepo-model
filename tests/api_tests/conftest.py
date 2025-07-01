@@ -19,4 +19,7 @@ def input_data():
     """Input data (as coming from the view layer)."""
     return {
         "metadata": {"title": "Test"},
+        "files": {
+            "enabled": True,
+        },
     }

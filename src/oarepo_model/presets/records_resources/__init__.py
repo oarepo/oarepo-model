@@ -6,9 +6,15 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
-from .api_blueprint import APIBlueprintPreset
-from .app_blueprint import AppBlueprintPreset
+from .blueprints.files.api_blueprint import ApiFilesBlueprintPreset
+from .blueprints.records.api_blueprint import ApiBlueprintPreset
+from .blueprints.records.app_blueprint import AppBlueprintPreset
 from .ext import ExtPreset
+from .ext_files import ExtFilesPreset
+from .file_records.file_metadata import FileMetadataPreset
+from .file_records.file_record import FileRecordPreset
+from .file_records.record import RecordWithFilesPreset
+from .file_records.record_metadata import RecordMetadataWithFilesPreset
 from .proxy import ProxyPreset
 from .records.dumper import RecordDumperPreset
 from .records.jsonschema import JSONSchemaPreset
@@ -16,8 +22,15 @@ from .records.mapping import MappingPreset
 from .records.pid_provider import PIDProviderPreset
 from .records.record import RecordPreset
 from .records.record_metadata import RecordMetadataPreset
+from .resources.files.file_resource import FileResourcePreset
+from .resources.files.file_resource_config import FileResourceConfigPreset
 from .resources.records.resource import RecordResourcePreset
 from .resources.records.resource_config import RecordResourceConfigPreset
+from .services.files.file_record_service_components import (
+    FileRecordServiceComponentsPreset,
+)
+from .services.files.file_service import FileServicePreset
+from .services.files.file_service_config import FileServiceConfigPreset
 from .services.records.results import (
     RecordResultComponentsPreset,
     RecordResultItemPreset,
@@ -27,7 +40,7 @@ from .services.records.search_options import RecordSearchOptionsPreset
 from .services.records.service import RecordServicePreset
 from .services.records.service_config import RecordServiceConfigPreset
 
-records_resources_presets = [
+records_presets = [
     # record layer
     PIDProviderPreset,
     RecordPreset,
@@ -48,6 +61,26 @@ records_resources_presets = [
     # extension
     ExtPreset,
     ProxyPreset,
-    APIBlueprintPreset,
+    ApiBlueprintPreset,
     AppBlueprintPreset,
 ]
+
+files_presets = [
+    # file layer
+    FileRecordPreset,
+    RecordWithFilesPreset,
+    RecordMetadataWithFilesPreset,
+    FileMetadataPreset,
+    # service layer
+    FileRecordServiceComponentsPreset,
+    FileServiceConfigPreset,
+    FileServicePreset,
+    # resource layer
+    FileResourcePreset,
+    FileResourceConfigPreset,
+    # extension
+    ExtFilesPreset,
+    ApiFilesBlueprintPreset,
+]
+
+records_resources_presets = records_presets + files_presets

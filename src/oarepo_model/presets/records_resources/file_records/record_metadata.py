@@ -11,12 +11,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Generator
 
 from invenio_db import db
-from invenio_records.models import RecordMetadataBase
+from invenio_files_rest.models import Bucket
+from sqlalchemy.orm import declared_attr
+from sqlalchemy_utils.types import UUIDType
 
 from oarepo_model.customizations import (
-    AddBaseClasses,
-    AddClass,
-    AddEntryPoint,
     AddMixins,
     Customization,
 )
@@ -27,14 +26,12 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class RecordMetadataPreset(Preset):
+class RecordMetadataWithFilesPreset(Preset):
     """
-    Preset for record metadata class
+    Preset for records_resources.records
     """
 
-    provides = [
-        "RecordMetadata",
-    ]
+    modifies = ["RecordMetadata"]
 
     def apply(
         self,
@@ -42,14 +39,16 @@ class RecordMetadataPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class RecordMetadataMixin:
-            __tablename__ = f"{builder.model.base_name}_metadata"
-            __table_args__ = {"extend_existing": True}
-            __versioned__: dict[Any, Any] = {}
 
-        yield AddClass("RecordMetadata")
-        yield AddBaseClasses("RecordMetadata", db.Model, RecordMetadataBase)
-        yield AddMixins("RecordMetadata", RecordMetadataMixin)
-        yield AddEntryPoint(
-            group="invenio_db.models", name=model.base_name, separator="", value=""
+        class RecordMetadataWithFilesMixin:
+
+            bucket_id = db.Column(UUIDType, db.ForeignKey(Bucket.id))
+
+            @declared_attr
+            def bucket(cls):
+                return db.relationship(Bucket)
+
+        yield AddMixins(
+            "RecordMetadata",
+            RecordMetadataWithFilesMixin,
         )

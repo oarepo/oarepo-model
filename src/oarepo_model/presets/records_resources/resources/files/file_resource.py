@@ -10,20 +10,22 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
+from invenio_records_resources.resources import FileResource
+
+from oarepo_model.customizations import AddClass, Customization
+from oarepo_model.model import InvenioModel
+from oarepo_model.presets import Preset
+
 if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
-    from oarepo_model.customizations import Customization
-    from oarepo_model.model import InvenioModel
 
 
-class Preset:
+class FileResourcePreset(Preset):
     """
-    Base class for presets.
+    Preset for file resource class.
     """
 
-    provides: list[str] = []
-    modifies: list[str] = []
-    depends_on: list[str] = []
+    provides = ["FileResource"]
 
     def apply(
         self,
@@ -31,8 +33,4 @@ class Preset:
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        """
-        Apply the preset to the given model.
-        This method should be overridden by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        yield AddClass("FileResource", FileResource)
