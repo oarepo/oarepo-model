@@ -33,5 +33,4 @@ class FileRecordServiceComponentsPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
         yield AddToList("record_service_components", FilesComponent)

@@ -39,9 +39,7 @@ class RecordMetadataWithFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
         class RecordMetadataWithFilesMixin:
-
             bucket_id = db.Column(UUIDType, db.ForeignKey(Bucket.id))
 
             @declared_attr

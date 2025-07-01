@@ -45,7 +45,6 @@ class ExtPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
         runtime_dependencies = builder.get_runtime_dependencies()
 
         class ExtBase:

@@ -36,7 +36,6 @@ class ApiFilesBlueprintPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
         yield AddModule("blueprints", exists_ok=True)
 
         @staticmethod  # need to use staticmethod as python's magic always passes self as the first argument

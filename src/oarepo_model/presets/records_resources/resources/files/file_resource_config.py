@@ -37,7 +37,6 @@ class FileResourceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
         class FileResourceConfigMixin:
             blueprint_name = f"{model.base_name}_files"
             url_prefix = f"/{model.slug}/<pid_value>"

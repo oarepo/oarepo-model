@@ -8,7 +8,7 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from .base import Customization
 

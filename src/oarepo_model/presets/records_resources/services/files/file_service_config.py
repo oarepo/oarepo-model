@@ -49,7 +49,6 @@ class FileServiceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
         class FileServiceConfigMixin(ModelMixin):
             service_id = f"{builder.model.base_name}-files"
             record_cls = Dependency("Record")

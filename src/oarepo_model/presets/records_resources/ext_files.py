@@ -40,7 +40,6 @@ class ExtFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
         class ExtFilesMixin(ModelMixin):
             """
             Mixin for extension class.

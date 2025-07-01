@@ -42,7 +42,6 @@ class RecordWithFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
         class RecordWithFilesMixin:
             files = FilesField(store=False, file_cls=dependencies.get("FileRecord"))
             bucket_id = ModelField()

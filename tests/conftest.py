@@ -174,12 +174,12 @@ def app_config(app_config, empty_model):
 
     app_config["THEME_FRONTPAGE"] = False
 
-    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = (
-        {  # hack to avoid pool_timeout set in invenio_app_rdm
-            "pool_pre_ping": False,
-            "pool_recycle": 3600,
-        }
-    )
+    app_config[
+        "SQLALCHEMY_ENGINE_OPTIONS"
+    ] = {  # hack to avoid pool_timeout set in invenio_app_rdm
+        "pool_pre_ping": False,
+        "pool_recycle": 3600,
+    }
 
     return app_config
 

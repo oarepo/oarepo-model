@@ -38,5 +38,4 @@ class FileServicePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
         yield AddClass("FileService", clazz=FileService)

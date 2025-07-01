@@ -65,7 +65,6 @@ def model(
 
     preset_idx = 0
     while preset_idx < len(sorted_presets):
-
         preset = sorted_presets[preset_idx]
         preset_idx += 1
 
