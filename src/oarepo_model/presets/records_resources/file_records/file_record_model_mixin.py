@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2020-2024 CERN.
+# Copyright (c) 2025 CESNET z.s.p.o.
 #
-# Invenio-Records-Resources is free software; you can redistribute it and/or
-# modify it under the terms of the MIT License; see LICENSE file for more
-# details.
+# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
 
 # Note: copied here due to a bug in sqlalchemy that causes issues with inheritance
 # sqlalchemy bug https://github.com/sqlalchemy/sqlalchemy/issues/7366
