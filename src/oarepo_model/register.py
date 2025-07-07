@@ -7,9 +7,11 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 #
 import importlib.abc
+import importlib.resources.abc
 import importlib.util
 import sys
 from importlib.metadata import Distribution, DistributionFinder
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Optional
 
@@ -50,6 +52,34 @@ Version: {self.model.version}
         return []
 
 
+def locate_file(namespace, name):
+    name_list = name.split(".")[1:]
+    pth = None
+    for n in name_list:
+        if pth is not None:
+            pth = pth / n
+        else:
+            pth = Path(getattr(namespace, n).__file__).parent
+
+    return FileReader(pth)
+
+
+class FileReader(importlib.resources.abc.TraversableResources):
+    def __init__(self, pth):
+        self.path = pth
+
+    def resource_path(self, resource):
+        """
+        Return the file system path to prevent
+        `resources.path()` from creating a temporary
+        copy.
+        """
+        return str(self.path.joinpath(resource))
+
+    def files(self):
+        return self.path
+
+
 class ModelImporter(importlib.abc.MetaPathFinder):
     def __init__(self, model: InvenioModel, namespace: SimpleNamespace):
         self.model = model
@@ -66,6 +96,12 @@ class ModelImporter(importlib.abc.MetaPathFinder):
 
                 def exec_module(self, module):
                     module.__dict__.update(namespace.__dict__)
+
+                def get_resource_reader(self, name):
+                    raise NotImplementedError(
+                        "ModelImporter does not support resource "
+                        "reading for the root of the generated model"
+                    )
 
             return importlib.util.spec_from_loader(
                 fullname, loader=Loader(), is_package=True
@@ -87,6 +123,9 @@ class ModelImporter(importlib.abc.MetaPathFinder):
                             getattr(namespace, submodule_root).__dict__
                         )
 
+                    def get_resource_reader(self, name):
+                        return locate_file(namespace, name)
+
             else:
 
                 class Loader:
@@ -95,6 +134,9 @@ class ModelImporter(importlib.abc.MetaPathFinder):
 
                     def exec_module(self, module):
                         pass
+
+                    def get_resource_reader(self, name):
+                        return locate_file(namespace, name)
 
             return importlib.util.spec_from_loader(
                 fullname, loader=Loader(), is_package=True
@@ -110,7 +152,13 @@ class ModelImporter(importlib.abc.MetaPathFinder):
         loading the metadata for packages matching the ``context``,
         a DistributionFinder.Context instance.
         """
-        return [ModelDistribution(self.model, self.namespace)]
+        if (
+            not context.name
+            or context.name.lower().replace("-", "_")
+            == f"runtime_models_{self.model.name}"
+        ):
+            return [ModelDistribution(self.model, self.namespace)]
+        return []
 
 
 def register_model(model: InvenioModel, namespace: SimpleNamespace):

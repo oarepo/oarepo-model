@@ -65,10 +65,26 @@ class ExtPreset(Preset):
                 self.init_extensions(app)
 
             def init_extensions(self, app):
+                """Initialize extensions."""
+                # This method can be overridden in subclasses to initialize
+                # additional extensions or services.
                 pass
 
             def init_config(self, app):
                 """Initialize configuration."""
+                OAREPO_PRIMARY_RECORD_SERVICE = app.config.setdefault(
+                    "OAREPO_PRIMARY_RECORD_SERVICE", {}
+                )
+                for record_service_getter in runtime_dependencies.get(
+                    "primary_record_service",
+                ):
+                    record_class, record_service_id = record_service_getter(
+                        runtime_dependencies
+                    )
+                    if record_class not in OAREPO_PRIMARY_RECORD_SERVICE:
+                        # Register the primary record service for the record class
+                        # if it is not already registered.
+                        OAREPO_PRIMARY_RECORD_SERVICE[record_class] = record_service_id
 
         class ServicesResourcesExtMixin(ModelMixin):
             """
@@ -109,6 +125,9 @@ class ExtPreset(Preset):
                         runtime_dependencies.get("RecordResourceConfig"), self.app
                     ),
                 }
+
+            def init_config(self, app):
+                super().init_config(app)
 
         yield AddClass("Ext", clazz=ExtBase)
         yield AddMixins("Ext", ServicesResourcesExtMixin)
@@ -163,11 +182,11 @@ class ExtPreset(Preset):
 
         yield AddToDictionary(
             "app_application_blueprint_initializers",
-            "records_service",
-            add_to_service_and_indexer_registry,
+            key="records_service",
+            value=add_to_service_and_indexer_registry,
         )
         yield AddToDictionary(
             "api_application_blueprint_initializers",
-            "records_service",
-            add_to_service_and_indexer_registry,
+            key="records_service",
+            value=add_to_service_and_indexer_registry,
         )

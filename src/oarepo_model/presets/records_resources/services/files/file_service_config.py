@@ -19,11 +19,7 @@ from invenio_records_resources.services.records.links import (
 )
 from oarepo_runtime.services.config.permissions_presets import EveryonePermissionPolicy
 
-from oarepo_model.customizations import (
-    AddClass,
-    AddMixins,
-    Customization,
-)
+from oarepo_model.customizations import AddClass, AddMixins, AddToList, Customization
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
@@ -78,3 +74,11 @@ class FileServiceConfigPreset(Preset):
 
         yield AddClass("FileServiceConfig", clazz=FileServiceConfig)
         yield AddMixins("FileServiceConfig", FileServiceConfigMixin)
+
+        yield AddToList(
+            "primary_record_service",
+            lambda runtime_dependencies: (
+                runtime_dependencies.get("FileRecord"),
+                runtime_dependencies.get("FileServiceConfig").service_id,
+            ),
+        )

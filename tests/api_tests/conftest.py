@@ -15,6 +15,12 @@ def test_service(app):
 
 
 @pytest.fixture(scope="module")
+def test_draft_service(app):
+    """Service instance."""
+    return app.extensions["draft_test"].records_service
+
+
+@pytest.fixture(scope="module")
 def file_service(app):
     """Service instance."""
     return app.extensions["test"].files_service
@@ -29,3 +35,11 @@ def input_data():
             "enabled": True,
         },
     }
+
+
+@pytest.fixture(scope="function")
+def input_data_with_files_disabled(input_data):
+    """Input data with files disabled."""
+    data = input_data.copy()
+    data["files"]["enabled"] = False
+    return data

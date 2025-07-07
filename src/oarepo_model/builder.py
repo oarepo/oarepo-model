@@ -12,7 +12,11 @@ from typing import Any, Iterable, cast
 
 from werkzeug.local import LocalProxy
 
-from oarepo_model.errors import AlreadyRegisteredError, PartialNotFoundError
+from oarepo_model.errors import (
+    AlreadyRegisteredError,
+    ClassBuildError,
+    PartialNotFoundError,
+)
 
 from .model import InvenioModel, RuntimeDependencies
 from .utils import (
@@ -68,9 +72,14 @@ class BuilderClass(Partial):
             *self.mixins,
             *self.base_classes,
         ]
-        if not is_mro_consistent(base_list):
-            # If the MRO is not consistent, we need to make it consistent
-            base_list = make_mro_consistent(base_list)
+        try:
+            if not is_mro_consistent(base_list):
+                # If the MRO is not consistent, we need to make it consistent
+                base_list = make_mro_consistent(base_list)
+        except Exception as e:
+            raise ClassBuildError(
+                f"Error while building class {self.class_name}: {base_list} {e}"
+            ) from e
 
         return type(
             self.class_name,

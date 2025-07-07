@@ -35,7 +35,7 @@ class RecordResourceConfigPreset(Preset):
     Preset for record resource config class.
     """
 
-    provides = ["RecordResourceConfig", "record_api_routes", "record_response_handlers"]
+    provides = ["RecordResourceConfig", "record_response_handlers"]
 
     def apply(
         self,
@@ -47,7 +47,6 @@ class RecordResourceConfigPreset(Preset):
             # Blueprint configuration
             blueprint_name = builder.model.base_name
             url_prefix = f"/{builder.model.slug}"
-            routes = Dependency("record_api_routes")
 
             # Response handling
             response_handlers = Dependency("record_response_handlers")
@@ -61,13 +60,5 @@ class RecordResourceConfigPreset(Preset):
                 "application/json": ResponseHandler(
                     JSONSerializer(), headers=etag_headers
                 )
-            },
-        )
-
-        yield AddDictionary(
-            "record_api_routes",
-            {
-                "list": "",
-                "item": "/<pid_value>",
             },
         )

@@ -11,8 +11,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Generator
 
 from oarepo_runtime.records.dumpers import SearchDumper
+from oarepo_runtime.records.systemfields.mapping import SystemFieldDumperExt
 
-from oarepo_model.customizations import AddClass, AddClassList, AddMixins, Customization
+from oarepo_model.customizations import (
+    AddClass,
+    AddClassList,
+    AddMixins,
+    AddToList,
+    Customization,
+)
 from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
@@ -43,3 +50,11 @@ class RecordDumperPreset(Preset):
         yield AddClass("RecordDumper", clazz=SearchDumper)
         yield AddMixins("RecordDumper", RecordDumperMixin)
         yield AddClassList("record_dumper_extensions")
+
+        # TODO: we might not need this extension at all, as we should implement
+        # pre_dump/post_load on our systemfields instead of methods handled
+        # by this extension !!!
+        yield AddToList(
+            "record_dumper_extensions",
+            SystemFieldDumperExt,
+        )

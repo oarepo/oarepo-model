@@ -87,6 +87,7 @@ def model(
         build_dependencies = {
             dep: builder.build_partial(dep) for dep in preset.depends_on
         }
+        # print("Applying preset:", preset.__class__.__name__)
         for customization in preset.apply(builder, model, build_dependencies):
             try:
                 customization.apply(builder, model)
@@ -101,9 +102,22 @@ def model(
 
     # maybe replace this with a LazyNamespace if there are dependency issues
     ret = builder.build()
-
+    run_checks(ret)
     ret.register = partial(register_model, model=model, namespace=ret)
     return ret
+
+
+def run_checks(model: SimpleNamespace) -> None:
+    # for each of sqlalchemy models, check if they have a valid table name
+    from invenio_db import db
+
+    for key, value in model.__dict__.items():
+        if isinstance(value, type) and issubclass(value, db.Model):
+            attr = getattr(value, "__tablename__", None)
+            if not attr:
+                raise ValueError(
+                    f"Model {model.name} has a SQLAlchemy model {key} without a valid __tablename__."
+                )
 
 
 def sort_presets(presets: list[Preset]) -> list[Preset]:
