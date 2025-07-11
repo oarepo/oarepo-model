@@ -7,8 +7,10 @@ from .records.parent_record import ParentRecordPreset
 from .records.parent_record_metadata import ParentRecordMetadataPreset
 from .records.parent_record_state import ParentRecordStatePreset
 from .records.pid_provider import PIDProviderPreset
-from .records.record_metadata_with_parent import RecordMetadataWithParentPreset
-from .records.record_with_parent import RecordWithParentPreset
+from .records.published_record_metadata_with_parent import (
+    RecordMetadataWithParentPreset,
+)
+from .records.published_record_with_parent import RecordWithParentPreset
 from .resources.records.resource import DraftRecordResourcePreset
 from .resources.records.resource_config import DraftRecordResourceConfigPreset
 from .services.records.service import DraftRecordServicePreset
