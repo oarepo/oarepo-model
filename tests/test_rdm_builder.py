@@ -11,6 +11,8 @@ def test_rdm_builder():
         name="test",
         version="1.0.0",
         presets=[records_resources_presets, drafts_presets, rdm_presets],
+        debug=True,
     )
 
     assert issubclass(empty_model.Record, RDMRecord)
+    assert False

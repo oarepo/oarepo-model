@@ -9,7 +9,8 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
-from invenio_records_resources.records.api import Record as InvenioRecord
+
+from invenio_drafts_resources.records.api import Record as InvenioRecord
 from invenio_rdm_records.records.api import RDMRecord
 
 from oarepo_model.customizations import ChangeBase, Customization
