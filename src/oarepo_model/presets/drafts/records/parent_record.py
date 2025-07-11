@@ -10,9 +10,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
+from invenio_drafts_resources.records import ParentRecord as InvenioParentRecord
 from invenio_records.systemfields import ConstantField
-from invenio_records_resources.records.api import Record as InvenioRecord
-from invenio_records_resources.records.systemfields import IndexField
 
 from oarepo_model.customizations import (
     AddClass,
@@ -26,20 +25,19 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class RecordPreset(Preset):
+class ParentRecordPreset(Preset):
     """
-    Preset for records_resources.records
+    Preset for invenio_drafts_resources.records
     """
 
+    provides = [
+        "ParentRecord",
+    ]
+
     depends_on = [
-        "RecordMetadata",
         "PIDField",
         "PIDProvider",
         "PIDFieldContext",
-    ]
-
-    provides = [
-        "Record",
     ]
 
     def apply(
@@ -48,37 +46,28 @@ class RecordPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class RecordMixin:
-            """Base class for records in the model.
-            This class extends InvenioRecord and can be customized further.
-            """
+        class ParentRecordMixin:
+            """Base class for parent records in the model."""
 
-            model_cls = Dependency("RecordMetadata")
+            model_cls = Dependency("ParentRecordMetadata")
 
             schema = ConstantField(
                 "$schema",
-                f"local://{builder.model.base_name}-v1.0.0.json",
-            )
-
-            index = IndexField(
-                f"{builder.model.base_name}-metadata-v1.0.0",
+                "local://parent-v1.0.0.json",
             )
 
             pid = dependencies["PIDField"](
                 provider=dependencies["PIDProvider"],
                 context_cls=dependencies["PIDFieldContext"],
                 create=True,
-            )
-
-            dumper = Dependency(
-                "RecordDumper", transform=lambda RecordDumper: RecordDumper()
+                delete=True,
             )
 
         yield AddClass(
-            "Record",
-            clazz=InvenioRecord,
+            "ParentRecord",
+            clazz=InvenioParentRecord,
         )
         yield AddMixins(
-            "Record",
-            RecordMixin,
+            "ParentRecord",
+            ParentRecordMixin,
         )

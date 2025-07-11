@@ -24,3 +24,7 @@ class BaseClassNotFoundError(ModelBuildError):
 
 class ApplyCustomizationError(ModelBuildError):
     """Exception raised when applying a customization fails."""
+
+
+class ClassBuildError(ApplyCustomizationError):
+    """Exception raised when building a class fails."""

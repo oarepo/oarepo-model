@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any, Generator
 from oarepo_model.customizations import (
     AddDictionary,
     AddEntryPoint,
-    AddModule,
     AddToModule,
     Customization,
 )
@@ -29,7 +28,8 @@ class ApiBlueprintPreset(Preset):
     Preset for api blueprint.
     """
 
-    provides = ["blueprints", "api_application_blueprint_initializers"]
+    modifies = ["blueprints"]
+    provides = ["api_application_blueprint_initializers"]
 
     def apply(
         self,
@@ -37,7 +37,6 @@ class ApiBlueprintPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        yield AddModule("blueprints", exists_ok=True)
 
         yield AddDictionary("api_application_blueprint_initializers", exists_ok=True)
 

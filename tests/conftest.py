@@ -1,3 +1,4 @@
+import copy
 import json
 import sys
 import time
@@ -61,6 +62,64 @@ class TestRecordSchema(BaseRecordSchema):
             return get_value(obj, attr, default)
 
 
+jsonschema = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "metadata": {
+            "type": "object",
+            "properties": {"title": {"type": "string"}},
+        }
+    },
+}
+
+mapping = {
+    "mappings": {
+        "properties": {
+            "$schema": {
+                "type": "keyword",
+            },
+            "created": {"type": "date"},
+            "id": {
+                "type": "keyword",
+            },
+            "metadata": {
+                "properties": {
+                    "title": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256,
+                            }
+                        },
+                    }
+                }
+            },
+            "pid": {
+                "properties": {
+                    "obj_type": {
+                        "type": "keyword",
+                    },
+                    "pid_type": {
+                        "type": "keyword",
+                    },
+                    "pk": {"type": "long"},
+                    "status": {
+                        "type": "keyword",
+                    },
+                }
+            },
+            "updated": {"type": "date"},
+            "uuid": {
+                "type": "keyword",
+            },
+            "version_id": {"type": "long"},
+        }
+    }
+}
+
+
 @pytest.fixture(scope="module")
 def empty_model():
     from oarepo_model.api import model
@@ -78,70 +137,13 @@ def empty_model():
             AddFileToModule(
                 "jsonschemas",
                 "test-v1.0.0.json",
-                json.dumps(
-                    {
-                        "$schema": "http://json-schema.org/draft-07/schema#",
-                        "type": "object",
-                        "properties": {
-                            "metadata": {
-                                "type": "object",
-                                "properties": {"title": {"type": "string"}},
-                            }
-                        },
-                    }
-                ),
+                json.dumps(jsonschema),
             ),
             # needs https://github.com/inveniosoftware/invenio-search/pull/238/files
             AddFileToModule(
                 "mappings",
                 "os-v2/test/metadata-v1.0.0.json",
-                json.dumps(
-                    {
-                        "mappings": {
-                            "properties": {
-                                "$schema": {
-                                    "type": "keyword",
-                                },
-                                "created": {"type": "date"},
-                                "id": {
-                                    "type": "keyword",
-                                },
-                                "metadata": {
-                                    "properties": {
-                                        "title": {
-                                            "type": "text",
-                                            "fields": {
-                                                "keyword": {
-                                                    "type": "keyword",
-                                                    "ignore_above": 256,
-                                                }
-                                            },
-                                        }
-                                    }
-                                },
-                                "pid": {
-                                    "properties": {
-                                        "obj_type": {
-                                            "type": "keyword",
-                                        },
-                                        "pid_type": {
-                                            "type": "keyword",
-                                        },
-                                        "pk": {"type": "long"},
-                                        "status": {
-                                            "type": "keyword",
-                                        },
-                                    }
-                                },
-                                "updated": {"type": "date"},
-                                "uuid": {
-                                    "type": "keyword",
-                                },
-                                "version_id": {"type": "long"},
-                            }
-                        }
-                    }
-                ),
+                json.dumps(mapping),
             ),
         ],
     )
@@ -154,7 +156,56 @@ def empty_model():
 
 
 @pytest.fixture(scope="module")
-def app_config(app_config, empty_model):
+def draft_model():
+    from oarepo_model.api import model
+    from oarepo_model.customizations import AddClass, AddFileToModule
+    from oarepo_model.presets.drafts import drafts_presets
+    from oarepo_model.presets.records_resources import records_presets
+
+    t1 = time.time()
+    mapping_with_parent = copy.deepcopy(mapping)
+    mapping_with_parent["mappings"]["properties"]["parent"] = {
+        "properties": {
+            "id": {"type": "keyword"},
+        }
+    }
+
+    draft_model = model(
+        name="draft_test",
+        version="1.0.0",
+        presets=[records_presets, drafts_presets],
+        customizations=[
+            AddClass("RecordSchema", TestRecordSchema),
+            AddFileToModule(
+                "jsonschemas",
+                "draft_test-v1.0.0.json",
+                json.dumps(jsonschema),
+            ),
+            # needs https://github.com/inveniosoftware/invenio-search/pull/238/files
+            # draft metadata mapping
+            AddFileToModule(
+                "mappings",
+                "os-v2/draft_test/draft-metadata-v1.0.0.json",
+                json.dumps(mapping_with_parent),
+            ),
+            # record metadata mapping
+            AddFileToModule(
+                "mappings",
+                "os-v2/draft_test/metadata-v1.0.0.json",
+                json.dumps(mapping_with_parent),
+            ),
+        ],
+    )
+    draft_model.register()
+
+    t2 = time.time()
+    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+
+    return draft_model
+
+
+@pytest.fixture(scope="module")
+def app_config(app_config, empty_model, draft_model):
     """Override pytest-invenio app_config fixture.
 
     Needed to set the fields on the custom fields schema.
@@ -174,12 +225,14 @@ def app_config(app_config, empty_model):
 
     app_config["THEME_FRONTPAGE"] = False
 
-    app_config[
-        "SQLALCHEMY_ENGINE_OPTIONS"
-    ] = {  # hack to avoid pool_timeout set in invenio_app_rdm
-        "pool_pre_ping": False,
-        "pool_recycle": 3600,
-    }
+    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = (
+        {  # hack to avoid pool_timeout set in invenio_app_rdm
+            "pool_pre_ping": False,
+            "pool_recycle": 3600,
+        }
+    )
+
+    # app_config["SQLALCHEMY_ECHO"] = True
 
     return app_config
 
@@ -192,3 +245,11 @@ def identity_simple():
     i.provides.add(Need(method="system_role", value="any_user"))
     i.provides.add(Need(method="system_role", value="authenticated_user"))
     return i
+
+
+@pytest.fixture(scope="module")
+def create_app(instance_path, entry_points):
+    """Application factory fixture."""
+    from invenio_app.factory import create_api as _create_api
+
+    return _create_api

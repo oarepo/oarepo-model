@@ -10,9 +10,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_records_resources.services.records.components import FilesComponent
+from invenio_drafts_resources.records import (
+    ParentRecordMixin,
+)
+from sqlalchemy.orm import declared_attr
 
-from oarepo_model.customizations import AddToList, Customization
+from oarepo_model.customizations import (
+    AddBaseClasses,
+    AddMixins,
+    Customization,
+)
 from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
@@ -20,12 +27,17 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class FileRecordServiceComponentsPreset(Preset):
+class RecordMetadataWithParentPreset(Preset):
     """
-    Preset for file record service components.
+    Preset for record metadata class
     """
 
-    modifies = ["record_service_components"]
+    modifies = [
+        "RecordMetadata",
+    ]
+    depends_on = [
+        "ParentRecordMetadata",
+    ]
 
     def apply(
         self,
@@ -33,4 +45,11 @@ class FileRecordServiceComponentsPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        yield AddToList("record_service_components", FilesComponent)
+
+        class ParentRecordModelMixin:
+            @declared_attr
+            def __parent_record_model__(cls):
+                return dependencies["ParentRecordMetadata"]
+
+        yield AddBaseClasses("RecordMetadata", ParentRecordMixin)
+        yield AddMixins("RecordMetadata", ParentRecordModelMixin)

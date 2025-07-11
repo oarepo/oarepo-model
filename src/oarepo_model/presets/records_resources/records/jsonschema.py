@@ -39,7 +39,13 @@ class JSONSchemaPreset(Preset):
         # instead of direct file system access
 
         jsonschemas_dir = str(Path(tempfile.mkdtemp() + "/jsonschemas").resolve())
-        atexit.register(shutil.rmtree, jsonschemas_dir)
+
+        def cleanup(dirname):
+            """Cleanup function to remove the jsonschemas directory."""
+            if Path(dirname).exists():
+                shutil.rmtree(dirname)
+
+        atexit.register(cleanup, jsonschemas_dir)
         yield AddModule("jsonschemas", file_path=jsonschemas_dir, exists_ok=True)
 
         yield AddEntryPoint(

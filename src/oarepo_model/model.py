@@ -10,6 +10,8 @@ import dataclasses
 from types import SimpleNamespace
 from typing import Any, Callable
 
+from .utils import title_case
+
 
 @dataclasses.dataclass
 class InvenioModel:
@@ -37,7 +39,7 @@ class InvenioModel:
         """Return the title case version of the model name."""
         if "title_name" in self.configuration:
             return self.configuration["title_name"]
-        return self.base_name.title().replace("_", " ").replace("-", " ")
+        return title_case(self.base_name)
 
 
 class CachedDescriptor:
@@ -202,6 +204,9 @@ class Dependency(CachedDescriptor):
             return self.transform(*ret)
 
         if len(ret) == 1:
+            assert (
+                ret[0] is not None
+            ), f"Dependency {self.keys[0]} is None, but expected a value."
             return ret[0]
         return ret
 

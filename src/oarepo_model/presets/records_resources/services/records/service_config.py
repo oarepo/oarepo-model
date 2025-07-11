@@ -29,6 +29,7 @@ from oarepo_model.customizations import (
     AddClassList,
     AddDictionary,
     AddMixins,
+    AddToList,
     Customization,
 )
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
@@ -152,4 +153,12 @@ class RecordServiceConfigPreset(Preset):
                 "self": RecordLink(api_url, when=has_permission("read")),
                 "self_html": RecordLink(ui_url, when=has_permission("read")),
             },
+        )
+
+        yield AddToList(
+            "primary_record_service",
+            lambda runtime_dependencies: (
+                runtime_dependencies.get("Record"),
+                runtime_dependencies.get("RecordServiceConfig").service_id,
+            ),
         )

@@ -21,7 +21,12 @@ class AddToDictionary(Customization):
     """Customization to add a value to a dictionary to the model."""
 
     def __init__(
-        self, dictionary_name: str, key: str, value: Any, exists_ok: bool = False
+        self,
+        dictionary_name: str,
+        *values,
+        key: str | None = None,
+        value: Any = None,
+        exists_ok: bool = False,
     ) -> None:
         """Initialize the AddDictionary customization.
 
@@ -32,13 +37,17 @@ class AddToDictionary(Customization):
         super().__init__(dictionary_name)
         self.key = key
         self.value = value
+        self.values = values
         self.exists_ok = exists_ok
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         d = builder.add_dictionary(self.name, exists_ok=True)
-        if self.key in d and not self.exists_ok:
-            raise ValueError(
-                f"Key '{self.key}' already exists in dictionary '{self.name}'."
-            )
-        d[self.key] = self.value
+        for value in self.values:
+            d.update(value)
+        if self.key is not None:
+            if self.key in d and not self.exists_ok:
+                raise ValueError(
+                    f"Key '{self.key}' already exists in dictionary '{self.name}'."
+                )
+            d[self.key] = self.value

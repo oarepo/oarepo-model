@@ -39,7 +39,13 @@ class MappingPreset(Preset):
         # instead of direct file system access
 
         mappings_dir = str(Path(tempfile.mkdtemp() + "/mappings").resolve())
-        atexit.register(shutil.rmtree, mappings_dir)
+
+        def cleanup(dirname):
+            """Cleanup function to remove the mappings directory."""
+            if Path(dirname).exists():
+                shutil.rmtree(dirname)
+
+        atexit.register(cleanup, mappings_dir)
         yield AddModule("mappings", file_path=mappings_dir, exists_ok=True)
 
         yield AddEntryPoint(

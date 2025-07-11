@@ -10,9 +10,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
+from invenio_drafts_resources.records import Draft as InvenioDraftRecord
+from invenio_rdm_records.records.systemfields import HasDraftCheckField
 from invenio_records.systemfields import ConstantField
-from invenio_records_resources.records.api import Record as InvenioRecord
 from invenio_records_resources.records.systemfields import IndexField
+from oarepo_runtime.records.systemfields.record_status import RecordStatusSystemField
 
 from oarepo_model.customizations import (
     AddClass,
@@ -26,9 +28,9 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class RecordPreset(Preset):
+class DraftRecordPreset(Preset):
     """
-    Preset for records_resources.records
+    Preset for Draft record.
     """
 
     depends_on = [
@@ -39,7 +41,7 @@ class RecordPreset(Preset):
     ]
 
     provides = [
-        "Record",
+        "DraftRecord",
     ]
 
     def apply(
@@ -48,12 +50,14 @@ class RecordPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class RecordMixin:
+        class DraftRecordMixin:
             """Base class for records in the model.
             This class extends InvenioRecord and can be customized further.
             """
 
-            model_cls = Dependency("RecordMetadata")
+            model_cls = Dependency("DraftRecordMetadata")
+            versions_model_cls = Dependency("ParentRecordState")
+            parent_record_cls = Dependency("ParentRecord")
 
             schema = ConstantField(
                 "$schema",
@@ -61,24 +65,35 @@ class RecordPreset(Preset):
             )
 
             index = IndexField(
-                f"{builder.model.base_name}-metadata-v1.0.0",
+                f"{builder.model.base_name}-draft-metadata-v1.0.0",
+                search_alias=f"{builder.model.base_name}",
             )
 
             pid = dependencies["PIDField"](
                 provider=dependencies["PIDProvider"],
                 context_cls=dependencies["PIDFieldContext"],
                 create=True,
+                delete=False,
             )
 
             dumper = Dependency(
                 "RecordDumper", transform=lambda RecordDumper: RecordDumper()
             )
 
+            # note: we need to use the has_draft field from rdm records
+            # even if this is the draft record - unfortunately the system field
+            # is defined in the invenio-rdm-records package
+            has_draft = HasDraftCheckField()
+
+            # TODO: remove this field - note that we need to change the implementation
+            # if the RecordList to use "is_draft" instead of "record_status"
+            record_status = RecordStatusSystemField()
+
         yield AddClass(
-            "Record",
-            clazz=InvenioRecord,
+            "DraftRecord",
+            clazz=InvenioDraftRecord,
         )
         yield AddMixins(
-            "Record",
-            RecordMixin,
+            "DraftRecord",
+            DraftRecordMixin,
         )

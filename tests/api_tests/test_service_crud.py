@@ -11,6 +11,7 @@ def test_simple_flow(
     identity_simple,
     input_data,
     empty_model,
+    search,
     search_clear,
     location,
 ):

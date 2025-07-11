@@ -28,7 +28,7 @@ class ApiFilesBlueprintPreset(Preset):
     Preset for api blueprint.
     """
 
-    provides = ["blueprints"]
+    modifies = ["blueprints"]
 
     def apply(
         self,

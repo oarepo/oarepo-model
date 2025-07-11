@@ -8,11 +8,13 @@
 #
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_records_resources.services.records.components import FilesComponent
-
-from oarepo_model.customizations import AddToList, Customization
+from oarepo_model.customizations import (
+    AddFileToModule,
+    Customization,
+)
 from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
@@ -20,12 +22,14 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class FileRecordServiceComponentsPreset(Preset):
+class ParentJSONSchemaPreset(Preset):
     """
-    Preset for file record service components.
+    Adds parent JSON schema to the model.
     """
 
-    modifies = ["record_service_components"]
+    provides = [
+        "parent_json_schema",
+    ]
 
     def apply(
         self,
@@ -33,4 +37,16 @@ class FileRecordServiceComponentsPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        yield AddToList("record_service_components", FilesComponent)
+
+        yield AddFileToModule(
+            "jsonschemas",
+            "parent-v1.0.0.json",
+            json.dumps(
+                {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "$id": "local://parent-v1.0.0.json",
+                    "type": "object",
+                    "properties": {"id": {"type": "string"}},
+                }
+            ),
+        )

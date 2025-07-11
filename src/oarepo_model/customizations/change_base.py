@@ -48,6 +48,10 @@ class ChangeBase(Customization):
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         clz = builder.get_class(self.name)
+        if clz.built:
+            raise RuntimeError(
+                f"Cannot change base class of {self.name} after it has been built."
+            )
         for idx, base in enumerate(clz.base_classes):
             if (
                 self.old_base_class is base
