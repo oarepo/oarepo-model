@@ -6,9 +6,11 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+import functools
+import logging
 from functools import partial
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Callable, cast
 
 from .builder import InvenioModelBuilder
 from .customizations import Customization
@@ -18,7 +20,31 @@ from .presets import Preset
 from .register import register_model
 from .sorter import sort_presets
 
+log = logging.getLogger("oarepo_model")
 
+
+def with_debugging[F: Callable](func: F) -> F:
+    """
+    Decorator to enable debugging for the model creation function.
+    It will print debug information if the debug flag is set.
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        debug = kwargs.pop("debug", False)
+        if debug:
+            current_level = log.level
+            log.setLevel(logging.DEBUG)
+        try:
+            return func(*args, **kwargs)
+        finally:
+            if debug:
+                log.setLevel(current_level)
+
+    return cast(F, wrapper)
+
+
+@with_debugging
 def model(
     name: str,
     presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]] = [],

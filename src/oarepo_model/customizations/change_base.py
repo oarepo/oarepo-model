@@ -8,11 +8,14 @@
 #
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, override
 
 from oarepo_model.errors import BaseClassNotFoundError
 
 from .base import Customization
+
+log = logging.getLogger("oarepo_model")
 
 if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
@@ -63,7 +66,10 @@ class ChangeBase(Customization):
         else:
             if self.fail:
                 raise BaseClassNotFoundError(
-                    f"Base class {self.old_base_class.__name__} not found in {self.name} base classes {clz.base_classes}."
+                    f"Base class {self.old_base_class} not found in {self.name} base classes {clz.base_classes}."
                 )
             else:
+                log.debug(
+                    f"Base class {self.old_base_class} not found in {self.name} base classes {clz.base_classes}, skipping change."
+                )
                 return
