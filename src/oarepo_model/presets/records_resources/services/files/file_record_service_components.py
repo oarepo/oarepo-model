@@ -25,7 +25,7 @@ class FileRecordServiceComponentsPreset(Preset):
     Preset for file record service components.
     """
 
-    provides = ["record_service_components"]
+    modifies = ["record_service_components"]
 
     def apply(
         self,

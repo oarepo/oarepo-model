@@ -35,6 +35,9 @@ class ExtPreset(Preset):
 
     provides = [
         "Ext",
+    ]
+
+    modifies = [
         "app_application_blueprint_initializers",
         "api_application_blueprint_initializers",
     ]

@@ -36,3 +36,6 @@ class Preset:
         This method should be overridden by subclasses.
         """
         raise NotImplementedError("Subclasses must implement this method.")
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}[{self.__class__.__module__}]"

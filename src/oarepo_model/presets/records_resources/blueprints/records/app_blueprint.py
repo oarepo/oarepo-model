@@ -15,7 +15,6 @@ from flask import Blueprint
 from oarepo_model.customizations import (
     AddDictionary,
     AddEntryPoint,
-    AddModule,
     AddToModule,
     Customization,
 )
@@ -31,7 +30,8 @@ class AppBlueprintPreset(Preset):
     Preset for app blueprint.
     """
 
-    provides = ["blueprints", "app_application_blueprint_initializers"]
+    modifies = ["blueprints"]
+    provides = ["app_application_blueprint_initializers"]
 
     def apply(
         self,
@@ -39,7 +39,6 @@ class AppBlueprintPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        yield AddModule("blueprints", exists_ok=True)
 
         yield AddDictionary("app_application_blueprint_initializers", exists_ok=True)
 

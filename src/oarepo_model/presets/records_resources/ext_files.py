@@ -30,7 +30,7 @@ class ExtFilesPreset(Preset):
     Preset for extension class.
     """
 
-    provides = [
+    modifies = [
         "Ext",
     ]
 

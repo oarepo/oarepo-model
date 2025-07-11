@@ -6,6 +6,7 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+from .blueprints.blueprint_module import BlueprintModulePreset
 from .blueprints.files.api_blueprint import ApiFilesBlueprintPreset
 from .blueprints.records.api_blueprint import ApiBlueprintPreset
 from .blueprints.records.app_blueprint import AppBlueprintPreset
@@ -61,6 +62,7 @@ records_presets = [
     # extension
     ExtPreset,
     ProxyPreset,
+    BlueprintModulePreset,
     ApiBlueprintPreset,
     AppBlueprintPreset,
 ]
