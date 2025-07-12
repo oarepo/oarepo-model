@@ -21,6 +21,18 @@ def test_draft_service(app):
 
 
 @pytest.fixture(scope="module")
+def draft_service_with_files(app):
+    """Service instance."""
+    return app.extensions["draft_with_files"].records_service
+
+
+@pytest.fixture(scope="module")
+def draft_file_service(app):
+    """Service instance."""
+    return app.extensions["draft_with_files"].draft_files_service
+
+
+@pytest.fixture(scope="module")
 def file_service(app):
     """Service instance."""
     return app.extensions["test"].files_service

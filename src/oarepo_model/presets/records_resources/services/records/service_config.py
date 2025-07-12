@@ -21,7 +21,6 @@ from invenio_records_resources.services.records.config import (
 from oarepo_runtime.services.config import (
     has_permission,
 )
-from oarepo_runtime.services.config.permissions_presets import EveryonePermissionPolicy
 from oarepo_runtime.services.records import pagination_links_html
 
 from oarepo_model.customizations import (
@@ -69,7 +68,7 @@ class RecordServiceConfigPreset(Preset):
 
             url_prefix = f"/{builder.model.slug}/"
 
-            permission_policy_cls = EveryonePermissionPolicy
+            permission_policy_cls = Dependency("PermissionPolicy")
 
             schema = Dependency("RecordSchema")
 

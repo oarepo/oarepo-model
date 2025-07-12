@@ -39,7 +39,7 @@ class ParentRecordStatePreset(Preset):
     depends_on = [
         "ParentRecordMetadata",
         "RecordMetadata",
-        "DraftRecordMetadata",
+        "DraftMetadata",
     ]
 
     def apply(
@@ -51,7 +51,7 @@ class ParentRecordStatePreset(Preset):
 
         class ParentRecordStateMixin:
             __record_model__ = dependencies["RecordMetadata"]
-            __draft_model__ = dependencies["DraftRecordMetadata"]
+            __draft_model__ = dependencies["DraftMetadata"]
             __parent_record_model__ = dependencies["ParentRecordMetadata"]
             __tablename__ = f"{builder.model.base_name}_parent_record_state"
             __table_args__ = {"extend_existing": True}

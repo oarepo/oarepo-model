@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_drafts_resources.records import Draft as InvenioDraftRecord
+from invenio_drafts_resources.records import Draft as InvenioDraft
 from invenio_rdm_records.records.systemfields import HasDraftCheckField
 from invenio_records.systemfields import ConstantField
 from invenio_records_resources.records.systemfields import IndexField
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftRecordPreset(Preset):
+class DraftPreset(Preset):
     """
     Preset for Draft record.
     """
@@ -41,7 +41,7 @@ class DraftRecordPreset(Preset):
     ]
 
     provides = [
-        "DraftRecord",
+        "Draft",
     ]
 
     def apply(
@@ -50,12 +50,12 @@ class DraftRecordPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class DraftRecordMixin:
+        class DraftMixin:
             """Base class for records in the model.
             This class extends InvenioRecord and can be customized further.
             """
 
-            model_cls = Dependency("DraftRecordMetadata")
+            model_cls = Dependency("DraftMetadata")
             versions_model_cls = Dependency("ParentRecordState")
             parent_record_cls = Dependency("ParentRecord")
 
@@ -90,10 +90,10 @@ class DraftRecordPreset(Preset):
             record_status = RecordStatusSystemField()
 
         yield AddClass(
-            "DraftRecord",
-            clazz=InvenioDraftRecord,
+            "Draft",
+            clazz=InvenioDraft,
         )
         yield AddMixins(
-            "DraftRecord",
-            DraftRecordMixin,
+            "Draft",
+            DraftMixin,
         )

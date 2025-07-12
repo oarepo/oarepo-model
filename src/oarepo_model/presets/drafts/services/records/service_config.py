@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Generator
 
 from invenio_drafts_resources.services import (
-    RecordServiceConfig as DraftRecordServiceConfig,
+    RecordServiceConfig as DraftServiceConfig,
 )
 from invenio_records_resources.services import (
     ConditionalLink,
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftRecordServiceConfigPreset(Preset):
+class DraftServiceConfigPreset(Preset):
     """
     Preset for record service config class.
     """
@@ -61,11 +61,9 @@ class DraftRecordServiceConfigPreset(Preset):
     ) -> Generator[Customization, None, None]:
 
         class DraftServiceConfigMixin(ModelMixin):
-            draft_cls = Dependency("DraftRecord")
+            draft_cls = Dependency("Draft")
 
-        yield ChangeBase(
-            "RecordServiceConfig", RecordServiceConfig, DraftRecordServiceConfig
-        )
+        yield ChangeBase("RecordServiceConfig", RecordServiceConfig, DraftServiceConfig)
         yield AddMixins("RecordServiceConfig", DraftServiceConfigMixin)
 
         api_base = "{+api}/" + builder.model.slug + "/"
@@ -129,7 +127,7 @@ class DraftRecordServiceConfigPreset(Preset):
         yield AddToList(
             "primary_record_service",
             lambda runtime_dependencies: (
-                runtime_dependencies.get("DraftRecord"),
+                runtime_dependencies.get("Draft"),
                 runtime_dependencies.get("RecordServiceConfig").service_id,
             ),
         )

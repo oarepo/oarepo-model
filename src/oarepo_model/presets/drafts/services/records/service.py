@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_drafts_resources.services import RecordService as DraftRecordService
+from invenio_drafts_resources.services import RecordService as DraftService
 from invenio_records_resources.services import RecordService
 
 from oarepo_model.customizations import ChangeBase, Customization
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftRecordServicePreset(Preset):
+class DraftServicePreset(Preset):
     """
     Preset for record service class.
     """
@@ -34,4 +34,4 @@ class DraftRecordServicePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        yield ChangeBase("RecordService", RecordService, DraftRecordService)
+        yield ChangeBase("RecordService", RecordService, DraftService)
