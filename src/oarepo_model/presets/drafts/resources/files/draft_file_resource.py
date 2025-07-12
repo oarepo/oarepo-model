@@ -10,15 +10,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_drafts_resources.resources import (
-    RecordResourceConfig as DraftResourceConfig,
-)
-from invenio_records_resources.resources.records.config import RecordResourceConfig
+from invenio_records_resources.resources import FileResource
 
-from oarepo_model.customizations import (
-    ChangeBase,
-    Customization,
-)
+from oarepo_model.customizations import AddClass, Customization
 from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
@@ -26,12 +20,12 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftResourceConfigPreset(Preset):
+class DraftFileResourcePreset(Preset):
     """
-    Preset for record resource config class.
+    Preset for file resource class.
     """
 
-    modifies = ["RecordResourceConfig"]
+    provides = ["DraftFileResource"]
 
     def apply(
         self,
@@ -39,9 +33,4 @@ class DraftResourceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
-        yield ChangeBase(
-            "RecordResourceConfig",
-            RecordResourceConfig,
-            DraftResourceConfig,
-        )
+        yield AddClass("DraftFileResource", FileResource)

@@ -8,13 +8,11 @@
 #
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any, Generator
 
-from oarepo_model.customizations import (
-    AddFileToModule,
-    Customization,
-)
+from invenio_records_resources.resources import FileResource
+
+from oarepo_model.customizations import AddClass, Customization
 from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
@@ -22,14 +20,12 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class ParentJSONSchemaPreset(Preset):
+class DraftMediaFileResourcePreset(Preset):
     """
-    Adds parent JSON schema to the model.
+    Preset for file resource class.
     """
 
-    provides = [
-        "parent_json_schema",
-    ]
+    provides = ["DraftMediaFileResource"]
 
     def apply(
         self,
@@ -37,16 +33,4 @@ class ParentJSONSchemaPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-
-        yield AddFileToModule(
-            "jsonschemas",
-            "parent-v1.0.0.json",
-            json.dumps(
-                {
-                    "$schema": "http://json-schema.org/draft-07/schema#",
-                    "$id": "local://parent-v1.0.0.json",
-                    "type": "object",
-                    "properties": {"id": {"type": "string"}},
-                }
-            ),
-        )
+        yield AddClass("DraftMediaFileResource", FileResource)
