@@ -42,6 +42,7 @@ class DraftMediaFileServiceConfigPreset(Preset):
             record_cls = Dependency("DraftMediaFiles")
             permission_policy_cls = Dependency("PermissionPolicy")
             permission_action_prefix = "draft_media_"
+            allow_upload = False
 
         yield AddClass("DraftMediaFileServiceConfig", clazz=FileServiceConfig)
         yield AddMixins("DraftMediaFileServiceConfig", DraftMediaFileServiceConfigMixin)
