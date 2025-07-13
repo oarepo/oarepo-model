@@ -7,11 +7,13 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 #
 from functools import partial
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 from .builder import InvenioModelBuilder
 from .customizations import Customization
+from .datatypes.registry import DataTypeRegistry
 from .errors import ApplyCustomizationError
 from .model import InvenioModel
 from .presets import Preset
@@ -27,6 +29,9 @@ def model(
     version: str = "0.1.0",
     configuration: dict[str, Any] | None = None,
     customizations: list[Customization] | None = None,
+    types: list[str | Path | dict[str, Any]] | None = None,
+    metadata_type: str | None = None,
+    record_type: str | None = None,
 ) -> SimpleNamespace:
     """
     Create a model with the given name, version, and presets.
@@ -45,7 +50,23 @@ def model(
         version=version,
         description=description,
         configuration=configuration or {},
+        metadata_type=metadata_type,
+        record_type=record_type,
     )
+
+    type_registry = DataTypeRegistry()
+    type_registry.load_entry_point()
+    if types:
+        for type_collection in types:
+            if isinstance(type_collection, dict):
+                type_registry.add_types(type_collection)
+            elif isinstance(type_collection, (str, Path)):
+                type_registry.add_types_from_path(type_collection)
+            else:
+                raise TypeError(
+                    f"Invalid type collection: {type_collection}. "
+                    "Expected a dict, str to a file or Path to the file."
+                )
 
     builder = InvenioModelBuilder(model)
 
