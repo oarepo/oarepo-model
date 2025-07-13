@@ -3,6 +3,8 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, override
 
+import marshmallow
+
 from .base import DataType
 
 if TYPE_CHECKING:
@@ -21,13 +23,12 @@ class WrappedDataType(DataType):
 
     @cached_property
     def impl(self) -> DataType:
-        type_name = self.type_dict.get("type")
-        if not type_name:
-            raise ValueError("Type dictionary must contain a 'type' key.")
-        return self._registry.get_type(type_name)
+        return self._registry.get_type(self.type_dict)
 
     @override
-    def create_marshmallow_field(self, field_name: str, element: dict[str, Any]) -> Any:
+    def create_marshmallow_field(
+        self, field_name: str, element: dict[str, Any]
+    ) -> marshmallow.fields.Field:
         """
         Create a Marshmallow field for the data type.
         This method should be overridden by subclasses to provide specific field creation logic.
@@ -40,6 +41,19 @@ class WrappedDataType(DataType):
         }
         merged = strict_merge(self.type_dict, element_without_type)
         return self.impl.create_marshmallow_field(field_name, merged)
+
+    def create_marshmallow_schema(
+        self, element: dict[str, Any]
+    ) -> type[marshmallow.Schema]:
+        """
+        Create a Marshmallow schema for the wrapped data type.
+        This method should be overridden by subclasses to provide specific schema creation logic.
+        """
+        if not hasattr(self.impl, "create_marshmallow_schema"):
+            raise NotImplementedError(
+                f"{self.impl.__class__.__name__} does not implement create_marshmallow_schema"
+            )
+        return self.impl.create_marshmallow_schema(self.type_dict)
 
 
 def strict_merge(a, b):

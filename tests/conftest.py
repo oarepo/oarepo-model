@@ -130,7 +130,7 @@ parent_json_schema = {
 @pytest.fixture(scope="module")
 def empty_model():
     from oarepo_model.api import model
-    from oarepo_model.customizations import AddClass, AddFileToModule
+    from oarepo_model.customizations import AddFileToModule
     from oarepo_model.presets.records_resources import records_resources_presets
 
     t1 = time.time()
@@ -139,8 +139,17 @@ def empty_model():
         name="test",
         version="1.0.0",
         presets=[records_resources_presets],
+        types=[
+            {
+                "Metadata": {
+                    "properties": {
+                        "title": {"type": "fulltext+keyword", "required": True},
+                    }
+                }
+            }
+        ],
+        metadata_type="Metadata",
         customizations=[
-            AddClass("RecordSchema", TestRecordSchema),
             AddFileToModule(
                 "jsonschemas",
                 "test-v1.0.0.json",
@@ -165,7 +174,7 @@ def empty_model():
 @pytest.fixture(scope="module")
 def draft_model():
     from oarepo_model.api import model
-    from oarepo_model.customizations import AddClass, AddFileToModule
+    from oarepo_model.customizations import AddFileToModule
     from oarepo_model.presets.drafts import drafts_records_presets
     from oarepo_model.presets.records_resources import records_presets
 
@@ -181,8 +190,17 @@ def draft_model():
         name="draft_test",
         version="1.0.0",
         presets=[records_presets, drafts_records_presets],
+        types=[
+            {
+                "Metadata": {
+                    "properties": {
+                        "title": {"type": "fulltext+keyword", "required": True},
+                    }
+                }
+            }
+        ],
+        metadata_type="Metadata",
         customizations=[
-            AddClass("RecordSchema", TestRecordSchema),
             AddFileToModule(
                 "jsonschemas",
                 "draft_test-v1.0.0.json",
@@ -227,7 +245,7 @@ def draft_model():
 @pytest.fixture(scope="module")
 def draft_model_with_files():
     from oarepo_model.api import model
-    from oarepo_model.customizations import AddClass, AddFileToModule
+    from oarepo_model.customizations import AddFileToModule
     from oarepo_model.presets.drafts import drafts_presets
     from oarepo_model.presets.records_resources import records_resources_presets
 
@@ -243,8 +261,17 @@ def draft_model_with_files():
         name="draft_with_files",
         version="1.0.0",
         presets=[records_resources_presets, drafts_presets],
+        types=[
+            {
+                "Metadata": {
+                    "properties": {
+                        "title": {"type": "fulltext+keyword", "required": True},
+                    }
+                }
+            }
+        ],
+        metadata_type="Metadata",
         customizations=[
-            AddClass("RecordSchema", TestRecordSchema),
             AddFileToModule(
                 "jsonschemas",
                 "draft_with_files-v1.0.0.json",

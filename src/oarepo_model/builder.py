@@ -18,6 +18,7 @@ from oarepo_model.errors import (
     PartialNotFoundError,
 )
 
+from .datatypes.registry import DataTypeRegistry
 from .model import InvenioModel, RuntimeDependencies
 from .utils import (
     is_mro_consistent,
@@ -171,12 +172,13 @@ class BuilderModule(Partial, SimpleNamespace):
 
 
 class InvenioModelBuilder:
-    def __init__(self, model: InvenioModel):
+    def __init__(self, model: InvenioModel, type_registry: DataTypeRegistry):
         self.model = model
         self.ns = SimpleNamespace()
         self.partials: dict[str, Partial] = {}
         self.entry_points: dict[tuple[str, str], str] = {}
         self.runtime_dependencies = RuntimeDependencies()
+        self.type_registry = type_registry
 
     def add_class(
         self, name: str, clazz: type | None = None, exists_ok: bool = False

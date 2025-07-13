@@ -32,7 +32,12 @@ from .services.files.file_record_service_components import (
 )
 from .services.files.file_service import FileServicePreset
 from .services.files.file_service_config import FileServiceConfigPreset
+from .services.files.record_with_files_schema import (
+    RecordWithFilesSchemaPreset,
+)
+from .services.records.metadata_schema import MetadataSchemaPreset
 from .services.records.permission_policy import PermissionPolicyPreset
+from .services.records.record_schema import RecordSchemaPreset
 from .services.records.results import (
     RecordResultComponentsPreset,
     RecordResultItemPreset,
@@ -58,6 +63,8 @@ records_presets = [
     RecordResultListPreset,
     RecordSearchOptionsPreset,
     PermissionPolicyPreset,
+    RecordSchemaPreset,
+    MetadataSchemaPreset,
     # resource layer
     RecordResourcePreset,
     RecordResourceConfigPreset,
@@ -79,6 +86,7 @@ files_presets = [
     FileRecordServiceComponentsPreset,
     FileServiceConfigPreset,
     FileServicePreset,
+    RecordWithFilesSchemaPreset,
     # resource layer
     FileResourcePreset,
     FileResourceConfigPreset,

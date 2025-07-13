@@ -48,7 +48,6 @@ class FileServiceConfigPreset(Preset):
             service_id = f"{builder.model.base_name}-files"
             record_cls = Dependency("Record")
             permission_policy_cls = Dependency("PermissionPolicy")
-            permission_action_prefix = "files_"
 
             file_links_list = {
                 "self": RecordEndpointLink(

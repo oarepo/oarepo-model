@@ -55,7 +55,7 @@ def model(
     )
 
     type_registry = DataTypeRegistry()
-    type_registry.load_entry_point()
+    type_registry.load_entry_points()
     if types:
         for type_collection in types:
             if isinstance(type_collection, dict):
@@ -68,7 +68,7 @@ def model(
                     "Expected a dict, str to a file or Path to the file."
                 )
 
-    builder = InvenioModelBuilder(model)
+    builder = InvenioModelBuilder(model, type_registry)
 
     # get all presets
     sorted_presets: list[Preset] = []
