@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 import marshmallow
 
@@ -49,11 +49,10 @@ class WrappedDataType(DataType):
         Create a Marshmallow schema for the wrapped data type.
         This method should be overridden by subclasses to provide specific schema creation logic.
         """
-        if not hasattr(self.impl, "create_marshmallow_schema"):
-            raise NotImplementedError(
-                f"{self.impl.__class__.__name__} does not implement create_marshmallow_schema"
-            )
-        return self.impl.create_marshmallow_schema(self.type_dict)
+        return cast(Any, self.impl).create_marshmallow_schema(self.type_dict)
+
+    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        return self.impl.create_json_schema(element)
 
 
 def strict_merge(a, b):

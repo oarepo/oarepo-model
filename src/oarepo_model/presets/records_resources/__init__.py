@@ -20,8 +20,10 @@ from .proxy import ProxyPreset
 from .records.dumper import RecordDumperPreset
 from .records.jsonschema import JSONSchemaPreset
 from .records.mapping import MappingPreset
+from .records.metadata_json_schema import MetadataJSONSchemaPreset
 from .records.pid_provider import PIDProviderPreset
 from .records.record import RecordPreset
+from .records.record_json_schema import RecordJSONSchemaPreset
 from .records.record_metadata import RecordMetadataPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
@@ -55,6 +57,8 @@ records_presets = [
     RecordDumperPreset,
     JSONSchemaPreset,
     MappingPreset,
+    RecordJSONSchemaPreset,
+    MetadataJSONSchemaPreset,
     # service layer
     RecordServicePreset,
     RecordServiceConfigPreset,

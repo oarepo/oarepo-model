@@ -17,6 +17,7 @@ class ObjectDataType(DataType):
     TYPE = "object"
 
     marshmallow_field_class = marshmallow.fields.Nested
+    jsonschema_type = "object"
 
     def create_marshmallow_schema(
         self, element: dict[str, Any]
@@ -50,6 +51,16 @@ class ObjectDataType(DataType):
         return {
             "nested": self.create_marshmallow_schema(element),
             **super()._get_marshmallow_field_args(field_name, element),
+        }
+
+    @override
+    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        return {
+            **super().create_json_schema(element),
+            "properties": {
+                key: self._registry.get_type(value).create_json_schema(value)
+                for key, value in element["properties"].items()
+            },
         }
 
 
@@ -103,3 +114,12 @@ class ArrayDataType(DataType):
         if "unique_items" in element and element["unique_items"]:
             ret.setdefault("validate", []).append(unique_validator)
         return ret
+
+    @override
+    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        return {
+            **super().create_json_schema(element),
+            "items": self._registry.get_type(element["items"]).create_json_schema(
+                element["items"]
+            ),
+        }

@@ -18,6 +18,7 @@ class DataType:
     TYPE = "base"
 
     marshmallow_field_class: type[Field] | None = None
+    jsonschema_type: str | None = None
 
     def __init__(self, registry: DataTypeRegistry, name: str | None = None):
         """
@@ -78,3 +79,15 @@ class DataType:
             "required": element.get("required", False),
             "allow_none": element.get("allow_none", False),
         }
+
+    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        """
+        Create a JSON schema for the data type.
+        This method should be overridden by subclasses to provide specific JSON schema creation logic.
+        """
+        if self.jsonschema_type is not None:
+            return {"type": self.jsonschema_type}
+
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement create_json_schema"
+        )

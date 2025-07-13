@@ -57,11 +57,11 @@ class RecordPreset(Preset):
 
             schema = ConstantField(
                 "$schema",
-                f"local://{builder.model.base_name}-v1.0.0.json",
+                f"local://{model.base_name}-v{model.version}.json",
             )
 
             index = IndexField(
-                f"{builder.model.base_name}-metadata-v1.0.0",
+                f"{model.base_name}-metadata-v{model.version}.json",
             )
 
             pid = dependencies["PIDField"](

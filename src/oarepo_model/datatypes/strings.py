@@ -11,6 +11,7 @@ class KeywordDataType(DataType):
     TYPE = "keyword"
 
     marshmallow_field_class = marshmallow.fields.String
+    jsonschema_type = "string"
 
     def _get_marshmallow_field_args(
         self, field_name: str, element: dict[str, Any]

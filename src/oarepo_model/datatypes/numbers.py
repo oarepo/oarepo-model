@@ -39,6 +39,7 @@ class IntegerDataType(NumberDataType):
     TYPE = "int"
 
     marshmallow_field_class: type[marshmallow.fields.Field] = marshmallow.fields.Integer
+    jsonschema_type = "integer"
 
     def _get_marshmallow_field_args(
         self, field_name: str, element: dict[str, Any]
@@ -55,6 +56,7 @@ class LongDataType(NumberDataType):
     TYPE = "long"
 
     marshmallow_field_class = marshmallow.fields.Integer
+    jsonschema_type = "integer"
 
     def _get_marshmallow_field_args(
         self, field_name: str, element: dict[str, Any]
@@ -71,6 +73,7 @@ class FloatDataType(NumberDataType):
     TYPE = "float"
 
     marshmallow_field_class = marshmallow.fields.Float
+    jsonschema_type = "number"
 
     def _get_marshmallow_field_args(
         self, field_name: str, element: dict[str, Any]
@@ -86,3 +89,4 @@ class DoubleDataType(NumberDataType):
     TYPE = "double"
 
     marshmallow_field_class = marshmallow.fields.Float
+    jsonschema_type = "number"

@@ -150,11 +150,6 @@ def empty_model():
         ],
         metadata_type="Metadata",
         customizations=[
-            AddFileToModule(
-                "jsonschemas",
-                "test-v1.0.0.json",
-                json.dumps(jsonschema),
-            ),
             # needs https://github.com/inveniosoftware/invenio-search/pull/238/files
             AddFileToModule(
                 "mappings",
@@ -201,11 +196,6 @@ def draft_model():
         ],
         metadata_type="Metadata",
         customizations=[
-            AddFileToModule(
-                "jsonschemas",
-                "draft_test-v1.0.0.json",
-                json.dumps(jsonschema),
-            ),
             # needs https://github.com/inveniosoftware/invenio-search/pull/238/files
             # draft metadata mapping
             AddFileToModule(
@@ -272,11 +262,6 @@ def draft_model_with_files():
         ],
         metadata_type="Metadata",
         customizations=[
-            AddFileToModule(
-                "jsonschemas",
-                "draft_with_files-v1.0.0.json",
-                json.dumps(jsonschema),
-            ),
             # needs https://github.com/inveniosoftware/invenio-search/pull/238/files
             # draft metadata mapping
             AddFileToModule(
