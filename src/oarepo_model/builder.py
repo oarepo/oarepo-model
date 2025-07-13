@@ -138,6 +138,17 @@ class BuilderDict(Partial, dict[str, Any]):
         return {k: v for k, v in self.items() if v is not None}
 
 
+class BuilderConstant(Partial):
+    def __init__(self, key: str, value: Any):
+        super().__init__(key)
+        self.value = value
+
+    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> None:
+        """Build a dictionary from the partial."""
+        self.built = True
+        return self.value
+
+
 class BuilderModule(Partial, SimpleNamespace):
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
         """Build a module from the partial."""
@@ -243,6 +254,21 @@ class InvenioModelBuilder:
     def get_dictionary(self, name: str) -> dict[str, Any]:
         """Get a dictionary by name."""
         return self._get(name, BuilderDict)
+
+    def add_constant(
+        self, name: str, value: Any, exists_ok: bool = False
+    ) -> BuilderConstant:
+        """Add a constant to the builder."""
+        if name in self.partials:
+            if exists_ok:
+                return cast(BuilderConstant, self.partials[name])
+            raise AlreadyRegisteredError(f"Constant {name} already exists.")
+        self.partials[name] = ret = BuilderConstant(name, value)
+        return ret
+
+    def get_constant(self, name: str) -> BuilderConstant:
+        """Get a constant by name."""
+        return self._get(name, BuilderConstant)
 
     def add_module(self, name: str, exists_ok: bool = False) -> BuilderModule:
         """Add a module to the builder."""

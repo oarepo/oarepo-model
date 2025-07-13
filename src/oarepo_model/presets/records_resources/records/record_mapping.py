@@ -27,7 +27,7 @@ class RecordMappingPreset(Preset):
     """
 
     modifies = ["mappings"]
-    provides = ["record-mapping"]
+    provides = ["RECORD_MAPPING_PATH"]
 
     def apply(
         self,
@@ -43,7 +43,9 @@ class RecordMappingPreset(Preset):
         mapping = always_merger.merge(
             {
                 "mappings": {
+                    "dynamic": "strict",
                     "properties": {
+                        "$schema": {"type": "keyword"},
                         "id": {"type": "keyword"},
                         "created": {"type": "date"},
                         "updated": {"type": "date"},
@@ -51,16 +53,26 @@ class RecordMappingPreset(Preset):
                         "indexed_at": {"type": "date"},
                         "uuid": {"type": "keyword"},
                         "version_id": {"type": "integer"},
-                    }
-                }
+                        "pid": {
+                            "properties": {
+                                "obj_type": {"type": "keyword", "index": False},
+                                "pid_type": {"type": "keyword", "index": False},
+                                "pk": {"type": "long", "index": False},
+                                "status": {"type": "keyword", "index": False},
+                            }
+                        },
+                    },
+                },
             },
             mapping,
         )
 
+        # TODO: the namespace_constant is not pretty
         yield AddJSONFile(
             "mappings",
             f"os-v2/{model.base_name}/metadata-v{model.version}.json",
             mapping,
+            namespace_constant="RECORD_MAPPING_PATH",
         )
 
 

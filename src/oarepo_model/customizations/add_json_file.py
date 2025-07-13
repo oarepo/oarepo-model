@@ -26,6 +26,7 @@ class AddJSONFile(AddFileToModule):
         file_path: str,
         payload: dict[str, Any],
         exists_ok: bool = False,
+        namespace_constant: str | None = None,
     ) -> None:
         """Add a json to the model
 
@@ -37,4 +38,5 @@ class AddJSONFile(AddFileToModule):
             file_path=file_path,
             file_content=json.dumps(payload),
             exists_ok=exists_ok,
+            namespace_constant=namespace_constant,
         )

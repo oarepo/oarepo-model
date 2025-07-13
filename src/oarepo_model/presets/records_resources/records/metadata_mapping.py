@@ -23,7 +23,7 @@ class MetadataMappingPreset(Preset):
     Preset for record service class.
     """
 
-    modifies = ["record-mapping"]
+    modifies = ["RECORD_MAPPING_PATH"]
     provides = ["metadata-mapping"]
 
     def apply(
@@ -32,7 +32,7 @@ class MetadataMappingPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        if model.metadata_type is None:
+        if model.metadata_type is not None:
             from .record_mapping import get_mapping
 
             mapping = get_mapping(builder, model.metadata_type)

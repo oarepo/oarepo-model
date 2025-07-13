@@ -22,24 +22,26 @@ from .add_to_list import AddToList
 from .add_to_module import AddToModule
 from .base import Customization
 from .change_base import ChangeBase
+from .copy_file import CopyFile
 from .patch_json_file import PatchJSONFile
 
 __all__ = [
     "Customization",
+    "AddBaseClasses",
     "AddClass",
     "AddClassField",
-    "AddMixins",
-    "ChangeBase",
-    "AddList",
     "AddClassList",
-    "AddModule",
-    "AddEntryPoint",
-    "AddBaseClasses",
     "AddDictionary",
-    "AddToDictionary",
-    "AddToModule",
+    "AddEntryPoint",
     "AddFileToModule",
-    "AddToList",
     "AddJSONFile",
+    "AddList",
+    "AddMixins",
+    "AddModule",
+    "AddToDictionary",
+    "AddToList",
+    "AddToModule",
+    "ChangeBase",
+    "CopyFile",
     "PatchJSONFile",
 ]

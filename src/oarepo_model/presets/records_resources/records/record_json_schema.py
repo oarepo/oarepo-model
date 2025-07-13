@@ -27,7 +27,7 @@ class RecordJSONSchemaPreset(Preset):
     """
 
     modifies = ["jsonschemas"]
-    provides = ["record-json-schema"]
+    provides = ["RECORD_JSON_SCHEMA_PATH"]
 
     def apply(
         self,
@@ -62,6 +62,7 @@ class RecordJSONSchemaPreset(Preset):
             "jsonschemas",
             f"{model.base_name}-v{model.version}.json",
             jsonschema,
+            namespace_constant="RECORD_JSON_SCHEMA_PATH",
         )
 
 

@@ -61,7 +61,7 @@ class RecordPreset(Preset):
             )
 
             index = IndexField(
-                f"{model.base_name}-metadata-v{model.version}.json",
+                f"{model.base_name}-metadata-v{model.version}",
             )
 
             pid = dependencies["PIDField"](

@@ -25,6 +25,18 @@ class WrappedDataType(DataType):
     def impl(self) -> DataType:
         return self._registry.get_type(self.type_dict)
 
+    def _merge_type_dict(self, element: dict[str, Any]) -> dict[str, Any]:
+        """
+        Merge the type_dict with the element dictionary.
+        This is used to create a new type dictionary that includes the properties of the element.
+        """
+        element_without_type = {
+            key: value
+            for key, value in element.items()
+            if key != "type"  # remove type to avoid conflicts
+        }
+        return strict_merge(self.type_dict, element_without_type)
+
     @override
     def create_marshmallow_field(
         self, field_name: str, element: dict[str, Any]
@@ -34,13 +46,9 @@ class WrappedDataType(DataType):
         This method should be overridden by subclasses to provide specific field creation logic.
         """
         # to create a marshmallow field, we need to merge the element with the type_dict
-        element_without_type = {
-            key: value
-            for key, value in element.items()
-            if key != "type"  # remove type to avoid conflicts
-        }
-        merged = strict_merge(self.type_dict, element_without_type)
-        return self.impl.create_marshmallow_field(field_name, merged)
+        return self.impl.create_marshmallow_field(
+            field_name, self._merge_type_dict(element)
+        )
 
     def create_marshmallow_schema(
         self, element: dict[str, Any]
@@ -49,13 +57,15 @@ class WrappedDataType(DataType):
         Create a Marshmallow schema for the wrapped data type.
         This method should be overridden by subclasses to provide specific schema creation logic.
         """
-        return cast(Any, self.impl).create_marshmallow_schema(self.type_dict)
+        return cast(Any, self.impl).create_marshmallow_schema(
+            self._merge_type_dict(element)
+        )
 
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
-        return self.impl.create_json_schema(element)
+        return self.impl.create_json_schema(self._merge_type_dict(element))
 
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
-        return self.impl.create_mapping(element)
+        return self.impl.create_mapping(self._merge_type_dict(element))
 
 
 def strict_merge(a, b):

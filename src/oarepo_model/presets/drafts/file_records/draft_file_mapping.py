@@ -18,13 +18,12 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class MetadataJSONSchemaPreset(Preset):
+class DraftFileMappingPreset(Preset):
     """
     Preset for record service class.
     """
 
-    modifies = ["RECORD_JSON_SCHEMA_PATH"]
-    provides = ["metadata-json-schema"]
+    depends_on = ["DRAFT_MAPPING_PATH"]
 
     def apply(
         self,
@@ -32,17 +31,22 @@ class MetadataJSONSchemaPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        if model.metadata_type is not None:
-            from .record_json_schema import get_json_schema
 
-            jsonschema = get_json_schema(builder, model.metadata_type)
+        file_mapping = {
+            "mappings": {
+                "properties": {
+                    "files": {
+                        "type": "object",
+                        "properties": {
+                            "enabled": {"type": "boolean"},
+                        },
+                    },
+                }
+            }
+        }
 
-            yield PatchJSONFile(
-                "jsonschemas",
-                f"{model.base_name}-v{model.version}.json",
-                {
-                    "properties": {
-                        "metadata": jsonschema,
-                    }
-                },
-            )
+        yield PatchJSONFile(
+            dependencies["DRAFT_MAPPING_PATH"][0],
+            dependencies["DRAFT_MAPPING_PATH"][1],
+            file_mapping,
+        )

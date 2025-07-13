@@ -58,6 +58,7 @@ class ObjectDataType(DataType):
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
         return {
             **super().create_json_schema(element),
+            "unevaluatedProperties": False,
             "properties": {
                 key: self._registry.get_type(value).create_json_schema(value)
                 for key, value in element["properties"].items()
@@ -68,6 +69,7 @@ class ObjectDataType(DataType):
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
         return {
             **super().create_json_schema(element),
+            "dynamic": "strict",
             "properties": {
                 key: self._registry.get_type(value).create_mapping(value)
                 for key, value in element["properties"].items()

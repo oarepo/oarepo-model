@@ -15,6 +15,9 @@ from .ext_files import ExtFilesPreset
 from .file_records.file_metadata import FileMetadataPreset
 from .file_records.file_record import FileRecordPreset
 from .file_records.record import RecordWithFilesPreset
+from .file_records.record_file_mapping import (
+    RecordFileMappingPreset,
+)
 from .file_records.record_metadata import RecordMetadataWithFilesPreset
 from .proxy import ProxyPreset
 from .records.dumper import RecordDumperPreset
@@ -90,6 +93,8 @@ files_presets = [
     RecordWithFilesPreset,
     RecordMetadataWithFilesPreset,
     FileMetadataPreset,
+    # record layer
+    RecordFileMappingPreset,
     # service layer
     FileRecordServiceComponentsPreset,
     FileServiceConfigPreset,

@@ -8,6 +8,7 @@ from .blueprints.files.api_media_files_blueprint import ApiMediaFilesBlueprintPr
 from .ext_draft_files import ExtDraftFilesPreset
 from .ext_draft_media_files import ExtDraftMediaFilesPreset
 from .ext_media_files import ExtMediaFilesPreset
+from .file_records.draft_file_mapping import DraftFileMappingPreset
 from .file_records.draft_media_files import DraftMediaFilesPreset
 from .file_records.draft_with_files import DraftWithFilesPreset
 from .file_records.draft_with_media_files import DraftWithMediaFilesPreset
@@ -19,6 +20,7 @@ from .file_records.media_file_metadata import MediaFileMetadataPreset
 from .file_records.media_file_record import MediaFileRecordPreset
 from .file_records.record_media_files import RecordMediaFilesPreset
 from .file_records.record_with_media_files import RecordWithMediaFilesPreset
+from .records.draft_mapping import DraftMappingPreset
 from .records.draft_record import DraftPreset
 from .records.draft_record_metadata import DraftMetadataPreset
 from .records.parent_record import ParentRecordPreset
@@ -73,6 +75,7 @@ drafts_records_presets: list[type[Preset]] = [
     RecordWithParentPreset,
     DraftPreset,
     PIDProviderPreset,
+    DraftMappingPreset,
     # service layer
     DraftServiceConfigPreset,
     DraftServicePreset,
@@ -95,6 +98,8 @@ drafts_files_presets: list[type[Preset]] = [
     MediaFileMetadataPreset,
     MediaFileDraftMetadataPreset,
     FileDraftMetadataPreset,
+    # record layer
+    DraftFileMappingPreset,
     # service layer
     MediaFilesRecordServiceConfigPreset,
     DraftFileRecordServiceComponentsPreset,
