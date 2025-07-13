@@ -54,6 +54,9 @@ class WrappedDataType(DataType):
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
         return self.impl.create_json_schema(element)
 
+    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        return self.impl.create_mapping(element)
+
 
 def strict_merge(a, b):
     """

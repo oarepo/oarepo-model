@@ -19,6 +19,7 @@ class DataType:
 
     marshmallow_field_class: type[Field] | None = None
     jsonschema_type: str | None = None
+    mapping_type: str | dict[str, Any] | None = None
 
     def __init__(self, registry: DataTypeRegistry, name: str | None = None):
         """
@@ -89,5 +90,19 @@ class DataType:
             return {"type": self.jsonschema_type}
 
         raise NotImplementedError(
-            f"{self.__class__.__name__} does not implement create_json_schema"
+            f"{self.__class__.__name__} neither implements create_json_schema nor provides self.jsonschema_type"
+        )
+
+    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        """
+        Create a mapping for the data type.
+        This method can be overridden by subclasses to provide specific mapping creation logic.
+        """
+        if self.mapping_type is not None:
+            if isinstance(self.mapping_type, dict):
+                return self.mapping_type
+            return {"type": self.mapping_type}
+
+        raise NotImplementedError(
+            f"{self.__class__.__name__} neither implements create_mapping nor provides self.mapping_type"
         )

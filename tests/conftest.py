@@ -62,17 +62,6 @@ class TestRecordSchema(BaseRecordSchema):
             return get_value(obj, attr, default)
 
 
-jsonschema = {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "type": "object",
-    "properties": {
-        "metadata": {
-            "type": "object",
-            "properties": {"title": {"type": "string"}},
-        }
-    },
-}
-
 mapping = {
     "mappings": {
         "properties": {
@@ -130,7 +119,6 @@ parent_json_schema = {
 @pytest.fixture(scope="module")
 def empty_model():
     from oarepo_model.api import model
-    from oarepo_model.customizations import AddFileToModule
     from oarepo_model.presets.records_resources import records_resources_presets
 
     t1 = time.time()
@@ -149,14 +137,7 @@ def empty_model():
             }
         ],
         metadata_type="Metadata",
-        customizations=[
-            # needs https://github.com/inveniosoftware/invenio-search/pull/238/files
-            AddFileToModule(
-                "mappings",
-                "os-v2/test/metadata-v1.0.0.json",
-                json.dumps(mapping),
-            ),
-        ],
+        customizations=[],
     )
     empty_model.register()
 
@@ -204,11 +185,11 @@ def draft_model():
                 json.dumps(mapping_with_parent),
             ),
             # record metadata mapping
-            AddFileToModule(
-                "mappings",
-                "os-v2/draft_test/metadata-v1.0.0.json",
-                json.dumps(mapping_with_parent),
-            ),
+            # AddFileToModule(
+            #     "mappings",
+            #     "os-v2/draft_test/metadata-v1.0.0.json",
+            #     json.dumps(mapping_with_parent),
+            # ),
             # add parent JSON schema
             AddFileToModule(
                 "jsonschemas",
@@ -270,11 +251,11 @@ def draft_model_with_files():
                 json.dumps(mapping_with_parent),
             ),
             # record metadata mapping
-            AddFileToModule(
-                "mappings",
-                "os-v2/draft_with_files/metadata-v1.0.0.json",
-                json.dumps(mapping_with_parent),
-            ),
+            # AddFileToModule(
+            #     "mappings",
+            #     "os-v2/draft_with_files/metadata-v1.0.0.json",
+            #     json.dumps(mapping_with_parent),
+            # ),
         ],
     )
     draft_model.register()

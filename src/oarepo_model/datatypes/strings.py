@@ -12,6 +12,10 @@ class KeywordDataType(DataType):
 
     marshmallow_field_class = marshmallow.fields.String
     jsonschema_type = "string"
+    mapping_type = {
+        "type": "keyword",
+        "ignore_above": 256,
+    }
 
     def _get_marshmallow_field_args(
         self, field_name: str, element: dict[str, Any]
@@ -47,6 +51,9 @@ class FullTextDataType(KeywordDataType):
     """
 
     TYPE = "fulltext"
+    mapping_type = {
+        "type": "text",
+    }
 
 
 class FulltextWithKeywordDataType(KeywordDataType):
@@ -56,3 +63,12 @@ class FulltextWithKeywordDataType(KeywordDataType):
     """
 
     TYPE = "fulltext+keyword"
+    mapping_type = {
+        "type": "text",
+        "fields": {
+            "keyword": {
+                "type": "keyword",
+                "ignore_above": 256,
+            },
+        },
+    }

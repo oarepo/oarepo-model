@@ -18,6 +18,7 @@ class ObjectDataType(DataType):
 
     marshmallow_field_class = marshmallow.fields.Nested
     jsonschema_type = "object"
+    mapping_type = "object"
 
     def create_marshmallow_schema(
         self, element: dict[str, Any]
@@ -63,6 +64,16 @@ class ObjectDataType(DataType):
             },
         }
 
+    @override
+    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        return {
+            **super().create_json_schema(element),
+            "properties": {
+                key: self._registry.get_type(value).create_mapping(value)
+                for key, value in element["properties"].items()
+            },
+        }
+
 
 class NestedDataType(ObjectDataType):
     """
@@ -70,6 +81,7 @@ class NestedDataType(ObjectDataType):
     """
 
     TYPE = "nested"
+    mapping_type = "nested"
 
 
 def unique_validator(value: list[Any]) -> None:
@@ -123,3 +135,10 @@ class ArrayDataType(DataType):
                 element["items"]
             ),
         }
+
+    @override
+    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        # skip the array in mapping
+        return self._registry.get_type(element["items"]).create_mapping(
+            element["items"]
+        )
