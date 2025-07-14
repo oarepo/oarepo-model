@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_drafts_resources.records import Record as DraftRecordBase
+from invenio_drafts_resources.records import Record as DraftBase
 from invenio_rdm_records.records.systemfields import HasDraftCheckField
 from invenio_records_resources.records import Record as RecordBase
 from oarepo_runtime.records.systemfields.record_status import RecordStatusSystemField
@@ -29,7 +29,7 @@ class RecordWithParentPreset(Preset):
         "Record",
     ]
 
-    depends_on = ["DraftRecord"]
+    depends_on = ["Draft"]
 
     def apply(
         self,
@@ -45,11 +45,11 @@ class RecordWithParentPreset(Preset):
             # note: we need to use the has_draft field from rdm records
             # even if this is the draft record - unfortunately the system field
             # is defined in the invenio-rdm-records package
-            has_draft = HasDraftCheckField(dependencies["DraftRecord"])
+            has_draft = HasDraftCheckField(dependencies["Draft"])
 
             # TODO: remove this field - note that we need to change the implementation
             # if the RecordList to use "is_draft" instead of "record_status"
             record_status = RecordStatusSystemField()
 
-        yield ChangeBase("Record", RecordBase, DraftRecordBase, subclass=True)
+        yield ChangeBase("Record", RecordBase, DraftBase, subclass=True)
         yield AddMixins("Record", ParentRecordMixin)

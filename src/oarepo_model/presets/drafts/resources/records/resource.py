@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_drafts_resources.resources import RecordResource as DraftRecordResource
+from invenio_drafts_resources.resources import RecordResource as DraftResource
 from invenio_records_resources.resources.records.resource import RecordResource
 
 from oarepo_model.customizations import ChangeBase, Customization
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftRecordResourcePreset(Preset):
+class DraftResourcePreset(Preset):
     """
     Preset for record resource class.
     """
@@ -34,4 +34,4 @@ class DraftRecordResourcePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        yield ChangeBase("RecordResource", RecordResource, DraftRecordResource)
+        yield ChangeBase("RecordResource", RecordResource, DraftResource)

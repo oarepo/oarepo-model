@@ -10,28 +10,28 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_drafts_resources.resources import (
-    RecordResourceConfig as DraftResourceConfig,
-)
-from invenio_records_resources.resources.records.config import RecordResourceConfig
+from invenio_records_resources.records.api import FileRecord as InvenioFileRecord
 
 from oarepo_model.customizations import (
-    ChangeBase,
+    AddClass,
+    AddMixins,
     Customization,
 )
-from oarepo_model.model import InvenioModel
+from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftResourceConfigPreset(Preset):
+class MediaFileRecordPreset(Preset):
     """
-    Preset for record resource config class.
+    Preset for records_resources.records
     """
 
-    modifies = ["RecordResourceConfig"]
+    provides = [
+        "MediaFileRecord",
+    ]
 
     def apply(
         self,
@@ -39,9 +39,17 @@ class DraftResourceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
+        class FileRecordMixin:
+            """Mixin for the file record."""
 
-        yield ChangeBase(
-            "RecordResourceConfig",
-            RecordResourceConfig,
-            DraftResourceConfig,
+            model_cls = Dependency("MediaFileMetadata")
+            record_cls = Dependency("RecordMediaFiles")
+
+        yield AddClass(
+            "MediaFileRecord",
+            clazz=InvenioFileRecord,
+        )
+        yield AddMixins(
+            "MediaFileRecord",
+            FileRecordMixin,
         )

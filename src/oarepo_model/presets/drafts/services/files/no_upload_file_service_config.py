@@ -10,28 +10,22 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_drafts_resources.resources import (
-    RecordResourceConfig as DraftResourceConfig,
-)
-from invenio_records_resources.resources.records.config import RecordResourceConfig
-
-from oarepo_model.customizations import (
-    ChangeBase,
-    Customization,
-)
-from oarepo_model.model import InvenioModel
+from oarepo_model.customizations import AddMixins, Customization
+from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftResourceConfigPreset(Preset):
+class NoUploadFileServiceConfigPreset(Preset):
     """
-    Preset for record resource config class.
+    Preset for file service config class.
     """
 
-    modifies = ["RecordResourceConfig"]
+    modifies = [
+        "FileServiceConfig",
+    ]
 
     def apply(
         self,
@@ -39,9 +33,7 @@ class DraftResourceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
+        class NoUploadFileServiceConfigMixin(ModelMixin):
+            allow_upload = False
 
-        yield ChangeBase(
-            "RecordResourceConfig",
-            RecordResourceConfig,
-            DraftResourceConfig,
-        )
+        yield AddMixins("FileServiceConfig", NoUploadFileServiceConfigMixin)

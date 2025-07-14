@@ -29,13 +29,13 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftRecordMetadataPreset(Preset):
+class DraftMetadataPreset(Preset):
     """
     Preset for draft record metadata class
     """
 
     provides = [
-        "DraftRecordMetadata",
+        "DraftMetadata",
     ]
     depends_on = [
         "ParentRecordMetadata",
@@ -48,13 +48,13 @@ class DraftRecordMetadataPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
 
-        class DraftRecordMetadataMixin:
+        class DraftMetadataMixin:
             __tablename__ = f"{builder.model.base_name}_draft_metadata"
             __table_args__ = {"extend_existing": True}
             __parent_record_model__ = dependencies["ParentRecordMetadata"]
 
-        yield AddClass("DraftRecordMetadata")
+        yield AddClass("DraftMetadata")
         yield AddBaseClasses(
-            "DraftRecordMetadata", db.Model, DraftMetadataBase, ParentRecordMixin
+            "DraftMetadata", db.Model, DraftMetadataBase, ParentRecordMixin
         )
-        yield AddMixins("DraftRecordMetadata", DraftRecordMetadataMixin)
+        yield AddMixins("DraftMetadata", DraftMetadataMixin)

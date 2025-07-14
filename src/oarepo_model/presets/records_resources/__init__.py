@@ -32,6 +32,7 @@ from .services.files.file_record_service_components import (
 )
 from .services.files.file_service import FileServicePreset
 from .services.files.file_service_config import FileServiceConfigPreset
+from .services.records.permission_policy import PermissionPolicyPreset
 from .services.records.results import (
     RecordResultComponentsPreset,
     RecordResultItemPreset,
@@ -56,6 +57,7 @@ records_presets = [
     RecordResultItemPreset,
     RecordResultListPreset,
     RecordSearchOptionsPreset,
+    PermissionPolicyPreset,
     # resource layer
     RecordResourcePreset,
     RecordResourceConfigPreset,

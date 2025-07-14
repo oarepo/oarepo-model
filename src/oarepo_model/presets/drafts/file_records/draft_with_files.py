@@ -10,13 +10,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_drafts_resources.resources import (
-    RecordResourceConfig as DraftResourceConfig,
+from invenio_records.systemfields import ModelField
+from invenio_records_resources.records.systemfields import (
+    FilesField,
 )
-from invenio_records_resources.resources.records.config import RecordResourceConfig
 
 from oarepo_model.customizations import (
-    ChangeBase,
+    AddMixins,
     Customization,
 )
 from oarepo_model.model import InvenioModel
@@ -26,12 +26,15 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftResourceConfigPreset(Preset):
+class DraftWithFilesPreset(Preset):
     """
-    Preset for record resource config class.
+    Preset for records_resources.records
     """
 
-    modifies = ["RecordResourceConfig"]
+    depends_on = [
+        "FileDraft",  # need to have this dependency because of system fields
+    ]
+    modifies = ["Draft"]
 
     def apply(
         self,
@@ -39,9 +42,19 @@ class DraftResourceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
+        class DraftWithFilesMixin:
 
-        yield ChangeBase(
-            "RecordResourceConfig",
-            RecordResourceConfig,
-            DraftResourceConfig,
+            files = FilesField(
+                store=False,
+                file_cls=dependencies["FileDraft"],
+                dump=False,
+                # Don't delete, we'll manage in the service
+                delete=False,
+            )
+            bucket_id = ModelField()
+            bucket = ModelField(dump=False)
+
+        yield AddMixins(
+            "Draft",
+            DraftWithFilesMixin,
         )

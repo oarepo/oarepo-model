@@ -119,6 +119,13 @@ mapping = {
     }
 }
 
+parent_json_schema = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "local://parent-v1.0.0.json",
+    "type": "object",
+    "properties": {"id": {"type": "string"}},
+}
+
 
 @pytest.fixture(scope="module")
 def empty_model():
@@ -159,7 +166,7 @@ def empty_model():
 def draft_model():
     from oarepo_model.api import model
     from oarepo_model.customizations import AddClass, AddFileToModule
-    from oarepo_model.presets.drafts import drafts_presets
+    from oarepo_model.presets.drafts import drafts_records_presets
     from oarepo_model.presets.records_resources import records_presets
 
     t1 = time.time()
@@ -173,7 +180,7 @@ def draft_model():
     draft_model = model(
         name="draft_test",
         version="1.0.0",
-        presets=[records_presets, drafts_presets],
+        presets=[records_presets, drafts_records_presets],
         customizations=[
             AddClass("RecordSchema", TestRecordSchema),
             AddFileToModule(
@@ -194,6 +201,19 @@ def draft_model():
                 "os-v2/draft_test/metadata-v1.0.0.json",
                 json.dumps(mapping_with_parent),
             ),
+            # add parent JSON schema
+            AddFileToModule(
+                "jsonschemas",
+                "parent-v1.0.0.json",
+                json.dumps(
+                    {
+                        "$schema": "http://json-schema.org/draft-07/schema#",
+                        "$id": "local://parent-v1.0.0.json",
+                        "type": "object",
+                        "properties": {"id": {"type": "string"}},
+                    }
+                ),
+            ),
         ],
     )
     draft_model.register()
@@ -205,7 +225,56 @@ def draft_model():
 
 
 @pytest.fixture(scope="module")
-def app_config(app_config, empty_model, draft_model):
+def draft_model_with_files():
+    from oarepo_model.api import model
+    from oarepo_model.customizations import AddClass, AddFileToModule
+    from oarepo_model.presets.drafts import drafts_presets
+    from oarepo_model.presets.records_resources import records_resources_presets
+
+    t1 = time.time()
+    mapping_with_parent = copy.deepcopy(mapping)
+    mapping_with_parent["mappings"]["properties"]["parent"] = {
+        "properties": {
+            "id": {"type": "keyword"},
+        }
+    }
+
+    draft_model = model(
+        name="draft_with_files",
+        version="1.0.0",
+        presets=[records_resources_presets, drafts_presets],
+        customizations=[
+            AddClass("RecordSchema", TestRecordSchema),
+            AddFileToModule(
+                "jsonschemas",
+                "draft_with_files-v1.0.0.json",
+                json.dumps(jsonschema),
+            ),
+            # needs https://github.com/inveniosoftware/invenio-search/pull/238/files
+            # draft metadata mapping
+            AddFileToModule(
+                "mappings",
+                "os-v2/draft_with_files/draft-metadata-v1.0.0.json",
+                json.dumps(mapping_with_parent),
+            ),
+            # record metadata mapping
+            AddFileToModule(
+                "mappings",
+                "os-v2/draft_with_files/metadata-v1.0.0.json",
+                json.dumps(mapping_with_parent),
+            ),
+        ],
+    )
+    draft_model.register()
+
+    t2 = time.time()
+    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+
+    return draft_model
+
+
+@pytest.fixture(scope="module")
+def app_config(app_config, empty_model, draft_model, draft_model_with_files):
     """Override pytest-invenio app_config fixture.
 
     Needed to set the fields on the custom fields schema.

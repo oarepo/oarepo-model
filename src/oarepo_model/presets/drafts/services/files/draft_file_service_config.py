@@ -26,16 +26,13 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class FileServiceConfigPreset(Preset):
+class DraftFileServiceConfigPreset(Preset):
     """
     Preset for file service config class.
     """
 
     provides = [
-        "FileServiceConfig",
-        "file_service_components",
-        "file_links_item",
-        "file_search_item",
+        "DraftFileServiceConfig",
     ]
 
     def apply(
@@ -44,41 +41,42 @@ class FileServiceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class FileServiceConfigMixin(ModelMixin):
-            service_id = f"{builder.model.base_name}-files"
-            record_cls = Dependency("Record")
+        class DraftFileServiceConfigMixin(ModelMixin):
+            service_id = f"{builder.model.base_name}-draft-files"
+            record_cls = Dependency("Draft")
             permission_policy_cls = Dependency("PermissionPolicy")
-            permission_action_prefix = "files_"
+            permission_action_prefix = "draft_"
 
             file_links_list = {
                 "self": RecordEndpointLink(
-                    f"{model.base_name}_files.search", params=["pid_value"]
+                    f"{model.base_name}_draft_files.search", params=["pid_value"]
                 ),
                 "files-archive": RecordEndpointLink(
-                    f"{model.base_name}_files.read_archive", params=["pid_value"]
+                    f"{model.base_name}_draft_files.read_archive", params=["pid_value"]
                 ),
             }
 
             file_links_item = {
                 "self": FileEndpointLink(
-                    f"{model.base_name}_files.read", params=["pid_value", "key"]
+                    f"{model.base_name}_draft_files.read", params=["pid_value", "key"]
                 ),
                 "content": FileEndpointLink(
-                    f"{model.base_name}_files.read_content", params=["pid_value", "key"]
+                    f"{model.base_name}_draft_files.read_content",
+                    params=["pid_value", "key"],
                 ),
                 "commit": FileEndpointLink(
-                    f"{model.base_name}_files.create_commit",
+                    f"{model.base_name}_draft_files.create_commit",
                     params=["pid_value", "key"],
                 ),
             }
 
-        yield AddClass("FileServiceConfig", clazz=FileServiceConfig)
-        yield AddMixins("FileServiceConfig", FileServiceConfigMixin)
+        yield AddClass("DraftFileServiceConfig", clazz=FileServiceConfig)
+        yield AddMixins("DraftFileServiceConfig", DraftFileServiceConfigMixin)
 
         yield AddToList(
             "primary_record_service",
             lambda runtime_dependencies: (
-                runtime_dependencies.get("FileRecord"),
-                runtime_dependencies.get("FileServiceConfig").service_id,
+                runtime_dependencies.get("FileDraft"),
+                runtime_dependencies.get("DraftFileServiceConfig").service_id,
             ),
         )
