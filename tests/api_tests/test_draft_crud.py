@@ -15,7 +15,7 @@ def test_simple_flow(
     location,
 ):
     Record = draft_model.Record
-    Draft = draft_model.DraftRecord
+    Draft = draft_model.Draft
 
     # Create an item
     item = test_draft_service.create(identity_simple, input_data_with_files_disabled)

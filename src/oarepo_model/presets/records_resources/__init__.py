@@ -15,13 +15,20 @@ from .ext_files import ExtFilesPreset
 from .file_records.file_metadata import FileMetadataPreset
 from .file_records.file_record import FileRecordPreset
 from .file_records.record import RecordWithFilesPreset
+from .file_records.record_file_mapping import (
+    RecordFileMappingPreset,
+)
 from .file_records.record_metadata import RecordMetadataWithFilesPreset
 from .proxy import ProxyPreset
 from .records.dumper import RecordDumperPreset
 from .records.jsonschema import JSONSchemaPreset
 from .records.mapping import MappingPreset
+from .records.metadata_json_schema import MetadataJSONSchemaPreset
+from .records.metadata_mapping import MetadataMappingPreset
 from .records.pid_provider import PIDProviderPreset
 from .records.record import RecordPreset
+from .records.record_json_schema import RecordJSONSchemaPreset
+from .records.record_mapping import RecordMappingPreset
 from .records.record_metadata import RecordMetadataPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
@@ -32,7 +39,12 @@ from .services.files.file_record_service_components import (
 )
 from .services.files.file_service import FileServicePreset
 from .services.files.file_service_config import FileServiceConfigPreset
+from .services.files.record_with_files_schema import (
+    RecordWithFilesSchemaPreset,
+)
+from .services.records.metadata_schema import MetadataSchemaPreset
 from .services.records.permission_policy import PermissionPolicyPreset
+from .services.records.record_schema import RecordSchemaPreset
 from .services.records.results import (
     RecordResultComponentsPreset,
     RecordResultItemPreset,
@@ -50,6 +62,10 @@ records_presets = [
     RecordDumperPreset,
     JSONSchemaPreset,
     MappingPreset,
+    RecordJSONSchemaPreset,
+    MetadataJSONSchemaPreset,
+    RecordMappingPreset,
+    MetadataMappingPreset,
     # service layer
     RecordServicePreset,
     RecordServiceConfigPreset,
@@ -58,6 +74,8 @@ records_presets = [
     RecordResultListPreset,
     RecordSearchOptionsPreset,
     PermissionPolicyPreset,
+    RecordSchemaPreset,
+    MetadataSchemaPreset,
     # resource layer
     RecordResourcePreset,
     RecordResourceConfigPreset,
@@ -75,10 +93,13 @@ files_presets = [
     RecordWithFilesPreset,
     RecordMetadataWithFilesPreset,
     FileMetadataPreset,
+    # record layer
+    RecordFileMappingPreset,
     # service layer
     FileRecordServiceComponentsPreset,
     FileServiceConfigPreset,
     FileServicePreset,
+    RecordWithFilesSchemaPreset,
     # resource layer
     FileResourcePreset,
     FileResourceConfigPreset,

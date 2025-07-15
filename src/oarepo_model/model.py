@@ -19,6 +19,8 @@ class InvenioModel:
     version: str
     description: str
     configuration: dict[str, Any]
+    metadata_type: str | None = None
+    record_type: str | None = None
 
     @property
     def base_name(self) -> str:
