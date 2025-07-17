@@ -10,28 +10,24 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_db import db
-from invenio_files_rest.models import Bucket
-from sqlalchemy.orm import declared_attr
-from sqlalchemy_utils.types import UUIDType
+from invenio_drafts_resources.services.records.schema import RecordSchema
+from invenio_records_resources.services.records.schema import BaseRecordSchema
 
-from oarepo_model.customizations import (
-    AddMixins,
-    Customization,
-)
+from oarepo_model.customizations import ChangeBase, Customization
 from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
+from oarepo_runtime.services.schema.marshmallow import RDMBaseRecordSchema
 
 if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class RecordMetadataWithFilesPreset(Preset):
+class RDMRecordSchemaPreset(Preset):
     """
-    Preset for records_resources.records
+    Preset for record service class.
     """
 
-    modifies = ["RecordMetadata"]
+    modifies = ["RecordSchema"]
 
     def apply(
         self,
@@ -39,14 +35,6 @@ class RecordMetadataWithFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class RecordMetadataWithFilesMixin:
-            bucket_id = db.Column(UUIDType, db.ForeignKey(Bucket.id))
-
-            @declared_attr
-            def bucket(cls):
-                return db.relationship(Bucket, foreign_keys=[cls.bucket_id])
-
-        yield AddMixins(
-            "RecordMetadata",
-            RecordMetadataWithFilesMixin,
-        )
+        # change the base schema from BaseRecordSchema to draft enabled RecordSchema
+        # do not fail, for example if user provided their own RecordSchema
+        yield ChangeBase("RecordSchema", RecordSchema, RDMBaseRecordSchema, fail=False)

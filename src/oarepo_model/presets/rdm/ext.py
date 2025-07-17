@@ -19,7 +19,7 @@ from oarepo_model.customizations import (
     AddMixins,
     AddToDictionary,
     AddToList,
-    Customization,
+    Customization, AddDictionary,
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class ExtPreset(Preset):
+class RDMExtPreset(Preset):
     """
     Preset for extension class.
     """
@@ -47,30 +47,17 @@ class ExtPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
 
-        runtime_dependencies = builder.get_runtime_dependencies()
+        class ExtRDMMixin(ModelMixin):
 
-        class ServicesResourcesExtMixin(ModelMixin):
-            """
-            Mixin for extension class.
-            """
-
-            @cached_property
-            def records_service(self):
-                return runtime_dependencies.get("RecordService")(
-                    **self.records_service_params,
-                )
-
-            @property # todo this is where we need to add the PIDsService
+            @property
             def records_service_params(self):
                 """
                 Parameters for the record service.
                 """
-                config = build_config(
-                        runtime_dependencies.get("RecordServiceConfig"), self.app
-                    )
-                # add
+                params = super().records_service_params
                 return {
-                    "pids_service": PIDsService(config, PIDManager)
+                    **params,
+                    "pids_service": PIDsService(params["config"], PIDManager),
                 }
 
-        yield AddMixins("Ext", ServicesResourcesExtMixin) # something like replace mixin but capable of replacing inner class or putting the args dict to some external modifiable configuration?
+        yield AddMixins("Ext", ExtRDMMixin)

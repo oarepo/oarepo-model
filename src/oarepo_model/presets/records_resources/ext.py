@@ -94,6 +94,12 @@ class ExtPreset(Preset):
             Mixin for extension class.
             """
 
+            @property
+            def service_config(self):
+                return build_config(
+                        runtime_dependencies.get("RecordServiceConfig"), self.app
+                    )
+
             @cached_property
             def records_service(self):
                 return runtime_dependencies.get("RecordService")(

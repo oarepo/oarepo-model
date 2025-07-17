@@ -134,13 +134,16 @@ def model(
             dep: builder.build_partial(dep) for dep in preset.depends_on
         }
         # print("Applying preset:", preset.__class__.__name__)
-        for customization in preset.apply(builder, model, build_dependencies):
-            try:
-                customization.apply(builder, model)
-            except Exception as e:
-                raise ApplyCustomizationError(
-                    f"Error evaluating user customization {customization} while applying preset {preset}: {e}"
-                ) from e
+        try:
+            for customization in preset.apply(builder, model, build_dependencies):
+                try:
+                    customization.apply(builder, model)
+                except Exception as e:
+                    raise ApplyCustomizationError(
+                        f"Error evaluating user customization {customization} while applying preset {preset}: {e}"
+                    ) from e
+        except Exception as e:
+            print()
 
     for customization in user_customizations:
         # apply user customizations that were not handled by presets

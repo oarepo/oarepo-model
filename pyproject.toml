@@ -19,7 +19,9 @@ dev = [
     "invenio-records-resources[tests,opensearch2]",
     "invenio-drafts-resources[tests,opensearch2]",
     "invenio-rdm-records[tests,opensearch2]",
+    "invenio-app-rdm>=13.0.0b4.dev0",
     "oarepo-runtime",
+    "oarepo-rdm",
     "graphlib"
 ]
 

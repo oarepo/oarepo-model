@@ -25,7 +25,7 @@ class RDMDraftRecordPreset(Preset):
     Preset for record service class.
     """
 
-    modifies = ["DraftRecord"]
+    modifies = ["Draft"]
 
     def apply(
         self,
@@ -33,4 +33,4 @@ class RDMDraftRecordPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        yield ChangeBase("DraftRecord", InvenioDraftRecord, RDMDraft)
+        yield ChangeBase("Draft", InvenioDraftRecord, RDMDraft)

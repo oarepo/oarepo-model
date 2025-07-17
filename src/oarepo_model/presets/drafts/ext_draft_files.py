@@ -45,6 +45,17 @@ class ExtDraftFilesPreset(Preset):
             Mixin for extension class.
             """
 
+            @property
+            def records_service_params(self):
+                """
+                Parameters for the record service.
+                """
+                return {
+                    **super().records_service_params,
+                    "files_service": self.files_service,
+                    "draft_files_service": self.draft_files_service,
+                }
+
             @cached_property
             def draft_files_service(self):
                 return self.get_model_dependency("DraftFileService")(

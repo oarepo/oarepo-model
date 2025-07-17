@@ -96,7 +96,7 @@ files_presets = [
     # record layer
     RecordFileMappingPreset,
     # service layer
-    FileRecordServiceComponentsPreset,
+    # FileRecordServiceComponentsPreset,
     FileServiceConfigPreset,
     FileServicePreset,
     RecordWithFilesSchemaPreset,

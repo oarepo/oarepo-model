@@ -10,6 +10,7 @@ from .ext_draft_media_files import ExtDraftMediaFilesPreset
 from .ext_media_files import ExtMediaFilesPreset
 from .file_records.draft_file_mapping import DraftFileMappingPreset
 from .file_records.draft_media_files import DraftMediaFilesPreset
+from .file_records.draft_record_metadata import DraftRecordMetadataWithFilesPreset
 from .file_records.draft_with_files import DraftWithFilesPreset
 from .file_records.draft_with_media_files import DraftWithMediaFilesPreset
 from .file_records.file_draft import FileDraftPreset
@@ -98,11 +99,12 @@ drafts_files_presets: list[type[Preset]] = [
     MediaFileMetadataPreset,
     MediaFileDraftMetadataPreset,
     FileDraftMetadataPreset,
+    DraftRecordMetadataWithFilesPreset,
     # record layer
     DraftFileMappingPreset,
     # service layer
     MediaFilesRecordServiceConfigPreset,
-    DraftFileRecordServiceComponentsPreset,
+    # DraftFileRecordServiceComponentsPreset,
     FileRecordServiceComponentsPreset,
     DraftFileServiceConfigPreset,
     NoUploadFileServiceConfigPreset,

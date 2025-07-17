@@ -84,13 +84,13 @@ def test_simple_flow_with_files(
     draft_file_service,
     identity_simple,
     input_data,
-    draft_model,
+    draft_model_with_files,
     search,
     search_clear,
     location,
 ):
-    Record = draft_model.Record
-    Draft = draft_model.Draft
+    Record = draft_model_with_files.Record
+    Draft = draft_model_with_files.Draft
 
     # Create an item
     item = draft_service_with_files.create(identity_simple, input_data)
@@ -99,6 +99,13 @@ def test_simple_flow_with_files(
 
     # Add a file
     add_file_to_draft(draft_file_service, id_, "test.txt", identity_simple)
+
+    res = draft_service_with_files.search_drafts(
+        identity_simple, q=f"id:{id_}", size=25, page=1
+    )
+    assert res.total == 1
+    first_hit = list(res.hits)[0]
+
 
     # Can not publish as publishing needs files support in drafts
     assert draft_service_with_files.publish(identity_simple, id_)

@@ -26,12 +26,12 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class RecordMetadataWithFilesPreset(Preset):
+class DraftRecordMetadataWithFilesPreset(Preset):
     """
     Preset for records_resources.records
     """
 
-    modifies = ["RecordMetadata"]
+    modifies = ["DraftMetadata"]
 
     def apply(
         self,
@@ -39,7 +39,7 @@ class RecordMetadataWithFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class RecordMetadataWithFilesMixin:
+        class DraftRecordMetadataWithFilesMixin:
             bucket_id = db.Column(UUIDType, db.ForeignKey(Bucket.id))
 
             @declared_attr
@@ -47,6 +47,6 @@ class RecordMetadataWithFilesPreset(Preset):
                 return db.relationship(Bucket, foreign_keys=[cls.bucket_id])
 
         yield AddMixins(
-            "RecordMetadata",
-            RecordMetadataWithFilesMixin,
+            "DraftMetadata",
+            DraftRecordMetadataWithFilesMixin,
         )
