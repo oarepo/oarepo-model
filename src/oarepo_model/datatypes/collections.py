@@ -119,7 +119,7 @@ class ObjectDataType(DataType):
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
         properties = self._get_properties(element)
         return {
-            **super().create_json_schema(element),
+            **super().create_mapping(element),
             "dynamic": "strict",
             "properties": {
                 key: self._registry.get_type(value).create_mapping(value)
