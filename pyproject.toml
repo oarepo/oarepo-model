@@ -16,12 +16,12 @@ dependencies = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "ruff>=0.11.13",
 ]
 oarepo13 = [
-    "oarepo[rdm,tests]>=13.0.0",
+    # "oarepo[rdm,tests]>=13.0.0",
     "invenio-records-resources[tests,opensearch2]",
     "invenio-drafts-resources[tests,opensearch2]",
     "invenio-rdm-records[tests,opensearch2]",
