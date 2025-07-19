@@ -35,4 +35,4 @@ class AddMixins(Customization):
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-        builder.get_class(self.name).mixins.extend(self.clazz)
+        builder.get_class(self.name).add_mixins(*self.clazz)

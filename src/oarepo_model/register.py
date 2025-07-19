@@ -175,3 +175,17 @@ def register_model(model: InvenioModel, namespace: SimpleNamespace):
     # add the model importer to the meta path
     importer = ModelImporter(model, namespace)
     sys.meta_path.insert(0, importer)
+
+
+def unregister_model(model: InvenioModel, namespace: SimpleNamespace):
+    """
+    Unregister the model importer from the meta path.
+    This allows cleanup of the model registration.
+    """
+    for i, importer in enumerate(sys.meta_path):
+        if isinstance(importer, ModelImporter) and importer.model == model:
+            del sys.meta_path[i]
+            return
+
+    # If we reach here, the model was not registered
+    raise ValueError(f"Model {model.name} is not registered.")

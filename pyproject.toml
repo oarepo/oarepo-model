@@ -7,24 +7,31 @@ authors = [
     { name = "Mirek Simek", email = "miroslav.simek@gmail.com" }
 ]
 requires-python = ">=3.13,<3.14"
-dependencies = []
-
-[project.scripts]
-invenio-model-test = "invenio_model_test:main"
+dependencies = [
+    "oarepo-runtime",
+    "graphlib",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "ruff>=0.11.13",
+]
+oarepo13 = [
+    # "oarepo[rdm,tests]>=13.0.0",
     "invenio-records-resources[tests,opensearch2]",
     "invenio-drafts-resources[tests,opensearch2]",
     "invenio-rdm-records[tests,opensearch2]",
-    "oarepo-runtime",
-    "graphlib"
 ]
+tests = [
+    "pytest-invenio",
+]
+
+[project.entry-points."oarepo_model.datatypes"]
+oarepo_model = "oarepo_model.datatypes.entrypoints:DATA_TYPES"
 
 [[tool.mypy.overrides]]
 module = ["untyped_package.*"]
