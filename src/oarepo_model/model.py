@@ -43,6 +43,13 @@ class InvenioModel:
             return self.configuration["title_name"]
         return title_case(self.base_name)
 
+    @property
+    def uppercase_name(self) -> str:
+        """Return the uppercase version of the model name."""
+        if "uppercase_name" in self.configuration:
+            return self.configuration["uppercase_name"]
+        return self.name.upper().replace(" ", "_").replace("-", "_")
+
 
 class CachedDescriptor:
     """A descriptor that caches the value in the instance or class."""
