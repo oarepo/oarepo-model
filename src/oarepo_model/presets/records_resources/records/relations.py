@@ -21,8 +21,14 @@ if TYPE_CHECKING:
 class RelationsPreset(Preset):
     """
     Preset that adds "relations" dictionary to the model. If you want to add
-    a custom relation, call `AddToDictionary("relations", key, value)` in your preset
-    or customizations array.
+    a custom relation, call:
+
+    ```python
+        from oarepo_model.customizations import AddToDictionary
+
+        AddToDictionary("relations", key, value)
+    ```
+    in your preset or customizations array.
     """
 
     provides = [

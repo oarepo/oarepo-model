@@ -5,6 +5,8 @@ import marshmallow
 from invenio_base.utils import obj_or_import_string
 from invenio_i18n import gettext as _
 
+from oarepo_model.customizations.base import Customization
+
 from .base import DataType
 
 
@@ -86,6 +88,22 @@ class ObjectDataType(DataType):
             },
         }
 
+    @override
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        """
+        Iterate through the properties of this object and create relations.
+        """
+        ret = []
+        for key, value in self._get_properties(element).items():
+            ret.extend(
+                self._registry.get_type(value).create_relations(
+                    value, path + [(key, value)]
+                )
+            )
+        return ret
+
 
 class NestedDataType(ObjectDataType):
     """
@@ -116,6 +134,7 @@ class ArrayDataType(DataType):
 
     TYPE = "array"
 
+    jsonschema_type = "array"
     marshmallow_field_class = marshmallow.fields.List
 
     @override
@@ -153,4 +172,12 @@ class ArrayDataType(DataType):
         # skip the array in mapping
         return self._registry.get_type(element["items"]).create_mapping(
             element["items"]
+        )
+
+    @override
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        return self._registry.get_type(element["items"]).create_relations(
+            element["items"], path + [("", element)]
         )
