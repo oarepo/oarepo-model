@@ -23,8 +23,15 @@ model_types = {
     }
 }
 
+#
+# Note: models must be created in the top-level conftest.py file
+# with fixture scope="session" to ensure they are created only once.
+# The reason is that the sqlalchemy engine would otherwise try to map
+# the model multiple times, which is not allowed.
+#
 
-@pytest.fixture(scope="module")
+
+@pytest.fixture(scope="session")
 def empty_model():
     from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_resources_presets
@@ -44,10 +51,13 @@ def empty_model():
     t2 = time.time()
     print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
 
-    return empty_model
+    try:
+        yield empty_model
+    finally:
+        empty_model.unregister()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def draft_model():
     from oarepo_model.api import model
     from oarepo_model.customizations import AddFileToModule
@@ -84,10 +94,13 @@ def draft_model():
     t2 = time.time()
     print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
 
-    return draft_model
+    try:
+        yield draft_model
+    finally:
+        draft_model.unregister()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def draft_model_with_files():
     from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_presets
@@ -108,7 +121,10 @@ def draft_model_with_files():
     t2 = time.time()
     print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
 
-    return draft_model
+    try:
+        yield draft_model
+    finally:
+        draft_model.unregister()
 
 
 @pytest.fixture(scope="module")

@@ -17,7 +17,7 @@ from .datatypes.registry import DataTypeRegistry
 from .errors import ApplyCustomizationError
 from .model import InvenioModel
 from .presets import Preset
-from .register import register_model
+from .register import register_model, unregister_model
 from .sorter import sort_presets
 
 
@@ -124,6 +124,7 @@ def model(
     ret = builder.build()
     run_checks(ret)
     ret.register = partial(register_model, model=model, namespace=ret)
+    ret.unregister = partial(unregister_model, model=model, namespace=ret)
     return ret
 
 

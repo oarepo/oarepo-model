@@ -1,8 +1,10 @@
 from marshmallow import Schema
 
 from oarepo_model.api import model
-from oarepo_model.presets.drafts import drafts_records_presets
-from oarepo_model.presets.records_resources import records_presets
+from oarepo_model.presets.records_resources import (
+    MetadataSchemaPreset,
+    RecordSchemaPreset,
+)
 
 
 def test_metadata_load_from_dict(
@@ -11,7 +13,12 @@ def test_metadata_load_from_dict(
     m = model(
         name="metadata_load_test",
         version="1.0.0",
-        presets=[records_presets, drafts_records_presets],
+        presets=[
+            [
+                RecordSchemaPreset,
+                MetadataSchemaPreset,
+            ]
+        ],
         types=[
             {
                 "RecordMetadata": {"properties": {"title": {"type": "TitleType"}}},
