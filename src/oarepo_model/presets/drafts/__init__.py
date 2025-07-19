@@ -23,6 +23,7 @@ from .file_records.record_with_media_files import RecordWithMediaFilesPreset
 from .records.draft_mapping import DraftMappingPreset
 from .records.draft_record import DraftPreset
 from .records.draft_record_metadata import DraftMetadataPreset
+from .records.draft_with_relations import DraftWithRelationsPreset
 from .records.parent_record import ParentRecordPreset
 from .records.parent_record_metadata import ParentRecordMetadataPreset
 from .records.parent_record_state import ParentRecordStatePreset
@@ -76,6 +77,7 @@ drafts_records_presets: list[type[Preset]] = [
     DraftPreset,
     PIDProviderPreset,
     DraftMappingPreset,
+    DraftWithRelationsPreset,
     # service layer
     DraftServiceConfigPreset,
     DraftServicePreset,

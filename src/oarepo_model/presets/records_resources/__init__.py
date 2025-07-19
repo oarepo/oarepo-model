@@ -30,6 +30,8 @@ from .records.record import RecordPreset
 from .records.record_json_schema import RecordJSONSchemaPreset
 from .records.record_mapping import RecordMappingPreset
 from .records.record_metadata import RecordMetadataPreset
+from .records.record_with_relations import RecordWithRelationsPreset
+from .records.relations import RelationsPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
 from .resources.records.resource import RecordResourcePreset
@@ -66,6 +68,8 @@ records_presets = [
     MetadataJSONSchemaPreset,
     RecordMappingPreset,
     MetadataMappingPreset,
+    RelationsPreset,
+    RecordWithRelationsPreset,
     # service layer
     RecordServicePreset,
     RecordServiceConfigPreset,
