@@ -8,7 +8,8 @@ authors = [
 ]
 requires-python = ">=3.13,<3.14"
 dependencies = [
-#    "oarepo>=13.0.0",
+    "oarepo-runtime",
+    "graphlib",
 ]
 
 [build-system]
@@ -16,13 +17,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-tests = [
+dev = [
     "ruff>=0.11.13",
+]
+oarepo13 = [
+    "oarepo[rdm,tests]>=13.0.0",
     "invenio-records-resources[tests,opensearch2]",
     "invenio-drafts-resources[tests,opensearch2]",
     "invenio-rdm-records[tests,opensearch2]",
-    "oarepo-runtime",
-    "graphlib"
+]
+tests = [
+    "pytest-invenio",
 ]
 
 [project.entry-points."oarepo_model.datatypes"]

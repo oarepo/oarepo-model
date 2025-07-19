@@ -19,7 +19,6 @@ $PYTHON -m venv $VENV
 source $VENV/bin/activate
 
 pip install -U setuptools pip wheel
-# pip install "oarepo[rdm,tests]==${OAREPO_VERSION}.*"
-pip install -e '.[tests]'
+pip install -e '.[dev,oarepo13,tests]'
 
 pytest tests
