@@ -137,6 +137,11 @@ class ModelImporter(importlib.abc.MetaPathFinder):
             submodule_root = submodule.split(".")[0]
 
             if hasattr(namespace, submodule_root):
+                if not isinstance(getattr(namespace, submodule_root), SimpleNamespace):
+                    raise ImportError(
+                        f"Expected a SimpleNamespace for {submodule_root}, "
+                        f"but got {type(getattr(namespace, submodule_root))}"
+                    )
 
                 class Loader:
                     def create_module(self, spec):
@@ -151,16 +156,9 @@ class ModelImporter(importlib.abc.MetaPathFinder):
                         return locate_file(namespace, name)
 
             else:
-
-                class Loader:
-                    def create_module(self, spec):
-                        return None
-
-                    def exec_module(self, module):
-                        pass
-
-                    def get_resource_reader(self, name):
-                        return locate_file(namespace, name)
+                raise ImportError(
+                    f"Namespace 'runtime_models_{self.model.base_name}' does not contain '{submodule_root}'"
+                )
 
             return importlib.util.spec_from_loader(
                 fullname, loader=Loader(), is_package=True

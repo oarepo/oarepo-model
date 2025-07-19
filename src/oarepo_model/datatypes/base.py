@@ -6,6 +6,8 @@ from invenio_base.utils import obj_or_import_string
 from marshmallow.fields import Field
 
 if TYPE_CHECKING:
+    from oarepo_model.customizations.base import Customization
+
     from .registry import DataTypeRegistry
 
 
@@ -114,3 +116,12 @@ class DataType:
         raise NotImplementedError(
             f"{self.__class__.__name__} neither implements create_mapping nor provides self.mapping_type"
         )
+
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        """
+        Create relations for the data type.
+        This method can be overridden by subclasses to provide specific relations creation logic.
+        """
+        return []

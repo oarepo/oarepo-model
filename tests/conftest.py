@@ -137,6 +137,71 @@ def draft_model_with_files(model_types):
         draft_model.unregister()
 
 
+relation_model_types = {
+    "Metadata": {
+        "properties": {
+            "direct": {
+                "type": "pid-relation",
+                "keys": ["id", "title"],
+                "record_cls": "runtime_models_test:Record",
+            },
+            "array[]": {
+                "type": "pid-relation",
+                "keys": ["id", "title"],
+                "record_cls": "runtime_models_test:Record",
+            },
+            "object": {
+                "type": "object",
+                "properties": {
+                    "a": {
+                        "type": "pid-relation",
+                        "keys": ["id", "title"],
+                        "record_cls": "runtime_models_test:Record",
+                    },
+                },
+            },
+            "double_array[]": {
+                "type": "object",
+                "properties": {
+                    "array[]": {
+                        "type": "pid-relation",
+                        "keys": ["id", "title"],
+                        "record_cls": "runtime_models_test:Record",
+                    },
+                },
+            },
+        }
+    }
+}
+
+
+@pytest.fixture(scope="session")
+def relation_model(empty_model):
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_resources_presets
+    from oarepo_model.presets.relations import relations_presets
+
+    t1 = time.time()
+
+    relation_model = model(
+        name="relation_test",
+        version="1.0.0",
+        presets=[records_resources_presets, relations_presets],
+        types=[relation_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    relation_model.register()
+
+    t2 = time.time()
+    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+
+    try:
+        yield relation_model
+    finally:
+        relation_model.unregister()
+
+
 @pytest.fixture(scope="session")
 def records_cf_model(model_types):
     from oarepo_model.api import model
@@ -190,6 +255,7 @@ def app_config(
     draft_model_with_files,
     records_cf_model,
     drafts_cf_model,
+    relation_model,
 ):
     """Override pytest-invenio app_config fixture.
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import json
 from typing import Any, override
 
@@ -6,7 +7,9 @@ import marshmallow
 from invenio_base.utils import obj_or_import_string
 from invenio_i18n import gettext as _
 
+from oarepo_model.customizations.base import Customization
 from oarepo_model.utils import PossibleMultiFormatField
+
 from .base import DataType
 
 
@@ -63,7 +66,7 @@ class ObjectDataType(DataType):
         Create a Marshmallow UI schema for the object data type.
         This method should be overridden by subclasses to provide specific schema creation logic.
         """
-        
+
         if "ui_marshmallow_schema_class" in element:
             # if marshmallow_schema_class is specified, use it directly
             return obj_or_import_string(element["ui_marshmallow_schema_class"])
@@ -72,9 +75,11 @@ class ObjectDataType(DataType):
             raise ValueError("Element must contain 'properties' key.")
 
         properties_fields: dict[str, Any] = {}
-        
+
         for key, value in element["properties"].items():
-            properties_fields.update(self._registry.get_type(value).create_ui_marshmallow_fields(key, value))
+            properties_fields.update(
+                self._registry.get_type(value).create_ui_marshmallow_fields(key, value)
+            )
 
         class Meta:
             unknown = marshmallow.RAISE
@@ -82,18 +87,25 @@ class ObjectDataType(DataType):
         properties_fields["Meta"] = Meta
         return type(self.name, (marshmallow.Schema,), properties_fields)
 
-    
-    def create_ui_marshmallow_fields(self, field_name: str, element: dict[str, Any]) -> dict[str, ObjectDataType]:
+    def create_ui_marshmallow_fields(
+        self, field_name: str, element: dict[str, Any]
+    ) -> dict[str, ObjectDataType]:
         """
         Create a Marshmallow UI fields for the object data type.
         This method should be overridden by subclasses to provide specific schema creation logic.
         """
         if element.get("ui_marshmallow_field") is not None:
             # if marshmallow_field is specified, use it directly
-            return {field_name: obj_or_import_string(element.get('ui_marshmallow_field'))}
-        
-        return {field_name: marshmallow.fields.Nested(self.create_ui_marshmallow_schema(element))}
-        
+            return {
+                field_name: obj_or_import_string(element.get("ui_marshmallow_field"))
+            }
+
+        return {
+            field_name: marshmallow.fields.Nested(
+                self.create_ui_marshmallow_schema(element)
+            )
+        }
+
     @override
     def _get_marshmallow_field_args(
         self, field_name: str, element: dict[str, Any]
@@ -127,6 +139,22 @@ class ObjectDataType(DataType):
             },
         }
 
+    @override
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        """
+        Iterate through the properties of this object and create relations.
+        """
+        ret = []
+        for key, value in self._get_properties(element).items():
+            ret.extend(
+                self._registry.get_type(value).create_relations(
+                    value, path + [(key, value)]
+                )
+            )
+        return ret
+
 
 class NestedDataType(ObjectDataType):
     """
@@ -157,6 +185,7 @@ class ArrayDataType(DataType):
 
     TYPE = "array"
 
+    jsonschema_type = "array"
     marshmallow_field_class = marshmallow.fields.List
 
     @override
@@ -188,22 +217,23 @@ class ArrayDataType(DataType):
         """
         if element.get("ui_marshmallow_field") is not None:
             # if marshmallow_field is specified, use it directly
-            return {field_name: obj_or_import_string(element.get('ui_marshmallow_field'))}
-        
+            return {
+                field_name: obj_or_import_string(element.get("ui_marshmallow_field"))
+            }
+
         # retrieve formatting options (e.g. for the date items type -> long, short etc.)
-        items_fields = self._registry.get_type(element["items"]).create_ui_marshmallow_fields(
-            'item', element["items"]
-        )
-        # no transformations 
+        items_fields = self._registry.get_type(
+            element["items"]
+        ).create_ui_marshmallow_fields("item", element["items"])
+        # no transformations
         if not items_fields:
             return {}
-        
+
         # create helper class that wraps all formatting options
-        fields = PossibleMultiFormatField(items_fields)        
-        # get representation of a marshmallow field 
+        fields = PossibleMultiFormatField(items_fields)
+        # get representation of a marshmallow field
         return {field_name: marshmallow.fields.List(fields.as_marshmallow_field())}
 
-            
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -218,4 +248,12 @@ class ArrayDataType(DataType):
         # skip the array in mapping
         return self._registry.get_type(element["items"]).create_mapping(
             element["items"]
+        )
+
+    @override
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        return self._registry.get_type(element["items"]).create_relations(
+            element["items"], path + [("", element)]
         )

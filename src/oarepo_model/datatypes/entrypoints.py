@@ -1,9 +1,17 @@
 from .base import DataType
 from .boolean import BooleanDataType
 from .collections import ArrayDataType, NestedDataType, ObjectDataType
+from .date import (
+    DateDataType,
+    DateTimeDataType,
+    EDTFDataType,
+    EDTFIntervalType,
+    EDTFTimeDataType,
+    TimeDataType,
+)
 from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataType
+from .relations import PIDRelation
 from .strings import FullTextDataType, FulltextWithKeywordDataType, KeywordDataType
-from .date import DateDataType, DateTimeDataType, TimeDataType, EDTFDataType, EDTFIntervalType, EDTFTimeDataType
 
 DATA_TYPES: dict[str, type[DataType]] = {
     KeywordDataType.TYPE: KeywordDataType,
@@ -21,6 +29,7 @@ DATA_TYPES: dict[str, type[DataType]] = {
     DateTimeDataType.TYPE: DateTimeDataType,
     TimeDataType.TYPE: TimeDataType,
     EDTFDataType.TYPE: EDTFDataType,
-    EDTFIntervalType.TYPE: EDTFIntervalType,   
+    EDTFIntervalType.TYPE: EDTFIntervalType,
     EDTFTimeDataType.TYPE: EDTFTimeDataType,
+    PIDRelation.TYPE: PIDRelation,
 }

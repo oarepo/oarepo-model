@@ -8,6 +8,8 @@ import marshmallow
 from .base import DataType
 
 if TYPE_CHECKING:
+    from oarepo_model.customizations.base import Customization
+
     from .registry import DataTypeRegistry
 
 
@@ -85,11 +87,19 @@ class WrappedDataType(DataType):
             self._merge_type_dict(element)
         )    
 
+    @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
         return self.impl.create_json_schema(self._merge_type_dict(element))
 
+    @override
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
         return self.impl.create_mapping(self._merge_type_dict(element))
+
+    @override
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        return self.impl.create_relations(self._merge_type_dict(element), path)
 
 
 def strict_merge(a, b):
