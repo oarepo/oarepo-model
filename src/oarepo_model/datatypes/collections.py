@@ -22,6 +22,15 @@ class ObjectDataType(DataType):
     jsonschema_type = "object"
     mapping_type = "object"
 
+    def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+        """
+        Get the properties for the object data type.
+        This method can be overridden by subclasses to provide specific properties logic.
+        """
+        if "properties" not in element:
+            raise ValueError("Element must contain 'properties' key.")
+        return element["properties"]
+
     def create_marshmallow_schema(
         self, element: dict[str, Any]
     ) -> type[marshmallow.Schema]:
@@ -33,13 +42,12 @@ class ObjectDataType(DataType):
             # if marshmallow_schema_class is specified, use it directly
             return obj_or_import_string(element["marshmallow_schema_class"])
 
-        if "properties" not in element:
-            raise ValueError("Element must contain 'properties' key.")
+        properties = self._get_properties(element)
 
         # TODO: create marshmallow field should pass extra arguments such attribute and data_key
         properties_fields: dict[str, Any] = {
             key: self._registry.get_type(value).create_marshmallow_field(key, value)
-            for key, value in element["properties"].items()
+            for key, value in properties.items()
         }
 
         class Meta:
@@ -97,23 +105,25 @@ class ObjectDataType(DataType):
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        properties = self._get_properties(element)
         return {
             **super().create_json_schema(element),
             "unevaluatedProperties": False,
             "properties": {
                 key: self._registry.get_type(value).create_json_schema(value)
-                for key, value in element["properties"].items()
+                for key, value in properties.items()
             },
         }
 
     @override
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        properties = self._get_properties(element)
         return {
             **super().create_json_schema(element),
             "dynamic": "strict",
             "properties": {
                 key: self._registry.get_type(value).create_mapping(value)
-                for key, value in element["properties"].items()
+                for key, value in properties.items()
             },
         }
 
