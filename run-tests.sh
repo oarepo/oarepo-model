@@ -6,6 +6,8 @@
 PYTHON=python3.13
 
 set -e
+set -x
+
 
 OAREPO_VERSION="${OAREPO_VERSION:-13}"
 
