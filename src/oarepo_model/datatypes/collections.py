@@ -8,7 +8,7 @@ from invenio_base.utils import obj_or_import_string
 from invenio_i18n import gettext as _
 
 from oarepo_model.customizations.base import Customization
-from oarepo_model.utils import PossibleMultiFormatField
+from oarepo_model.utils import PossibleMultiFormatField, convert_to_python_identifier
 
 from .base import DataType
 
@@ -49,7 +49,9 @@ class ObjectDataType(DataType):
 
         # TODO: create marshmallow field should pass extra arguments such attribute and data_key
         properties_fields: dict[str, Any] = {
-            key: self._registry.get_type(value).create_marshmallow_field(key, value)
+            convert_to_python_identifier(key): self._registry.get_type(
+                value
+            ).create_marshmallow_field(key, value)
             for key, value in properties.items()
         }
 

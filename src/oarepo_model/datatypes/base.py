@@ -89,6 +89,10 @@ class DataType:
         return {
             "required": element.get("required", False),
             "allow_none": element.get("allow_none", False),
+            "dump_only": element.get("dump_only", False),
+            "load_only": element.get("load_only", False),
+            "attribute": field_name,
+            "data_key": field_name,
         }
 
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
