@@ -1,0 +1,19 @@
+- id: 01cwqze88::1R01HL141112-01
+  title:
+    en: Studies of mRNA translational regulations in erythropoiesis
+  number: 1R01HL141112-01
+  funder:
+    id: 05k73zm37
+    name: Academy of Finland
+  organizations:
+  - scheme: ror
+    id: 02ex6cf31
+    organization: Brookhaven National Laboratory
+  identifiers:
+  - identifier: 10.1234/01cwqze88::1R01HL141112-01
+    scheme: doi
+  program: NATIONAL_HEART,_LUNG,_AND_BLOOD_INSTITUTE
+  acronym: mRNA
+  subjects:
+  - id: hrt
+    subject: heart
