@@ -49,6 +49,12 @@ class PIDRelation(ObjectDataType):
                     set_key_model(ret, k, v)
             else:
                 raise ValueError(f"Invalid key type: {type(key)}")
+        # if 'id' is not in keys, add it as a keyword field
+        if "id" not in ret:
+            ret["id"] = {"type": "keyword"}
+        # if @v is not in keys, add it as a keyword field, set marshmallow as dump only
+        if "@v" not in ret:
+            ret["@v"] = {"type": "keyword", "dump_only": True}
         return ret
 
     @override

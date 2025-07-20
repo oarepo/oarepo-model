@@ -132,14 +132,14 @@ relation_model_types = {
         "properties": {
             "direct": {
                 "type": "pid-relation",
-                "keys": ["id", "title"],
+                "keys": ["id", "metadata.title"],
                 "record_cls": "runtime_models_test:Record",
             },
             "array": {
                 "type": "array",
                 "items": {
                     "type": "pid-relation",
-                    "keys": ["id", "title"],
+                    "keys": ["id", "metadata.title"],
                     "record_cls": "runtime_models_test:Record",
                 },
             },
@@ -148,7 +148,7 @@ relation_model_types = {
                 "properties": {
                     "a": {
                         "type": "pid-relation",
-                        "keys": ["id", "title"],
+                        "keys": ["id", "metadata.title"],
                         "record_cls": "runtime_models_test:Record",
                     },
                 },
@@ -162,7 +162,7 @@ relation_model_types = {
                             "type": "array",
                             "items": {
                                 "type": "pid-relation",
-                                "keys": ["id", "title"],
+                                "keys": ["id", "metadata.title"],
                                 "record_cls": "runtime_models_test:Record",
                             },
                         },

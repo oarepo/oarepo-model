@@ -60,23 +60,23 @@ def test_relations(
 
     md = relation_rec.data["metadata"]
     assert md["direct"]["id"] == rec1_id
-    assert md["direct"]["title"] == "Record 1"
+    assert md["direct"]["metadata"]["title"] == "Record 1"
 
     assert len(md["array"]) == 2
     assert md["array"][0]["id"] == rec1_id
-    assert md["array"][0]["title"] == "Record 1"
+    assert md["array"][0]["metadata"]["title"] == "Record 1"
     assert md["array"][1]["id"] == rec2_id
-    assert md["array"][1]["title"] == "Record 2"
+    assert md["array"][1]["metadata"]["title"] == "Record 2"
 
     assert md["object"]["a"]["id"] == rec1_id
-    assert md["object"]["a"]["title"] == "Record 1"
+    assert md["object"]["a"]["metadata"]["title"] == "Record 1"
 
     assert len(md["double_array"]) == 2
     assert len(md["double_array"][0]["array"]) == 2
     assert md["double_array"][0]["array"][0]["id"] == rec1_id
-    assert md["double_array"][0]["array"][0]["title"] == "Record 1"
+    assert md["double_array"][0]["array"][0]["metadata"]["title"] == "Record 1"
     assert md["double_array"][0]["array"][1]["id"] == rec2_id
-    assert md["double_array"][0]["array"][1]["title"] == "Record 2"
+    assert md["double_array"][0]["array"][1]["metadata"]["title"] == "Record 2"
     assert len(md["double_array"][1]["array"]) == 1
     assert md["double_array"][1]["array"][0]["id"] == rec3_id
-    assert md["double_array"][1]["array"][0]["title"] == "Record 3"
+    assert md["double_array"][1]["array"][0]["metadata"]["title"] == "Record 3"
