@@ -42,6 +42,16 @@ class RecordWithFilesSchemaPreset(Preset):
 
             enabled = ma.fields.Bool()
 
+            def get_attribute(self, obj, attr, default):
+                """Override how attributes are retrieved when dumping.
+                NOTE: We have to access by attribute because although we are loading
+                    from an external pure dict, but we are dumping from a data-layer
+                    object whose fields should be accessed by attributes and not
+                    keys. Access by key runs into FilesManager key access protection
+                    and raises.
+                """
+                return getattr(obj, attr, default)
+
         class RecordWithFilesMixin(ma.Schema):
             files = NestedAttribute(FilesSchema)
 
