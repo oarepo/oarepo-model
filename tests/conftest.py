@@ -145,10 +145,13 @@ relation_model_types = {
                 "keys": ["id", "title"],
                 "record_cls": "runtime_models_test:Record",
             },
-            "array[]": {
-                "type": "pid-relation",
-                "keys": ["id", "title"],
-                "record_cls": "runtime_models_test:Record",
+            "array": {
+                "type": "array",
+                "items": {
+                    "type": "pid-relation",
+                    "keys": ["id", "title"],
+                    "record_cls": "runtime_models_test:Record",
+                },
             },
             "object": {
                 "type": "object",
@@ -160,13 +163,19 @@ relation_model_types = {
                     },
                 },
             },
-            "double_array[]": {
-                "type": "object",
-                "properties": {
-                    "array[]": {
-                        "type": "pid-relation",
-                        "keys": ["id", "title"],
-                        "record_cls": "runtime_models_test:Record",
+            "double_array": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "array": {
+                            "type": "array",
+                            "items": {
+                                "type": "pid-relation",
+                                "keys": ["id", "title"],
+                                "record_cls": "runtime_models_test:Record",
+                            },
+                        },
                     },
                 },
             },
