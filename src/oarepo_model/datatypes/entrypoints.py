@@ -1,9 +1,16 @@
 from .base import DataType
 from .boolean import BooleanDataType
-from .collections import ArrayDataType, NestedDataType, ObjectDataType
+from .collections import (
+    ArrayDataType,
+    DynamicObjectDataType,
+    NestedDataType,
+    ObjectDataType,
+)
+from .multilingual import I18nDictDataType
 from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataType
 from .relations import PIDRelation
 from .strings import FullTextDataType, FulltextWithKeywordDataType, KeywordDataType
+from .vocabularies import VocabularyDataType
 
 DATA_TYPES: dict[str, type[DataType]] = {
     KeywordDataType.TYPE: KeywordDataType,
@@ -18,4 +25,7 @@ DATA_TYPES: dict[str, type[DataType]] = {
     NestedDataType.TYPE: NestedDataType,
     ArrayDataType.TYPE: ArrayDataType,
     PIDRelation.TYPE: PIDRelation,
+    VocabularyDataType.TYPE: VocabularyDataType,
+    I18nDictDataType.TYPE: I18nDictDataType,
+    DynamicObjectDataType.TYPE: DynamicObjectDataType,
 }
