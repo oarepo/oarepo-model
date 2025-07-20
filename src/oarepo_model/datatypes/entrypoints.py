@@ -2,6 +2,7 @@ from .base import DataType
 from .boolean import BooleanDataType
 from .collections import ArrayDataType, NestedDataType, ObjectDataType
 from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataType
+from .relations import PIDRelation
 from .strings import FullTextDataType, FulltextWithKeywordDataType, KeywordDataType
 
 DATA_TYPES: dict[str, type[DataType]] = {
@@ -16,4 +17,5 @@ DATA_TYPES: dict[str, type[DataType]] = {
     BooleanDataType.TYPE: BooleanDataType,
     NestedDataType.TYPE: NestedDataType,
     ArrayDataType.TYPE: ArrayDataType,
+    PIDRelation.TYPE: PIDRelation,
 }

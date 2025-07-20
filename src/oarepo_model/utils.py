@@ -112,3 +112,22 @@ def camel_case_split(s):
 def title_case(s):
     parts = camel_case_split(s)
     return "".join(part.capitalize() for part in parts)
+
+
+def convert_to_python_identifier(s: str) -> str:
+    """
+    Convert a string to a valid Python identifier.
+    Replaces invalid characters with their transliteration to english words.
+    """
+    if not s or s.isidentifier():
+        return s
+
+    ret = []
+    for c in s:
+        if not c.isidentifier():
+            ret.append(f"_{ord(c)}_")
+        else:
+            ret.append(c)
+    if not ret[0].isidentifier():
+        ret.insert(0, "_")
+    return "".join(ret)
