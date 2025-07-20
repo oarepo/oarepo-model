@@ -23,6 +23,7 @@ from .file_records.record_with_media_files import RecordWithMediaFilesPreset
 from .records.draft_mapping import DraftMappingPreset
 from .records.draft_record import DraftPreset
 from .records.draft_record_metadata import DraftMetadataPreset
+from .records.draft_with_relations import DraftWithRelationsPreset
 from .records.parent_record import ParentRecordPreset
 from .records.parent_record_metadata import ParentRecordMetadataPreset
 from .records.parent_record_state import ParentRecordStatePreset
@@ -62,6 +63,7 @@ from .services.files.no_upload_file_service_config import (
     NoUploadFileServiceConfigPreset,
 )
 from .services.records.record_schema import DraftRecordSchemaPreset
+from .services.records.relations import RelationsServiceComponentPreset
 from .services.records.service import DraftServicePreset
 from .services.records.service_config import DraftServiceConfigPreset
 
@@ -76,10 +78,12 @@ drafts_records_presets: list[type[Preset]] = [
     DraftPreset,
     PIDProviderPreset,
     DraftMappingPreset,
+    DraftWithRelationsPreset,
     # service layer
     DraftServiceConfigPreset,
     DraftServicePreset,
     DraftRecordSchemaPreset,
+    RelationsServiceComponentPreset,
     # resource layer
     DraftResourcePreset,
     DraftResourceConfigPreset,

@@ -10,21 +10,20 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
+from oarepo_model.customizations import AddToList, Customization
+from oarepo_model.model import InvenioModel
+from oarepo_model.presets import Preset
+
 if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
-    from oarepo_model.customizations import Customization
-    from oarepo_model.model import InvenioModel
 
 
-class Preset:
+class CustomFieldsComponentPreset(Preset):
     """
-    Base class for presets.
+    Preset for record service class.
     """
 
-    provides: list[str] = []
-    modifies: list[str] = []
-    depends_on: list[str] = []
-    only_if: list[str] = []
+    modifies = ["record_service_components"]
 
     def apply(
         self,
@@ -32,11 +31,8 @@ class Preset:
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        """
-        Apply the preset to the given model.
-        This method should be overridden by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        from invenio_rdm_records.services.components.custom_fields import (
+            CustomFieldsComponent,
+        )
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}[{self.__class__.__module__}]"
+        yield AddToList("record_service_components", CustomFieldsComponent)

@@ -8,9 +8,11 @@
 #
 from __future__ import annotations
 
+from functools import partial
 from typing import TYPE_CHECKING, Any, Generator
 
-import marshmallow as ma
+import marshmallow
+from invenio_records_resources.services.custom_fields import CustomFieldsSchema
 from marshmallow_utils.fields import (
     NestedAttribute,
 )
@@ -23,7 +25,7 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class RecordWithFilesSchemaPreset(Preset):
+class RecordCustomFieldsSchemaPreset(Preset):
     """
     Preset for record service class.
     """
@@ -36,23 +38,14 @@ class RecordWithFilesSchemaPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
+        custom_fields_key = model.uppercase_name + "_CUSTOM_FIELDS"
 
-        class FilesSchema(ma.Schema):
-            """Files metadata schema."""
+        class CustomFieldsMixin(marshmallow.Schema):
+            custom_fields = NestedAttribute(
+                partial(CustomFieldsSchema, fields_var=custom_fields_key)
+            )
 
-            enabled = ma.fields.Bool()
-
-            def get_attribute(self, obj, attr, default):
-                """Override how attributes are retrieved when dumping.
-                NOTE: We have to access by attribute because although we are loading
-                    from an external pure dict, but we are dumping from a data-layer
-                    object whose fields should be accessed by attributes and not
-                    keys. Access by key runs into FilesManager key access protection
-                    and raises.
-                """
-                return getattr(obj, attr, default)
-
-        class RecordWithFilesMixin(ma.Schema):
-            files = NestedAttribute(FilesSchema)
-
-        yield AddMixins("RecordSchema", RecordWithFilesMixin)
+        yield AddMixins(
+            "RecordSchema",
+            CustomFieldsMixin,
+        )

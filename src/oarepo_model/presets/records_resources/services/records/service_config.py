@@ -25,8 +25,8 @@ from oarepo_runtime.services.records import pagination_links_html
 
 from oarepo_model.customizations import (
     AddClass,
-    AddClassList,
     AddDictionary,
+    AddList,
     AddMixins,
     AddToList,
     Customization,
@@ -133,7 +133,7 @@ class RecordServiceConfigPreset(Preset):
                 }
                 return {k: v for k, v in links.items() if v is not None}
 
-        yield AddClassList("record_service_components", exists_ok=True)
+        yield AddList("record_service_components", exists_ok=True)
 
         yield AddClass("RecordServiceConfig", clazz=RecordServiceConfig)
         yield AddMixins("RecordServiceConfig", ServiceConfigMixin)
