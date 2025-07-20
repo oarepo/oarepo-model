@@ -63,6 +63,7 @@ from .services.files.no_upload_file_service_config import (
     NoUploadFileServiceConfigPreset,
 )
 from .services.records.record_schema import DraftRecordSchemaPreset
+from .services.records.relations import RelationsServiceComponentPreset
 from .services.records.service import DraftServicePreset
 from .services.records.service_config import DraftServiceConfigPreset
 
@@ -82,6 +83,7 @@ drafts_records_presets: list[type[Preset]] = [
     DraftServiceConfigPreset,
     DraftServicePreset,
     DraftRecordSchemaPreset,
+    RelationsServiceComponentPreset,
     # resource layer
     DraftResourcePreset,
     DraftResourceConfigPreset,

@@ -32,6 +32,7 @@ from .records.record_mapping import RecordMappingPreset
 from .records.record_metadata import RecordMetadataPreset
 from .records.record_with_relations import RecordWithRelationsPreset
 from .records.relations import RelationsPreset
+from .records.relations_dumper_ext import RelationsDumperExtPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
 from .resources.records.resource import RecordResourcePreset
@@ -70,6 +71,7 @@ records_presets = [
     MetadataMappingPreset,
     RelationsPreset,
     RecordWithRelationsPreset,
+    RelationsDumperExtPreset,
     # service layer
     RecordServicePreset,
     RecordServiceConfigPreset,
