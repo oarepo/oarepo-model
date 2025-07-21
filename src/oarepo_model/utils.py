@@ -7,6 +7,7 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 #
 import inspect
+import keyword
 import re
 
 
@@ -112,3 +113,26 @@ def camel_case_split(s):
 def title_case(s):
     parts = camel_case_split(s)
     return "".join(part.capitalize() for part in parts)
+
+
+def convert_to_python_identifier(s: str) -> str:
+    """
+    Convert a string to a valid Python identifier.
+    Replaces invalid characters with their transliteration to english words.
+    """
+    if not s:
+        return "_empty_"
+
+    if not s.isidentifier():
+        ret = []
+        for c in s:
+            if not (c.isalnum() or c == '_'):
+                ret.append(f"_{ord(c)}_")
+            else:
+                ret.append(c)
+        s = "".join(ret)
+
+    if keyword.iskeyword(s):
+        s = f"{s}_"
+
+    return s

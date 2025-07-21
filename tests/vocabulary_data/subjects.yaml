@@ -1,0 +1,10 @@
+- id: ab
+  scheme: FOS
+  subject: Agricultural biotechnology
+  props:
+    classification: FOS
+- id: hrt
+  scheme: FOS
+  subject: Heart
+  props:
+    classification: FOS

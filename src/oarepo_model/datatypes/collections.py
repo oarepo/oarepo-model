@@ -5,6 +5,9 @@ import marshmallow
 from invenio_base.utils import obj_or_import_string
 from invenio_i18n import gettext as _
 
+from oarepo_model.customizations.base import Customization
+from oarepo_model.utils import convert_to_python_identifier
+
 from .base import DataType
 
 
@@ -20,6 +23,15 @@ class ObjectDataType(DataType):
     jsonschema_type = "object"
     mapping_type = "object"
 
+    def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+        """
+        Get the properties for the object data type.
+        This method can be overridden by subclasses to provide specific properties logic.
+        """
+        if "properties" not in element:
+            raise ValueError("Element must contain 'properties' key.")
+        return element["properties"]
+
     def create_marshmallow_schema(
         self, element: dict[str, Any]
     ) -> type[marshmallow.Schema]:
@@ -31,12 +43,14 @@ class ObjectDataType(DataType):
             # if marshmallow_schema_class is specified, use it directly
             return obj_or_import_string(element["marshmallow_schema_class"])
 
-        if "properties" not in element:
-            raise ValueError("Element must contain 'properties' key.")
+        properties = self._get_properties(element)
 
         properties_fields: dict[str, Any] = {
-            key: self._registry.get_type(value).create_marshmallow_field(key, value)
-            for key, value in element["properties"].items()
+            convert_to_python_identifier(key): self._registry.get_type(
+                value
+            ).create_marshmallow_field(key, value)
+            for key, value in properties.items()
+            if not value.get("skip_marshmallow", False)
         }
 
         class Meta:
@@ -56,25 +70,43 @@ class ObjectDataType(DataType):
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        properties = self._get_properties(element)
         return {
             **super().create_json_schema(element),
             "unevaluatedProperties": False,
             "properties": {
                 key: self._registry.get_type(value).create_json_schema(value)
-                for key, value in element["properties"].items()
+                for key, value in properties.items()
             },
         }
 
     @override
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        properties = self._get_properties(element)
         return {
-            **super().create_json_schema(element),
+            **super().create_mapping(element),
             "dynamic": "strict",
             "properties": {
                 key: self._registry.get_type(value).create_mapping(value)
-                for key, value in element["properties"].items()
+                for key, value in properties.items()
             },
         }
+
+    @override
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        """
+        Iterate through the properties of this object and create relations.
+        """
+        ret = []
+        for key, value in self._get_properties(element).items():
+            ret.extend(
+                self._registry.get_type(value).create_relations(
+                    value, path + [(key, value)]
+                )
+            )
+        return ret
 
 
 class NestedDataType(ObjectDataType):
@@ -106,6 +138,7 @@ class ArrayDataType(DataType):
 
     TYPE = "array"
 
+    jsonschema_type = "array"
     marshmallow_field_class = marshmallow.fields.List
 
     @override
@@ -144,3 +177,50 @@ class ArrayDataType(DataType):
         return self._registry.get_type(element["items"]).create_mapping(
             element["items"]
         )
+
+    @override
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        return self._registry.get_type(element["items"]).create_relations(
+            element["items"], path + [("", element)]
+        )
+
+
+class PermissiveSchema(marshmallow.Schema):
+    """A permissive schema that allows any properties."""
+
+    class Meta:
+        unknown = marshmallow.INCLUDE
+
+
+class DynamicObjectDataType(ObjectDataType):
+    """A data type for multilingual dictionaries.
+
+    Their serialization is:
+    {
+        "en": "English text",
+        "fi": "Finnish text",
+        ...
+    }
+    """
+
+    TYPE = "dynamic-object"
+
+    def create_marshmallow_schema(
+        self, element: dict[str, Any]
+    ) -> type[marshmallow.Schema]:
+        return PermissiveSchema
+
+    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        return {"type": "object", "additionalProperties": True}
+
+    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        return {"type": "object", "dynamic": "true"}
+
+    @override
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        # can not get relations for dynamic objects
+        return []
