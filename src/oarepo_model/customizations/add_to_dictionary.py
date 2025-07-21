@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
+from deepmerge import always_merger
+
 from .base import Customization
 
 if TYPE_CHECKING:
@@ -27,6 +29,7 @@ class AddToDictionary(Customization):
         key: str | None = None,
         value: Any = None,
         exists_ok: bool = False,
+        patch: bool = False,
     ) -> None:
         """Initialize the AddDictionary customization.
 
@@ -39,6 +42,7 @@ class AddToDictionary(Customization):
         self.value = value
         self.values = values
         self.exists_ok = exists_ok
+        self.patch = patch
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
@@ -47,7 +51,11 @@ class AddToDictionary(Customization):
             d.update(value)
         if self.key is not None:
             if self.key in d and not self.exists_ok:
-                raise ValueError(
-                    f"Key '{self.key}' already exists in dictionary '{self.name}'."
-                )
-            d[self.key] = self.value
+                if not self.patch:
+                    raise ValueError(
+                        f"Key '{self.key}' already exists in dictionary '{self.name}'."
+                    )
+                else:
+                    d[self.key] = always_merger.merge(d[self.key], self.value)
+            else:
+                d[self.key] = self.value

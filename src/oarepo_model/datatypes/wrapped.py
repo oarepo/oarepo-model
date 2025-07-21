@@ -67,6 +67,11 @@ class WrappedDataType(DataType):
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
         return self.impl.create_mapping(self._merge_type_dict(element))
 
+    def create_ui_model(
+        self, element: dict[str, Any], path: list[str]
+    ) -> dict[str, Any]:
+        return self.impl.create_ui_model(self._merge_type_dict(element), path)
+
 
 def strict_merge(a, b):
     """
