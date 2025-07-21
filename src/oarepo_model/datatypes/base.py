@@ -106,3 +106,22 @@ class DataType:
         raise NotImplementedError(
             f"{self.__class__.__name__} neither implements create_mapping nor provides self.mapping_type"
         )
+
+    def create_ui_model(
+        self, element: dict[str, Any], path: list[str]
+    ) -> dict[str, Any]:
+        """
+        Create a UI model for the data type.
+        This method should be overridden by subclasses to provide specific UI model creation logic.
+        """
+
+        target_path = "/".join(x if x != "[]" else "item" for x in path)
+
+        ret: dict[str, Any] = {
+            "help": f"{target_path}.help",
+            "label": f"{target_path}.label",
+            "hint": f"{target_path}.hint",
+        }
+        if "required" in element and element["required"]:
+            ret["required"] = True
+        return ret

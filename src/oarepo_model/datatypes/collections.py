@@ -76,6 +76,21 @@ class ObjectDataType(DataType):
             },
         }
 
+    @override
+    def create_ui_model(
+        self, element: dict[str, Any], path: list[str]
+    ) -> dict[str, Any]:
+        """
+        Create a UI model for the data type.
+        This method should be overridden by subclasses to provide specific UI model creation logic.
+        """
+        ret = super().create_ui_model(element, path)
+        ret["children"] = {
+            key: self._registry.get_type(value).create_ui_model(value, path + [key])
+            for key, value in element["properties"].items()
+        }
+        return ret
+
 
 class NestedDataType(ObjectDataType):
     """
@@ -144,3 +159,22 @@ class ArrayDataType(DataType):
         return self._registry.get_type(element["items"]).create_mapping(
             element["items"]
         )
+
+    @override
+    def create_ui_model(
+        self, element: dict[str, Any], path: list[str]
+    ) -> dict[str, Any]:
+        """
+        Create a UI model for the data type.
+        This method should be overridden by subclasses to provide specific UI model creation logic.
+        """
+        ret = super().create_ui_model(element, path)
+        ret["child"] = self._registry.get_type(element["items"]).create_ui_model(
+            element["items"], path + ["[]"]
+        )
+        if "min_items" in element or "max_items" in element:
+            ret["min_items"] = element.get("min_items", None)
+            ret["max_items"] = element.get("max_items", None)
+        if "unique_items" in element and element["unique_items"]:
+            ret["unique_items"] = True
+        return ret
