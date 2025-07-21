@@ -115,7 +115,17 @@ class DataType:
         This method should be overridden by subclasses to provide specific UI model creation logic.
         """
 
-        target_path = "/".join(x if x != "[]" else "item" for x in path)
+        # replace array items:
+        # a,[],b => a,b
+        # a, [], b, [] => a, b, item
+        replaced_arrays = [x for x in path[:-1] if x != "[]"]
+        if path[-1] == "[]":
+            # if the last element is "[]", we replace it with "item"
+            replaced_arrays.append("item")
+        else:
+            replaced_arrays.append(path[-1])
+
+        target_path = "/".join(replaced_arrays)
 
         ret: dict[str, Any] = {
             "help": f"{target_path}.help",

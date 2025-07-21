@@ -243,15 +243,15 @@ def test_array_of_objects(test_ui_model):
             "hint": "a/item.hint",
             "children": {
                 "name": {
-                    "help": "a/item/name.help",
-                    "label": "a/item/name.label",
-                    "hint": "a/item/name.hint",
+                    "help": "a/name.help",
+                    "label": "a/name.label",
+                    "hint": "a/name.hint",
                     "required": True,
                 },
                 "age": {
-                    "help": "a/item/age.help",
-                    "label": "a/item/age.label",
-                    "hint": "a/item/age.hint",
+                    "help": "a/age.help",
+                    "label": "a/age.label",
+                    "hint": "a/age.hint",
                     "min_inclusive": 0,
                 },
             },
