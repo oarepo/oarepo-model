@@ -127,15 +127,15 @@ class PIDRelation(ObjectDataType):
     def _key_names(
         self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
     ) -> list[str]:
-        keys = []
+        keys = set()
         for key in element.get("keys", []):
             if isinstance(key, str):
-                keys.append(key)
+                keys.add(key)
             elif isinstance(key, dict):
-                keys.extend(key.keys())
+                keys.update(key.keys())
             else:
                 raise ValueError(f"Invalid key type: {type(key)}")
-        return keys
+        return list(keys)
 
 
 def set_key_model(properties: dict[str, Any], key: str, value: Any) -> None:
