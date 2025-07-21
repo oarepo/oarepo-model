@@ -135,7 +135,7 @@ def convert_to_python_identifier(s: str) -> str:
     if not s.isidentifier():
         ret = []
         for c in s:
-            if not c.isidentifier():
+            if not (c.isalnum() or c == '_'):
                 ret.append(f"_{ord(c)}_")
             else:
                 ret.append(c)
