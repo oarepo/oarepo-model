@@ -27,6 +27,7 @@ def test_keyword_ui_model(test_ui_model):
         }
     )
     assert ui_model == {
+        "input": "keyword",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
@@ -46,6 +47,7 @@ def test_fulltext_ui_model(test_ui_model):
         }
     )
     assert ui_model == {
+        "input": "fulltext",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
@@ -65,6 +67,7 @@ def test_fulltext_plus_keyword_ui_model(test_ui_model):
         }
     )
     assert ui_model == {
+        "input": "fulltext+keyword",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
@@ -83,6 +86,7 @@ def test_integer_ui_model(test_ui_model):
         }
     )
     assert ui_model == {
+        "input": "int",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
@@ -100,6 +104,7 @@ def test_float_ui_model(test_ui_model):
         }
     )
     assert ui_model == {
+        "input": "float",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
@@ -111,6 +116,7 @@ def test_float_ui_model(test_ui_model):
 def test_boolean_ui_model(test_ui_model):
     ui_model = test_ui_model({"type": "boolean"})
     assert ui_model == {
+        "input": "boolean",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
@@ -128,17 +134,20 @@ def test_object_ui_model(test_ui_model):
         }
     )
     assert ui_model == {
+        "input": "object",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
         "children": {
             "name": {
+                "input": "keyword",
                 "help": "a/name.help",
                 "label": "a/name.label",
                 "hint": "a/name.hint",
                 "required": True,
             },
             "age": {
+                "input": "int",
                 "help": "a/age.help",
                 "label": "a/age.label",
                 "hint": "a/age.hint",
@@ -165,23 +174,27 @@ def test_object_inside_object_ui_model(test_ui_model):
         }
     )
     assert ui_model == {
+        "input": "object",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
         "children": {
             "person": {
+                "input": "object",
                 "help": "a/person.help",
                 "label": "a/person.label",
                 "hint": "a/person.hint",
                 "required": True,
                 "children": {
                     "name": {
+                        "input": "keyword",
                         "help": "a/person/name.help",
                         "label": "a/person/name.label",
                         "hint": "a/person/name.hint",
                         "required": True,
                     },
                     "age": {
+                        "input": "int",
                         "help": "a/person/age.help",
                         "label": "a/person/age.label",
                         "hint": "a/person/age.hint",
@@ -203,10 +216,12 @@ def test_array(test_ui_model):
         }
     )
     assert ui_model == {
+        "input": "array",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
         "child": {
+            "input": "keyword",
             "help": "a/item.help",
             "label": "a/item.label",
             "hint": "a/item.hint",
@@ -232,23 +247,27 @@ def test_array_of_objects(test_ui_model):
         }
     )
     assert ui_model == {
+        "input": "array",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
         "min_items": 1,
         "max_items": 3,
         "child": {
+            "input": "object",
             "help": "a/item.help",
             "label": "a/item.label",
             "hint": "a/item.hint",
             "children": {
                 "name": {
+                    "input": "keyword",
                     "help": "a/name.help",
                     "label": "a/name.label",
                     "hint": "a/name.hint",
                     "required": True,
                 },
                 "age": {
+                    "input": "int",
                     "help": "a/age.help",
                     "label": "a/age.label",
                     "hint": "a/age.hint",
@@ -271,6 +290,7 @@ def test_forwarded_ui_model(test_ui_model):
         },
     )
     assert ui_model == {
+        "input": "double",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
@@ -293,17 +313,20 @@ def test_forwarded_object_ui_model(test_ui_model):
         },
     )
     assert ui_model == {
+        "input": "object",
         "help": "a.help",
         "label": "a.label",
         "hint": "a.hint",
         "children": {
             "name": {
+                "input": "keyword",
                 "help": "a/name.help",
                 "label": "a/name.label",
                 "hint": "a/name.hint",
                 "required": True,
             },
             "age": {
+                "input": "int",
                 "help": "a/age.help",
                 "label": "a/age.label",
                 "hint": "a/age.hint",
