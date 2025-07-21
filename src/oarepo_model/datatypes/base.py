@@ -8,6 +8,8 @@ from marshmallow.fields import Field
 if TYPE_CHECKING:
     from .registry import DataTypeRegistry
 
+ARRAY_ITEM_PATH = "[]"
+
 
 class DataType:
     """
@@ -118,9 +120,9 @@ class DataType:
         # replace array items:
         # a,[],b => a,b
         # a, [], b, [] => a, b, item
-        replaced_arrays = [x for x in path[:-1] if x != "[]"]
-        if path[-1] == "[]":
-            # if the last element is "[]", we replace it with "item"
+        replaced_arrays = [x for x in path[:-1] if x is not ARRAY_ITEM_PATH]
+        if path[-1] is ARRAY_ITEM_PATH:
+            # if the last element is ARRAY_ITEM_PATH, we replace it with "item"
             replaced_arrays.append("item")
         else:
             replaced_arrays.append(path[-1])
