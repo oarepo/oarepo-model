@@ -128,9 +128,17 @@ class DataType:
         target_path = "/".join(replaced_arrays)
 
         ret: dict[str, Any] = {
-            "help": f"{target_path}.help",
-            "label": f"{target_path}.label",
-            "hint": f"{target_path}.hint",
+            "help": (
+                element["help.key"] if "help.key" in element else f"{target_path}.help"
+            ),
+            "label": (
+                element["label.key"]
+                if "label.key" in element
+                else f"{target_path}.label"
+            ),
+            "hint": (
+                element["hint.key"] if "hint.key" in element else f"{target_path}.hint"
+            ),
         }
         if "required" in element and element["required"]:
             ret["required"] = True
