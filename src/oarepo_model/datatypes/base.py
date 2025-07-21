@@ -144,4 +144,10 @@ class DataType:
         }
         if "required" in element and element["required"]:
             ret["required"] = True
+
+        if "input" in element:
+            ret["input"] = element["input"]
+        else:
+            ret["input"] = element["type"]
+
         return ret
