@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 
     from .registry import DataTypeRegistry
 
+ARRAY_ITEM_PATH = "[]"
+
 
 class DataType:
     """
@@ -53,15 +55,17 @@ class DataType:
         return self._get_marshmallow_field_class(field_name, element)(
             **self._get_marshmallow_field_args(field_name, element)
         )
-    
-    def create_ui_marshmallow_fields(self, field_name: str, element: dict[str, Any]) -> dict[str, Field]:
+
+    def create_ui_marshmallow_fields(
+        self, field_name: str, element: dict[str, Any]
+    ) -> dict[str, Field]:
         """
         Create a Marshmallow UI field for the data type.
         This method should be overridden by subclasses to provide specific UI field creation logic.
         """
-        # if there is no UI transformation, leave it out, therefore there are no copied values in UI     
+        # if there is no UI transformation, leave it out, therefore there are no copied values in UI
         return {}
-    
+
     def _get_marshmallow_field_class(
         self, field_name: str, element: dict[str, Any]
     ) -> type[Field]:
@@ -129,3 +133,46 @@ class DataType:
         This method can be overridden by subclasses to provide specific relations creation logic.
         """
         return []
+
+    def create_ui_model(
+        self, element: dict[str, Any], path: list[str]
+    ) -> dict[str, Any]:
+        """
+        Create a UI model for the data type.
+        This method should be overridden by subclasses to provide specific UI model creation logic.
+        """
+
+        # replace array items:
+        # a,[],b => a,b
+        # a, [], b, [] => a, b, item
+        replaced_arrays = [x for x in path[:-1] if x is not ARRAY_ITEM_PATH]
+        if path[-1] is ARRAY_ITEM_PATH:
+            # if the last element is ARRAY_ITEM_PATH, we replace it with "item"
+            replaced_arrays.append("item")
+        else:
+            replaced_arrays.append(path[-1])
+
+        target_path = "/".join(replaced_arrays)
+
+        ret: dict[str, Any] = {
+            "help": (
+                element["help.key"] if "help.key" in element else f"{target_path}.help"
+            ),
+            "label": (
+                element["label.key"]
+                if "label.key" in element
+                else f"{target_path}.label"
+            ),
+            "hint": (
+                element["hint.key"] if "hint.key" in element else f"{target_path}.hint"
+            ),
+        }
+        if "required" in element and element["required"]:
+            ret["required"] = True
+
+        if "input" in element:
+            ret["input"] = element["input"]
+        else:
+            ret["input"] = element["type"]
+
+        return ret
