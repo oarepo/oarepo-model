@@ -32,8 +32,12 @@ from .records.record_mapping import RecordMappingPreset
 from .records.record_metadata import RecordMetadataPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
+from .resources.records.register_ui_json_serializer import (
+    RegisterJSONUISerializerPreset,
+)
 from .resources.records.resource import RecordResourcePreset
 from .resources.records.resource_config import RecordResourceConfigPreset
+from .resources.records.ui_json_serializer import JSONUISerializerPreset
 from .services.files.file_record_service_components import (
     FileRecordServiceComponentsPreset,
 )
@@ -53,6 +57,8 @@ from .services.records.results import (
 from .services.records.search_options import RecordSearchOptionsPreset
 from .services.records.service import RecordServicePreset
 from .services.records.service_config import RecordServiceConfigPreset
+from .services.records.ui_metadata_schema import MetadataUISchemaPreset
+from .services.records.ui_record_schema import RecordUISchemaPreset
 
 records_presets = [
     # record layer
@@ -76,9 +82,13 @@ records_presets = [
     PermissionPolicyPreset,
     RecordSchemaPreset,
     MetadataSchemaPreset,
+    RecordUISchemaPreset,
+    MetadataUISchemaPreset,
     # resource layer
     RecordResourcePreset,
     RecordResourceConfigPreset,
+    JSONUISerializerPreset,
+    RegisterJSONUISerializerPreset,
     # extension
     ExtPreset,
     ProxyPreset,

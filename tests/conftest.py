@@ -19,6 +19,8 @@ model_types = {
     "Metadata": {
         "properties": {
             "title": {"type": "fulltext+keyword", "required": True},
+            "some_bool_val": {"type": "boolean"},
+            "height": {"type": "int"}
         }
     }
 }
