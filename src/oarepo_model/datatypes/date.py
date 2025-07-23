@@ -16,8 +16,8 @@ class DateDataType(DataType):
     TYPE = "date"
     
     marshmallow_field_class = marshmallow.fields.Date
-    json_schema = {"type": "string", "format": "date"}
-    mapping = {"type": "date", "format": "basic_date||strict_date"}
+    jsonschema_type = {"type": "string", "format": "date"}
+    mapping_type = {"type": "date", "format": "basic_date||strict_date"}
     
     def create_ui_marshmallow_fields(self, field_name, element):
         return {
@@ -43,8 +43,8 @@ class DateTimeDataType(DataType):
     TYPE = "datetime"
 
     marshmallow_field_class = marshmallow.fields.DateTime
-    json_schema = {"type": "string", "format": "date-time"}
-    mapping = {
+    jsonschema_type = {"type": "string", "format": "date-time"}
+    mapping_type = {
         "type": "date",
         "format": "strict_date_time||strict_date_time_no_millis||basic_date_time||basic_date_time_no_millis||basic_date||strict_date||strict_date_hour_minute_second||strict_date_hour_minute_second_fraction",
     }
@@ -75,8 +75,8 @@ class TimeDataType(DataType):
     TYPE = "time"
 
     marshmallow_field_class = marshmallow.fields.Time
-    json_schema = {"type": "string", "format": "time"}
-    mapping = {
+    jsonschema_type = {"type": "string", "format": "time"}
+    mapping_type = {
         "type": "date",
         "format": "strict_time||strict_time_no_millis||basic_time||basic_time_no_millis||hour_minute_second||hour||hour_minute",
     } 
