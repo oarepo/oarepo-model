@@ -146,35 +146,6 @@ class EDTFTimeDataType(DataType):
             
         return ret
 
-class EDTFTimeIntervalType(DataType):
-    TYPE = "edtf-time-interval"
-
-    marshmallow_field_class = marshmallow.fields.String
-    jsonschema_type = {"type": "string", "format": "date-time"}
-    mapping_type = {
-        "type": "date_range",
-        "format": "strict_date_time||strict_date_time_no_millis||strict_date||yyyy-MM||yyyy",
-    }
-
-    @override
-    def create_ui_marshmallow_fields(self, field_name, element):
-        return {
-            f'{field_name}_l10n_long': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="long"),
-            f'{field_name}_l10n_medium': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="medium"),
-            f'{field_name}_l10n_short': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="short"),
-            f'{field_name}_l10n_full': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="full"),
-    }    
-    
-    @override
-    def _get_marshmallow_field_args(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
-        ret = super()._get_marshmallow_field_args(field_name, element)
-
-        ret.setdefault('validate',[]).append(
-            CachedMultilayerEDTFValidator(types=[edtf.DateAndTime, edtf.Date, edtf.Interval])
-        ) 
-        
-        return ret       
-
 
 class EDTFDataType(DataType):
     TYPE = "edtf"

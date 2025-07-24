@@ -366,25 +366,6 @@ def test_edtf_time_field(test_schema):
     with pytest.raises(ma.ValidationError):    
         schema.load({"a":"12:00:00Z/13:00:00Z" })    
         
-def test_edtf_time_interval_field(test_schema):
-    schema = test_schema(
-        {
-            "type": "edtf-time-interval",
-        },
-    )
-
-    val = "2023/2025"
-    assert schema.load({"a": val}) == {"a": val}
-
-    val = "2023"
-    assert schema.load({"a": val}) == {"a": val}
-    
-    val = "2023-01-01"
-    assert schema.load({"a": val}) == {"a": val}
-
-    val = "2024-01-01T00:00:00"
-    assert schema.load({"a": val}) == {"a": val}
-    
         
 def test_edtf_field(test_schema):
     schema = test_schema(

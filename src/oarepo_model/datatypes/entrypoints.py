@@ -3,7 +3,7 @@ from .boolean import BooleanDataType
 from .collections import ArrayDataType, NestedDataType, ObjectDataType
 from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataType
 from .strings import FullTextDataType, FulltextWithKeywordDataType, KeywordDataType
-from .date import DateDataType, DateTimeDataType, TimeDataType, EDTFDataType, EDTFIntervalType, EDTFTimeDataType, EDTFTimeIntervalType
+from .date import DateDataType, DateTimeDataType, TimeDataType, EDTFDataType, EDTFIntervalType, EDTFTimeDataType
 
 DATA_TYPES: dict[str, type[DataType]] = {
     KeywordDataType.TYPE: KeywordDataType,
@@ -23,5 +23,4 @@ DATA_TYPES: dict[str, type[DataType]] = {
     EDTFDataType.TYPE: EDTFDataType,
     EDTFIntervalType.TYPE: EDTFIntervalType,   
     EDTFTimeDataType.TYPE: EDTFTimeDataType,
-    EDTFTimeIntervalType.TYPE: EDTFTimeIntervalType,
 }
