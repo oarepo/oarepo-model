@@ -8,7 +8,7 @@
 #
 import inspect
 import re
-
+import marshmallow.fields
 
 def add_to_class_list_preserve_mro(
     class_list: list[type], clz: type, prepend: bool = False
@@ -112,3 +112,34 @@ def camel_case_split(s):
 def title_case(s):
     parts = camel_case_split(s)
     return "".join(part.capitalize() for part in parts)
+
+
+class PossibleMultiFormatField(marshmallow.fields.Field):
+    """Helper class to wrap around different formatting options of a marshmallow field.
+    
+    Class keeps different formatters (e.g. for boolean or number).
+    Returns only formatted value if there is only 1 formatter or wrapped in a dictionary (see date example in test_ui_schemas).
+    """
+    def __init__(self, formatters: dict[str, marshmallow.fields.Field], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.formatters = formatters
+    
+    def _serialize(self, value, attr, obj, **kwargs) -> dict[str, str] | str:
+        if value is None:
+            return None
+        
+        # if there is only 1 format, just return its formatted value
+        if len(self.formatters) == 1:
+            formatter = next(iter(self.formatters))
+            return formatter._serialize(value, attr, obj, **kwargs)
+        
+        # otherwise return key: value dictionary        
+        return {
+            key: field._serialize(value, attr, obj, **kwargs)
+            for key, field in self.formatters.items()
+        }
+    
+    def as_marshmallow_field(self) -> dict[str, marshmallow.fields.Field] | marshmallow.fields.Field:
+        if len(self.formatters) >= 2: # return self if there are multiple formatting (serialization is handled by this class too)
+            return self
+        return next(iter(self.formatters.values())) # return only formatted value, so there is no key in the output

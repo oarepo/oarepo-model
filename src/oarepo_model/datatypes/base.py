@@ -51,7 +51,15 @@ class DataType:
         return self._get_marshmallow_field_class(field_name, element)(
             **self._get_marshmallow_field_args(field_name, element)
         )
-
+    
+    def create_ui_marshmallow_fields(self, field_name: str, element: dict[str, Any]) -> dict[str, Field]:
+        """
+        Create a Marshmallow UI field for the data type.
+        This method should be overridden by subclasses to provide specific UI field creation logic.
+        """
+        # if there is no UI transformation, leave it out, therefore there are no copied values in UI     
+        return {}
+    
     def _get_marshmallow_field_class(
         self, field_name: str, element: dict[str, Any]
     ) -> type[Field]:

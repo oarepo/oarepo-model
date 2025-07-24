@@ -50,6 +50,19 @@ class WrappedDataType(DataType):
             field_name, self._merge_type_dict(element)
         )
 
+    @override
+    def create_ui_marshmallow_fields(
+        self, field_name: str, element: dict[str, Any]
+    ) -> marshmallow.fields.Field:
+        """
+        Create a Marshmallow UI field for the wrapped data type.
+        This method should be overridden by subclasses to provide specific field creation logic.
+        """
+        # to create a marshmallow field, we need to merge the element with the type_dict
+        return self.impl.create_ui_marshmallow_fields(
+            field_name, self._merge_type_dict(element)
+        )
+    
     def create_marshmallow_schema(
         self, element: dict[str, Any]
     ) -> type[marshmallow.Schema]:
@@ -60,6 +73,17 @@ class WrappedDataType(DataType):
         return cast(Any, self.impl).create_marshmallow_schema(
             self._merge_type_dict(element)
         )
+        
+    def create_ui_marshmallow_schema(
+        self, element: dict[str, Any]
+    ) -> type[marshmallow.Schema]:
+        """
+        Create a Marshmallow schema for the wrapped data type.
+        This method should be overridden by subclasses to provide specific schema creation logic.
+        """
+        return cast(Any, self.impl).create_ui_marshmallow_schema(
+            self._merge_type_dict(element)
+        )    
 
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
         return self.impl.create_json_schema(self._merge_type_dict(element))
