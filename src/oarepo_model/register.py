@@ -11,7 +11,6 @@ import importlib.resources.abc
 import importlib.util
 import sys
 from importlib.metadata import Distribution, DistributionFinder
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Optional
 
@@ -48,8 +47,32 @@ Version: {self.model.version}
         return self.namespace.entry_points
 
     @property
-    def files(self):
-        return []
+    def files(self) -> List:
+        ret = []
+        for file_name, file_content in self.namespace.__files__.items():
+            ret.append(
+                InMemoryPath(
+                    f"runtime_models_{self.model.name}/{file_name}", file_content
+                )
+            )
+
+        return ret
+
+
+class InMemoryPath(pathlib.PurePosixPath):
+    def __init__(self, path: str, file_content: str | None = None) -> None:
+        super().__init__(path)
+        self.file_content = file_content
+
+    def read_text(self, encoding: str = "utf-8") -> str:
+        if self.file_content is None:
+            raise ValueError("Can not read file without content")
+        return self.file_content
+
+    def read_binary(self) -> bytes:
+        if self.file_content is None:
+            raise ValueError("Can not read file without content")
+        return self.file_content.encode("utf-8")
 
 
 def locate_file(namespace, name):
@@ -152,11 +175,9 @@ class ModelImporter(importlib.abc.MetaPathFinder):
         loading the metadata for packages matching the ``context``,
         a DistributionFinder.Context instance.
         """
-        if (
-            not context.name
-            or context.name.lower().replace("-", "_")
-            == f"runtime_models_{self.model.name}"
-        ):
+        if not context.name or context.name.lower().replace(
+            "-", "_"
+        ) == f"runtime_models_{self.model.name}".replace("-", "_"):
             return [ModelDistribution(self.model, self.namespace)]
         return []
 

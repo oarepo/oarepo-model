@@ -8,7 +8,6 @@
 #
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 from .base import Customization
@@ -49,20 +48,7 @@ class AddFileToModule(Customization):
         # note: implementation should be changed to be in-memory only
         # (with cooperation of oarepo_model.register)
         ret = builder.get_module(self.name)
-        base_directory = ret.__file__
-        if not base_directory.endswith("/__init__.py"):
-            raise ValueError(f"Module '{self.name}' does not have a valid file path.")
-        pth = Path(base_directory).parent / self.file_path
-        pth.parent.mkdir(parents=True, exist_ok=True)
-        if pth.exists() and not self.exists_ok:
-            raise ValueError(
-                f"File '{self.file_path}' already exists in module '{self.name}'."
-            )
-        with pth.open("wb") as f:
-            if isinstance(self.file_content, str):
-                f.write(self.file_content.encode("utf-8"))
-            else:
-                f.write(self.file_content)
+        ret.add_file(self.file_path, self.file_content)
 
         if self.namespace_constant:
             builder.add_constant(

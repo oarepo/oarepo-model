@@ -8,10 +8,6 @@
 #
 from __future__ import annotations
 
-import atexit
-import shutil
-import tempfile
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
 
 from oarepo_model.customizations import AddEntryPoint, AddModule, Customization
@@ -35,18 +31,8 @@ class JSONSchemaPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        # TODO: this is a hack, need to fix invenio-jsonschemas to use importlib.resources
-        # instead of direct file system access
 
-        jsonschemas_dir = str(Path(tempfile.mkdtemp() + "/jsonschemas").resolve())
-
-        def cleanup(dirname):
-            """Cleanup function to remove the jsonschemas directory."""
-            if Path(dirname).exists():
-                shutil.rmtree(dirname)
-
-        atexit.register(cleanup, jsonschemas_dir)
-        yield AddModule("jsonschemas", file_path=jsonschemas_dir, exists_ok=True)
+        yield AddModule("jsonschemas", exists_ok=True)
 
         yield AddEntryPoint(
             group="invenio_jsonschemas.schemas",
