@@ -2,7 +2,7 @@ from typing import Any, Callable
 
 import marshmallow as ma
 import pytest
-
+from datetime import date, datetime, time
 
 @pytest.fixture
 def test_schema(datatype_registry) -> Callable[[dict[str, Any]], ma.Schema]:
@@ -270,3 +270,144 @@ def test_forwarded_object_schema(test_schema):
         schema.load({"a": {"name": "", "age": 30}})
     with pytest.raises(ma.ValidationError):
         schema.load({"a": {"name": "John", "age": -5}})
+
+def test_date_field(test_schema):
+    schema = test_schema(
+        {
+            "type": "date",
+            "min_date": date(2023, 1, 1),
+            "max_date": date(2023, 12, 31)    
+        }
+    )
+    
+    assert schema.load({"a": "2023-01-02"}) == {"a": date(2023, 1, 2)}
+    
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "01/01/2023"})  # wrong format
+
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": 1234}) # not a date
+    
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2022-12-31"})
+
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2024-01-01"})    
+        
+def test_datetime_field(test_schema):
+    schema = test_schema({
+        "type": "datetime",
+        "min_datetime": datetime(2023, 1, 1, 0, 0, 0),
+        "max_datetime": datetime(2023, 12, 31, 23, 59, 59)    
+    })
+
+    assert schema.load({"a": "2023-01-01T12:30:00"}) == {
+        "a": datetime(2023, 1, 1, 12, 30, 0)
+    }
+    
+    assert schema.load({"a": "2023-01-01 12:30:00"}) == {
+        "a": datetime(2023, 1, 1, 12, 30, 0)
+    }     
+    
+    with pytest.raises(ma.ValidationError):
+         assert schema.load({"a": "01/12/2022 14:15:00"}) # wrong format
+         
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2022-12-31T23:59:59"}) # out of bounds
+
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2024-01-01T00:00:00"})    # out of bounds  
+     
+
+def test_time_field(test_schema):
+    schema = test_schema(
+        {
+            "type": "time",
+            "min_time": time(9, 0, 0),
+            "max_time": time(17, 0, 0),
+        },
+    )
+
+    assert schema.load({"a": "12:30:00"}) == {"a": time(12, 30, 0)}
+
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "08:59:59"})
+        
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "01.02.2023"})
+    
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2024-01-01T00:00:00"})
+    
+
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "17:00:01"})
+        
+        
+def test_edtf_time_field(test_schema):
+    schema = test_schema(
+        {
+            "type": "edtf-time",
+        },
+    )
+
+    val = "2023"
+    assert schema.load({"a": val}) == {"a": val}
+    
+    val = "2023-01-01"
+    assert schema.load({"a": val}) == {"a": val}
+
+    val = "2024-01-01T00:00:00"
+    assert schema.load({"a": val}) == {"a": val}
+        
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": 2023})      
+        
+    with pytest.raises(ma.ValidationError):    
+        schema.load({"a":"12:00:00Z/13:00:00Z" })    
+        
+        
+def test_edtf_field(test_schema):
+    schema = test_schema(
+        {
+            "type": "edtf",
+        },
+    )
+
+    val = "2023-01-01"
+    assert schema.load({"a": val}) == {"a": val}
+
+    
+    with pytest.raises(ma.ValidationError):   
+        val = "2023/2025"
+        schema.load({"a": val}) 
+        
+    with pytest.raises(ma.ValidationError):   
+        val = "2024-01-01T00:00:00"
+        schema.load({"a": val})
+    
+        
+def test_edtf_interval_field(test_schema):
+    schema = test_schema(
+        {
+            "type": "edtf-interval",
+        },
+    )
+
+    val = "1964/2008"
+    assert schema.load({"a": val}) == {"a": val}
+    
+    val = "2004-06/2006-08"
+    assert schema.load({"a": val}) == {"a": val}
+    
+    val = "2004-02-01/2005-02-08"
+    assert schema.load({"a": val}) == {"a": val}
+    
+    val = "2004-02-01/2005"
+    assert schema.load({"a": val}) == {"a": val}
+    
+    val = "2005/2006-02"
+    assert schema.load({"a": val}) == {"a": val}
+
+        
+                      
