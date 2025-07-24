@@ -342,12 +342,14 @@ class InvenioModelBuilder:
 
     def collect_files(self):
         self.ns.__files__ = {}
-        
+
         for partial in self.partials.values():
-            if not isinstance(partial, BuilderModule):
+            if not isinstance(partial, BuilderFile):
                 continue
-            
-            self.ns.__files__.update({f"{partial.key}/{file_name}": file_content for file_name, file_content in partial.files.items()})
+
+            self.ns.__files__[f"{partial.module_name}/{partial.file_path}"] = (
+                partial.content
+            )
 
     def build(self) -> SimpleNamespace:
         for key in self.partials.keys():
