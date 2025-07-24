@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, override
 
 import marshmallow.fields
 import marshmallow_utils.fields 
@@ -19,6 +19,7 @@ class DateDataType(DataType):
     jsonschema_type = {"type": "string", "format": "date"}
     mapping_type = {"type": "date", "format": "basic_date||strict_date"}
     
+    @override
     def create_ui_marshmallow_fields(self, field_name, element):
         return {
             f'{field_name}_l10n_long': marshmallow_utils.fields.FormatDate(attribute=field_name, format="long"),
@@ -26,7 +27,8 @@ class DateDataType(DataType):
             f'{field_name}_l10n_short': marshmallow_utils.fields.FormatDate(attribute=field_name, format="short"),
             f'{field_name}_l10n_full': marshmallow_utils.fields.FormatDate(attribute=field_name, format="full"),
     }
-          
+    
+    @override      
     def _get_marshmallow_field_args(self, field_name, element):
         ret = super()._get_marshmallow_field_args(field_name, element)
            
@@ -49,6 +51,7 @@ class DateTimeDataType(DataType):
         "format": "strict_date_time||strict_date_time_no_millis||basic_date_time||basic_date_time_no_millis||basic_date||strict_date||strict_date_hour_minute_second||strict_date_hour_minute_second_fraction",
     }
 
+    @override
     def create_ui_marshmallow_fields(self, field_name, element):
         return {
             f'{field_name}_l10n_long': marshmallow_utils.fields.FormatDatetime(attribute=field_name, format="long"),
@@ -57,6 +60,7 @@ class DateTimeDataType(DataType):
             f'{field_name}_l10n_full': marshmallow_utils.fields.FormatDatetime(attribute=field_name, format="full"),
     }
     
+    @override
     def _get_marshmallow_field_args(
         self, field_name: str, element: dict[str, Any]
     ) -> dict[str, Any]:
@@ -81,7 +85,7 @@ class TimeDataType(DataType):
         "format": "strict_time||strict_time_no_millis||basic_time||basic_time_no_millis||hour_minute_second||hour||hour_minute",
     } 
     
-    
+    @override
     def create_ui_marshmallow_fields(self, field_name, element):
         return {
             f'{field_name}_l10n_long': marshmallow_utils.fields.FormatTime(attribute=field_name, format="long"),
@@ -90,6 +94,7 @@ class TimeDataType(DataType):
             f'{field_name}_l10n_full': marshmallow_utils.fields.FormatTime(attribute=field_name, format="full"),
     }
     
+    @override
     def _get_marshmallow_field_args(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
         ret = super()._get_marshmallow_field_args(field_name, element)
     
@@ -122,6 +127,7 @@ class EDTFTimeDataType(DataType):
         "format": "strict_date_time||strict_date_time_no_millis||strict_date||yyyy-MM||yyyy",
     }
 
+    @override
     def create_ui_marshmallow_fields(self, field_name, element):
         return {
             f'{field_name}_l10n_long': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="long"),
@@ -130,6 +136,7 @@ class EDTFTimeDataType(DataType):
             f'{field_name}_l10n_full': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="full"),
     }    
     
+    @override
     def _get_marshmallow_field_args(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
         ret = super()._get_marshmallow_field_args(field_name, element)
         
@@ -149,6 +156,7 @@ class EDTFTimeIntervalType(DataType):
         "format": "strict_date_time||strict_date_time_no_millis||strict_date||yyyy-MM||yyyy",
     }
 
+    @override
     def create_ui_marshmallow_fields(self, field_name, element):
         return {
             f'{field_name}_l10n_long': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="long"),
@@ -157,6 +165,7 @@ class EDTFTimeIntervalType(DataType):
             f'{field_name}_l10n_full': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="full"),
     }    
     
+    @override
     def _get_marshmallow_field_args(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
         ret = super()._get_marshmallow_field_args(field_name, element)
 
@@ -177,6 +186,7 @@ class EDTFDataType(DataType):
         "format": "strict_date||yyyy-MM||yyyy",
     }
     
+    @override
     def create_ui_marshmallow_fields(self, field_name, element):
         return {
             f'{field_name}_l10n_long': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="long"),
@@ -185,6 +195,7 @@ class EDTFDataType(DataType):
             f'{field_name}_l10n_full': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="full"),
     }    
     
+    @override
     def _get_marshmallow_field_args(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
         ret = super()._get_marshmallow_field_args(field_name, element)
        
@@ -204,6 +215,7 @@ class EDTFIntervalType(DataType):
         "format": "strict_date||yyyy-MM||yyyy",
     }
 
+    @override
     def create_ui_marshmallow_fields(self, field_name, element):
         return {
             f'{field_name}_l10n_long': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="long"),
@@ -212,6 +224,7 @@ class EDTFIntervalType(DataType):
             f'{field_name}_l10n_full': marshmallow_utils.fields.FormatEDTF(attribute=field_name, format="full"),
     }    
     
+    @override
     def _get_marshmallow_field_args(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
         ret = super()._get_marshmallow_field_args(field_name, element)
         
