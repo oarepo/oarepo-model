@@ -24,7 +24,7 @@ class AddFileToModule(Customization):
         self,
         module_name: str,
         file_path: str,
-        file_content: str | bytes,
+        file_content: str,
         exists_ok: bool = False,
         namespace_constant: str | None = None,
     ) -> None:
@@ -37,7 +37,8 @@ class AddFileToModule(Customization):
         :param namespace_constant: If set, a variable with this name will be added to the module
             containing the namespace of the module and path to the file as a tuple.
         """
-        super().__init__(module_name)
+        super().__init__(module_name + "/" + file_path)
+        self.module_name = module_name
         self.file_path = file_path
         self.file_content = file_content
         self.exists_ok = exists_ok
@@ -47,11 +48,6 @@ class AddFileToModule(Customization):
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         # note: implementation should be changed to be in-memory only
         # (with cooperation of oarepo_model.register)
-        ret = builder.get_module(self.name)
-        ret.add_file(self.file_path, self.file_content)
-
-        if self.namespace_constant:
-            builder.add_constant(
-                self.namespace_constant,
-                (self.name, self.file_path),
-            )
+        builder.add_file(
+            self.module_name, self.file_path, self.file_content, self.exists_ok
+        )

@@ -9,6 +9,7 @@
 import importlib.abc
 import importlib.resources.abc
 import importlib.util
+import pathlib
 import sys
 from importlib.metadata import Distribution, DistributionFinder
 from types import SimpleNamespace
@@ -47,7 +48,7 @@ Version: {self.model.version}
         return self.namespace.entry_points
 
     @property
-    def files(self) -> List:
+    def files(self) -> list:
         ret = []
         for file_name, file_content in self.namespace.__files__.items():
             ret.append(
