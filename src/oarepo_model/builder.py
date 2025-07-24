@@ -150,6 +150,10 @@ class BuilderConstant(Partial):
 
 
 class BuilderModule(Partial, SimpleNamespace):
+    def __init__(self, module_name: str):
+        super().__init__(module_name)
+        self.files = {}
+
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
         """Build a module from the partial."""
         self.built = True
@@ -157,6 +161,7 @@ class BuilderModule(Partial, SimpleNamespace):
         # if any of those has a __get__ method, call it. This will handle
         # Dependency descriptors and other similar cases.
         ret = SimpleNamespace()
+        ret.__files__ = self.files
         for attr in self.__dict__:
             try:
                 if attr.startswith("_") and attr != "__file__":
@@ -174,6 +179,9 @@ class BuilderModule(Partial, SimpleNamespace):
                     f"Error while building module {self.key} attribute {attr}: {e}"
                 ) from e
         return ret
+
+    def add_file(self, file_path: str, content: str) -> None:
+        self.files[file_path] = content
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Simulate a dictionary's x["key"] = value."""
@@ -332,6 +340,15 @@ class InvenioModelBuilder:
             return ret
         return getattr(self.ns, key)
 
+    def collect_files(self):
+        self.ns.__files__ = {}
+        
+        for partial in self.partials.values():
+            if not isinstance(partial, BuilderModule):
+                continue
+            
+            self.ns.__files__.update({f"{partial.key}/{file_name}": file_content for file_name, file_content in partial.files.items()})
+
     def build(self) -> SimpleNamespace:
         for key in self.partials.keys():
             self.build_partial(key)
@@ -344,4 +361,5 @@ class InvenioModelBuilder:
 
         self.ns.entry_points = entry_points
         self.runtime_dependencies.bind_dependencies(self.ns)
+        self.collect_files()
         return self.ns

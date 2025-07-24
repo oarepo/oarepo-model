@@ -8,10 +8,6 @@
 #
 from __future__ import annotations
 
-import atexit
-import shutil
-import tempfile
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator
 
 from oarepo_model.customizations import AddEntryPoint, AddModule, Customization
@@ -35,18 +31,8 @@ class MappingPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        # TODO: this is a hack, need to fix invenio-jsonschemas to use importlib.resources
-        # instead of direct file system access
 
-        mappings_dir = str(Path(tempfile.mkdtemp() + "/mappings").resolve())
-
-        def cleanup(dirname):
-            """Cleanup function to remove the mappings directory."""
-            if Path(dirname).exists():
-                shutil.rmtree(dirname)
-
-        atexit.register(cleanup, mappings_dir)
-        yield AddModule("mappings", file_path=mappings_dir, exists_ok=True)
+        yield AddModule("mappings", exists_ok=True)
 
         yield AddEntryPoint(
             group="invenio_search.mappings",
