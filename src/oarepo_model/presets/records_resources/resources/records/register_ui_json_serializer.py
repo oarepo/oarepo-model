@@ -39,7 +39,6 @@ class RegisterJSONUISerializerPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
         
-        # maybe use local proxy instead of dependencies['UIJSONSerializer']()
         runtime_deps = builder.get_runtime_dependencies()
         proxy = LocalProxy(lambda:ResponseHandler(
                     runtime_deps.get('JSONUISerializer')(), headers=etag_headers
