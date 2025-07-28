@@ -24,7 +24,7 @@ from oarepo_model.customizations import (
 from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
-from ...records_resources.file_records.file_record_model_mixin import (
+from ...records_resources.files.file_record_model_mixin import (
     FileRecordModelMixin,
 )
 
@@ -32,18 +32,18 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class MediaFileMetadataPreset(Preset):
+class FileDraftMetadataPreset(Preset):
     """
     Preset for file metadata class
     """
 
     provides = [
-        "MediaFileMetadata",
+        "FileDraftMetadata",
     ]
 
     depends_on = [
         # need to have this dependency because of __record_model_cls__ attribute
-        "RecordMetadata",
+        "DraftMetadata",
     ]
 
     def apply(
@@ -52,9 +52,9 @@ class MediaFileMetadataPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class MediaFileMetadataMixin:
-            __tablename__ = f"{builder.model.base_name}_media_files"
-            __record_model_cls__ = dependencies.get("RecordMetadata")
+        class FileDraftMetadataMixin:
+            __tablename__ = f"{builder.model.base_name}_draft_files"
+            __record_model_cls__ = dependencies.get("DraftMetadata")
 
         @declared_attr
         def __table_args__(cls):
@@ -77,9 +77,9 @@ class MediaFileMetadataPreset(Preset):
                 {"extend_existing": True},
             )
 
-        yield AddClass("MediaFileMetadata")
-        yield AddClassField("MediaFileMetadata", "__table_args__", __table_args__)
+        yield AddClass("FileDraftMetadata")
+        yield AddClassField("FileDraftMetadata", "__table_args__", __table_args__)
         yield AddBaseClasses(
-            "MediaFileMetadata", db.Model, RecordMetadataBase, FileRecordModelMixin
+            "FileDraftMetadata", db.Model, RecordMetadataBase, FileRecordModelMixin
         )
-        yield AddMixins("MediaFileMetadata", MediaFileMetadataMixin)
+        yield AddMixins("FileDraftMetadata", FileDraftMetadataMixin)
