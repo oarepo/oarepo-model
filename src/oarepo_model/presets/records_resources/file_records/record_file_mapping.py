@@ -23,7 +23,7 @@ class RecordFileMappingPreset(Preset):
     Preset for record service class.
     """
 
-    depends_on = ["RECORD_MAPPING_PATH"]
+    depends_on = ["metadata-mapping"]
 
     def apply(
         self,
@@ -54,7 +54,8 @@ class RecordFileMappingPreset(Preset):
         }
 
         yield PatchJSONFile(
-            dependencies["RECORD_MAPPING_PATH"][0],
-            dependencies["RECORD_MAPPING_PATH"][1],
+            "metadata-mapping",
+            dependencies["metadata-mapping"]["module-name"],
+            dependencies["metadata-mapping"]["file-path"],
             file_mapping,
         )

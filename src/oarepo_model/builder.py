@@ -189,6 +189,19 @@ class BuilderModule(Partial, SimpleNamespace):
             raise RuntimeError("Cannot set item after the module is built.")
         setattr(self, key, value)
 
+class BuilderFile(Partial):
+
+    def __init__(self, name, module_name: str, file_path: str, content: str):
+        super().__init__(name)
+        self.module_name = module_name
+        self.file_path = file_path
+        self.content = content
+
+    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
+        self.built = True
+
+        return {"module-name": self.module_name, "file-path": self.file_path, "content": self.content}
+
 
 class InvenioModelBuilder:
     def __init__(self, model: InvenioModel, type_registry: DataTypeRegistry):
@@ -286,6 +299,21 @@ class InvenioModelBuilder:
             raise AlreadyRegisteredError(f"Module {name} already exists.")
         self.partials[name] = _module = BuilderModule(name)
         return _module
+
+    def add_file(self, symbolic_name:str,  module_name: str, file_path: str, content: str, exists_ok: bool = False) -> BuilderFile:
+        """Add a file to the builder."""
+
+        if symbolic_name in self.partials:
+            if exists_ok:
+                return cast(BuilderFile, self.partials[symbolic_name])
+            raise AlreadyRegisteredError(f"Module {symbolic_name} already exists.")
+
+        ret = BuilderFile(symbolic_name, module_name, file_path, content)
+        self.partials[symbolic_name] = ret
+        return ret
+
+    def get_file(self, symbolic_name: str) -> BuilderFile:
+        return self._get(symbolic_name, BuilderFile)
 
     def get_module(self, name: str) -> BuilderModule:
         return self._get(name, BuilderModule)

@@ -23,7 +23,7 @@ class DraftFileMappingPreset(Preset):
     Preset for record service class.
     """
 
-    depends_on = ["DRAFT_MAPPING_PATH"]
+    depends_on = ["draft-metadata-mapping"]
 
     def apply(
         self,
@@ -46,7 +46,8 @@ class DraftFileMappingPreset(Preset):
         }
 
         yield PatchJSONFile(
-            dependencies["DRAFT_MAPPING_PATH"][0],
-            dependencies["DRAFT_MAPPING_PATH"][1],
+            "draft-metadata-mapping",
+            dependencies["draft-metadata-mapping"]["module-name"],
+            dependencies["draft-metadata-mapping"]["file-path"],
             file_mapping,
         )

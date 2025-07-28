@@ -9,7 +9,7 @@
 import importlib.abc
 import importlib.resources.abc
 import importlib.util
-import pathlib
+from pathlib import Path, PurePosixPath
 import sys
 from importlib.metadata import Distribution, DistributionFinder
 from types import SimpleNamespace
@@ -60,7 +60,7 @@ Version: {self.model.version}
         return ret
 
 
-class InMemoryPath(pathlib.PurePosixPath):
+class InMemoryPath(PurePosixPath):
     def __init__(self, path: str, file_content: str | None = None) -> None:
         super().__init__(path)
         self.file_content = file_content

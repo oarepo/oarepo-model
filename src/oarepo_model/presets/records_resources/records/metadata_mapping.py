@@ -22,9 +22,7 @@ class MetadataMappingPreset(Preset):
     """
     Preset for record service class.
     """
-
-    modifies = ["RECORD_MAPPING_PATH"]
-    provides = ["metadata-mapping"]
+    modifies = ["metadata-mapping"]
 
     def apply(
         self,
@@ -38,6 +36,7 @@ class MetadataMappingPreset(Preset):
             mapping = get_mapping(builder, model.metadata_type)
 
             yield PatchJSONFile(
+                "metadata-mapping",
                 "mappings",
                 f"os-v2/{model.base_name}/metadata-v{model.version}.json",
                 {

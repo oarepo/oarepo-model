@@ -25,6 +25,7 @@ class PatchJSONFile(Customization):
 
     def __init__(
         self,
+        symbolic_name: str,
         module_name: str,
         file_path: str,
         payload: dict[str, Any] | Callable[[dict[str, Any]], dict[str, Any]],
@@ -34,14 +35,14 @@ class PatchJSONFile(Customization):
         :param name: The name of the list to be added.
         :param exists_ok: Whether to ignore if the list already exists.
         """
-        super().__init__(module_name + "/" + file_path)
+        super().__init__(symbolic_name)
         self.module_name = module_name
         self.file_path = file_path
         self.payload = payload
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-        ret = builder.get_file(self.module_name, self.file_path)
+        ret = builder.get_file(self.name)
         previous_data = json.loads(ret.content)
         if callable(self.payload):
             new_data = self.payload(previous_data)
