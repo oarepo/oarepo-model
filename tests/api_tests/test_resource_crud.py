@@ -9,27 +9,25 @@ def test_simple_flow(
     location,
     client,
     headers,
-    headers_responses,
 ):
     """Test a simple REST API flow."""
     idx = "records-record-v1.0.0"
-    h = headers
 
     Record = empty_model.Record
 
     # Create a record
-    res = client.post("/test", headers=h, data=json.dumps(input_data_more_complex))
+    res = client.post("/test", headers=headers.json, data=json.dumps(input_data_more_complex))
     assert res.status_code == 201
     id_ = res.json["id"]
     assert res.json["metadata"] == input_data_more_complex["metadata"]
 
     # Read the record
-    res = client.get(f"/test/{id_}", headers=h)
+    res = client.get(f"/test/{id_}", headers=headers.json)
     assert res.status_code == 200
     assert res.json["metadata"] == input_data_more_complex["metadata"]
 
     res = client.get(
-        f"/test/{id_}", headers=headers_responses["application/vnd.inveniordm.v1+json"]
+        f"/test/{id_}", headers=headers.ui
     )
     assert res.status_code == 200
     assert res.json["ui"].keys() == {
@@ -50,7 +48,7 @@ def test_simple_flow(
     Record.index.refresh()
 
     # Search it
-    res = client.get("/test", query_string={"q": f"id:{id_}"}, headers=h)
+    res = client.get("/test", query_string={"q": f"id:{id_}"}, headers=headers.json)
     assert res.status_code == 200
     assert res.json["hits"]["total"] == 1
     assert (
@@ -62,13 +60,13 @@ def test_simple_flow(
     
 
     # Update it
-    res = client.put(f"/test/{id_}", headers=h, data=json.dumps(data))
+    res = client.put(f"/test/{id_}", headers=headers.json, data=json.dumps(data))
     assert res.status_code == 200
     assert res.json["metadata"]["title"] == "New title"
     assert not res.json["metadata"]["some_bool_val"]
     
     res = client.get(
-        f"/test/{id_}", headers=headers_responses["application/vnd.inveniordm.v1+json"]
+        f"/test/{id_}", headers=headers.ui
     )
     assert res.status_code == 200
     assert res.json["ui"].keys() == {
@@ -94,10 +92,10 @@ def test_simple_flow(
     Record.index.refresh()
 
     # Try to get it again
-    res = client.get(f"/test/{id_}", headers=h)
+    res = client.get(f"/test/{id_}", headers=headers.json)
     assert res.status_code == 410
 
     # Try to get search it again
-    res = client.get("/test", query_string={"q": f"id:{id_}"}, headers=h)
+    res = client.get("/test", query_string={"q": f"id:{id_}"}, headers=headers.json)
     assert res.status_code == 200
     assert res.json["hits"]["total"] == 0

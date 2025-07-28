@@ -70,20 +70,16 @@ def input_data_with_files_disabled(input_data):
     data["files"]["enabled"] = False
     return data
 
-@pytest.fixture(scope="module")
-def headers():
-    """Default headers for making requests."""
-    return {
+class DefaultHeaders:
+    json = {
         "content-type": "application/json",
         "accept": "application/json",
     }
-    
-@pytest.fixture(scope="module")
-def headers_responses():
-    """Default headers for making requests."""
-    
-    return {
-        "application/vnd.inveniordm.v1+json": {
+    ui = {
              "accept": "application/vnd.inveniordm.v1+json",
-        }
     }
+
+@pytest.fixture(scope="module")
+def headers():
+    """Default headers for making requests."""
+    return DefaultHeaders

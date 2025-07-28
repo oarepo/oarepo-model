@@ -67,6 +67,8 @@ from .services.records.relations import RelationsServiceComponentPreset
 from .services.records.service import DraftServicePreset
 from .services.records.service_config import DraftServiceConfigPreset
 
+from .resources.records.ui_record_schema import DraftsRecordUISchemaPreset
+
 drafts_records_presets: list[type[Preset]] = [
     # records layer
     ParentRecordMetadataPreset,
@@ -87,6 +89,7 @@ drafts_records_presets: list[type[Preset]] = [
     # resource layer
     DraftResourcePreset,
     DraftResourceConfigPreset,
+    DraftsRecordUISchemaPreset
 ]
 
 drafts_files_presets: list[type[Preset]] = [
