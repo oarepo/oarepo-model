@@ -47,8 +47,6 @@ class RecordFileMappingPreset(Preset):
                             "enabled": {"type": "boolean"},
                         },
                     },
-                    "bucket_id": {"type": "keyword", "index": False},
-                    "media_bucket_id": {"type": "keyword", "index": False},
                 }
             }
         }

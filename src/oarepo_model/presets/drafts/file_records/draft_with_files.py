@@ -51,7 +51,7 @@ class DraftWithFilesPreset(Preset):
                 # Don't delete, we'll manage in the service
                 delete=False,
             )
-            bucket_id = ModelField()
+            bucket_id = ModelField(dump=False)
             bucket = ModelField(dump=False)
 
         yield AddMixins(

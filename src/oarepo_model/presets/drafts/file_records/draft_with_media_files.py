@@ -56,7 +56,7 @@ class DraftWithMediaFilesPreset(Preset):
                 # Don't delete, we'll manage in the service
                 delete=False,
             )
-            media_bucket_id = ModelField()
+            media_bucket_id = ModelField(dump=False)
             media_bucket = ModelField(dump=False)
 
         yield AddMixins(

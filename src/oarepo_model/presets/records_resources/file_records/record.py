@@ -44,7 +44,7 @@ class RecordWithFilesPreset(Preset):
     ) -> Generator[Customization, None, None]:
         class RecordWithFilesMixin:
             files = FilesField(store=False, file_cls=dependencies.get("FileRecord"))
-            bucket_id = ModelField()
+            bucket_id = ModelField(dump=False)
             bucket = ModelField(dump=False)
 
         yield AddMixins(
