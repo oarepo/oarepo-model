@@ -27,7 +27,7 @@ class RecordJSONSchemaPreset(Preset):
     """
 
     modifies = ["jsonschemas"]
-    provides = ["metadata-json-schema"]
+    provides = ["record-jsonschema"]
 
     def apply(
         self,
@@ -59,7 +59,7 @@ class RecordJSONSchemaPreset(Preset):
         )
 
         yield AddJSONFile(
-            "metadata-json-schema",
+            "record-jsonschema",
             "jsonschemas",
             f"{model.base_name}-v{model.version}.json",
             jsonschema,

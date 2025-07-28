@@ -8,7 +8,6 @@ from .blueprints.files.api_media_files_blueprint import ApiMediaFilesBlueprintPr
 from .ext_draft_files import ExtDraftFilesPreset
 from .ext_draft_media_files import ExtDraftMediaFilesPreset
 from .ext_media_files import ExtMediaFilesPreset
-from .files.draft_file_mapping import DraftFileMappingPreset
 from .files.draft_media_files import DraftMediaFilesPreset
 from .files.draft_with_files import DraftWithFilesPreset
 from .files.draft_with_media_files import DraftWithMediaFilesPreset
@@ -18,6 +17,7 @@ from .files.media_file_draft import MediaFileDraftPreset
 from .files.media_file_draft_metadata import MediaFileDraftMetadataPreset
 from .files.media_file_metadata import MediaFileMetadataPreset
 from .files.media_file_record import MediaFileRecordPreset
+from .files.record_file_mapping import RecordFileMappingPreset
 from .files.record_media_files import RecordMediaFilesPreset
 from .files.record_with_media_files import RecordWithMediaFilesPreset
 from .records.draft_mapping import DraftMappingPreset
@@ -62,7 +62,6 @@ from .services.files.media_files_record_service_config import (
 from .services.files.no_upload_file_service_config import (
     NoUploadFileServiceConfigPreset,
 )
-from .services.records.parent_record_schema import ParentRecordSchemaPreset
 from .services.records.record_schema import DraftRecordSchemaPreset
 from .services.records.relations import RelationsServiceComponentPreset
 from .services.records.service import DraftServicePreset
@@ -83,7 +82,6 @@ drafts_records_presets: list[type[Preset]] = [
     # service layer
     DraftServiceConfigPreset,
     DraftServicePreset,
-    ParentRecordSchemaPreset,
     DraftRecordSchemaPreset,
     RelationsServiceComponentPreset,
     # resource layer
@@ -105,7 +103,7 @@ drafts_files_presets: list[type[Preset]] = [
     MediaFileDraftMetadataPreset,
     FileDraftMetadataPreset,
     # record layer
-    DraftFileMappingPreset,
+    RecordFileMappingPreset,
     # service layer
     MediaFilesRecordServiceConfigPreset,
     DraftFileRecordServiceComponentsPreset,

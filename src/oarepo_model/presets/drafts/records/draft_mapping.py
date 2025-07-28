@@ -22,8 +22,9 @@ class DraftMappingPreset(Preset):
     """
     Preset for record service class.
     """
-    depends_on = ["metadata-mapping"]
-    provides = ["draft-metadata-mapping"]
+
+    depends_on = ["record-mapping"]
+    provides = ["draft-mapping"]
 
     def apply(
         self,
@@ -33,8 +34,8 @@ class DraftMappingPreset(Preset):
     ) -> Generator[Customization, None, None]:
 
         yield CopyFile(
-            source_symbolic_name="metadata-mapping",
-            target_symbolic_name="draft-metadata-mapping",
+            source_symbolic_name="record-mapping",
+            target_symbolic_name="draft-mapping",
             target_module_name="mappings",
             target_file_path=f"os-v2/{model.base_name}/draft-metadata-v{model.version}.json",
         )
@@ -86,16 +87,6 @@ class DraftMappingPreset(Preset):
             }
         }
 
-        yield PatchJSONFile(
-            "draft-metadata-mapping",
-            "mappings",
-            f"os-v2/{model.base_name}/draft-metadata-v{model.version}.json",
-            parent_mapping,
-        )
+        yield PatchJSONFile("draft-mapping", parent_mapping)
 
-        yield PatchJSONFile(
-            "metadata-mapping",
-            dependencies["metadata-mapping"]["module-name"],
-            dependencies["metadata-mapping"]["file-path"],
-            parent_mapping,
-        )
+        yield PatchJSONFile("record-mapping", parent_mapping)

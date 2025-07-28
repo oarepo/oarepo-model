@@ -18,12 +18,12 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftFileMappingPreset(Preset):
+class RecordFileMappingPreset(Preset):
     """
     Preset for record service class.
     """
 
-    depends_on = ["draft-metadata-mapping"]
+    modifies = ["record-mapping"]
 
     def apply(
         self,
@@ -35,7 +35,7 @@ class DraftFileMappingPreset(Preset):
         file_mapping = {
             "mappings": {
                 "properties": {
-                    "files": {
+                    "media_files": {
                         "type": "object",
                         "properties": {
                             "enabled": {"type": "boolean"},
@@ -45,9 +45,4 @@ class DraftFileMappingPreset(Preset):
             }
         }
 
-        yield PatchJSONFile(
-            "draft-metadata-mapping",
-            dependencies["draft-metadata-mapping"]["module-name"],
-            dependencies["draft-metadata-mapping"]["file-path"],
-            file_mapping,
-        )
+        yield PatchJSONFile("record-mapping", file_mapping)

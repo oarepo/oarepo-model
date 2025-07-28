@@ -26,8 +26,6 @@ class PatchJSONFile(Customization):
     def __init__(
         self,
         symbolic_name: str,
-        module_name: str,
-        file_path: str,
         payload: dict[str, Any] | Callable[[dict[str, Any]], dict[str, Any]],
     ) -> None:
         """Add a json to the model
@@ -36,8 +34,6 @@ class PatchJSONFile(Customization):
         :param exists_ok: Whether to ignore if the list already exists.
         """
         super().__init__(symbolic_name)
-        self.module_name = module_name
-        self.file_path = file_path
         self.payload = payload
 
     @override

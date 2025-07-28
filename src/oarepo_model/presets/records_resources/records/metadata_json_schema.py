@@ -23,7 +23,7 @@ class MetadataJSONSchemaPreset(Preset):
     Preset for record service class.
     """
 
-    modifies = ["metadata-json-schema"]
+    modifies = ["record-jsonschema"]
 
     def apply(
         self,
@@ -37,9 +37,7 @@ class MetadataJSONSchemaPreset(Preset):
             jsonschema = get_json_schema(builder, model.metadata_type)
 
             yield PatchJSONFile(
-                "metadata-json-schema",
-                "jsonschemas",
-                f"{model.base_name}-v{model.version}.json",
+                "record-jsonschema",
                 {
                     "properties": {
                         "metadata": jsonschema,

@@ -27,7 +27,7 @@ class RecordMappingPreset(Preset):
     """
 
     modifies = ["mappings"]
-    provides = ["metadata-mapping"]
+    provides = ["record-mapping"]
 
     def apply(
         self,
@@ -67,9 +67,8 @@ class RecordMappingPreset(Preset):
             mapping,
         )
 
-
         yield AddJSONFile(
-            "metadata-mapping",
+            "record-mapping",
             "mappings",
             f"os-v2/{model.base_name}/metadata-v{model.version}.json",
             mapping,
