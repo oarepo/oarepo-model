@@ -9,6 +9,7 @@
 import inspect
 import re
 
+import marshmallow
 from invenio_db import db
 
 
