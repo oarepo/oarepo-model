@@ -6,6 +6,8 @@ from invenio_base.utils import obj_or_import_string
 from marshmallow.fields import Field
 
 if TYPE_CHECKING:
+    from oarepo_model.customizations.base import Customization
+
     from .registry import DataTypeRegistry
 
 
@@ -87,6 +89,10 @@ class DataType:
         return {
             "required": element.get("required", False),
             "allow_none": element.get("allow_none", False),
+            "dump_only": element.get("dump_only", False),
+            "load_only": element.get("load_only", False),
+            "attribute": field_name,
+            "data_key": field_name,
         }
 
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
@@ -114,3 +120,12 @@ class DataType:
         raise NotImplementedError(
             f"{self.__class__.__name__} neither implements create_mapping nor provides self.mapping_type"
         )
+
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        """
+        Create relations for the data type.
+        This method can be overridden by subclasses to provide specific relations creation logic.
+        """
+        return []
