@@ -10,21 +10,21 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
+from invenio_vocabularies.records.systemfields.relations import CustomFieldsRelation
+
+from oarepo_model.customizations import AddToDictionary, Customization
+from oarepo_model.model import InvenioModel
+from oarepo_model.presets import Preset
+
 if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
-    from oarepo_model.customizations import Customization
-    from oarepo_model.model import InvenioModel
 
 
-class Preset:
-    """
-    Base class for presets.
-    """
+class CustomFieldsRelationsPreset(Preset):
 
-    provides: list[str] = []
-    modifies: list[str] = []
-    depends_on: list[str] = []
-    only_if: list[str] = []
+    modifies = [
+        "relations",
+    ]
 
     def apply(
         self,
@@ -32,11 +32,9 @@ class Preset:
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        """
-        Apply the preset to the given model.
-        This method should be overridden by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}[{self.__class__.__module__}]"
+        custom_fields_key = model.uppercase_name + "_CUSTOM_FIELDS"
+        yield AddToDictionary(
+            "relations",
+            key=model.configuration.get("custom_fields_name", "custom"),
+            value=CustomFieldsRelation(custom_fields_key),
+        )
