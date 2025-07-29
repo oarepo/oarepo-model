@@ -18,12 +18,12 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftFileMappingPreset(Preset):
+class RecordFileMappingPreset(Preset):
     """
     Preset for record service class.
     """
 
-    depends_on = ["DRAFT_MAPPING_PATH"]
+    modifies = ["record-mapping"]
 
     def apply(
         self,
@@ -45,8 +45,4 @@ class DraftFileMappingPreset(Preset):
             }
         }
 
-        yield PatchJSONFile(
-            dependencies["DRAFT_MAPPING_PATH"][0],
-            dependencies["DRAFT_MAPPING_PATH"][1],
-            file_mapping,
-        )
+        yield PatchJSONFile("record-mapping", file_mapping)

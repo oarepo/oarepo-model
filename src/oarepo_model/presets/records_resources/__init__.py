@@ -12,13 +12,13 @@ from .blueprints.records.api_blueprint import ApiBlueprintPreset
 from .blueprints.records.app_blueprint import AppBlueprintPreset
 from .ext import ExtPreset
 from .ext_files import ExtFilesPreset
-from .file_records.file_metadata import FileMetadataPreset
-from .file_records.file_record import FileRecordPreset
-from .file_records.record import RecordWithFilesPreset
-from .file_records.record_file_mapping import (
+from .files.file_metadata import FileMetadataPreset
+from .files.file_record import FileRecordPreset
+from .files.record import RecordWithFilesPreset
+from .files.record_file_mapping import (
     RecordFileMappingPreset,
 )
-from .file_records.record_metadata import RecordMetadataWithFilesPreset
+from .files.record_metadata import RecordMetadataWithFilesPreset
 from .proxy import ProxyPreset
 from .records.dumper import RecordDumperPreset
 from .records.jsonschema import JSONSchemaPreset

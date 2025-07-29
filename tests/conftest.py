@@ -76,6 +76,7 @@ def draft_model():
             # needs https://github.com/inveniosoftware/invenio-search/pull/238/files
             # add parent JSON schema
             AddFileToModule(
+                "parent-jsonschema",
                 "jsonschemas",
                 "parent-v1.0.0.json",
                 json.dumps(

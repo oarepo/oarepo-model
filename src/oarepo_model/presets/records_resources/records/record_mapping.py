@@ -27,7 +27,7 @@ class RecordMappingPreset(Preset):
     """
 
     modifies = ["mappings"]
-    provides = ["RECORD_MAPPING_PATH"]
+    provides = ["record-mapping"]
 
     def apply(
         self,
@@ -67,12 +67,11 @@ class RecordMappingPreset(Preset):
             mapping,
         )
 
-        # TODO: the namespace_constant is not pretty
         yield AddJSONFile(
+            "record-mapping",
             "mappings",
             f"os-v2/{model.base_name}/metadata-v{model.version}.json",
             mapping,
-            namespace_constant="RECORD_MAPPING_PATH",
         )
 
 

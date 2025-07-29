@@ -8,18 +8,18 @@ from .blueprints.files.api_media_files_blueprint import ApiMediaFilesBlueprintPr
 from .ext_draft_files import ExtDraftFilesPreset
 from .ext_draft_media_files import ExtDraftMediaFilesPreset
 from .ext_media_files import ExtMediaFilesPreset
-from .file_records.draft_file_mapping import DraftFileMappingPreset
-from .file_records.draft_media_files import DraftMediaFilesPreset
-from .file_records.draft_with_files import DraftWithFilesPreset
-from .file_records.draft_with_media_files import DraftWithMediaFilesPreset
-from .file_records.file_draft import FileDraftPreset
-from .file_records.file_draft_metadata import FileDraftMetadataPreset
-from .file_records.media_file_draft import MediaFileDraftPreset
-from .file_records.media_file_draft_metadata import MediaFileDraftMetadataPreset
-from .file_records.media_file_metadata import MediaFileMetadataPreset
-from .file_records.media_file_record import MediaFileRecordPreset
-from .file_records.record_media_files import RecordMediaFilesPreset
-from .file_records.record_with_media_files import RecordWithMediaFilesPreset
+from .files.draft_media_files import DraftMediaFilesPreset
+from .files.draft_with_files import DraftWithFilesPreset
+from .files.draft_with_media_files import DraftWithMediaFilesPreset
+from .files.file_draft import FileDraftPreset
+from .files.file_draft_metadata import FileDraftMetadataPreset
+from .files.media_file_draft import MediaFileDraftPreset
+from .files.media_file_draft_metadata import MediaFileDraftMetadataPreset
+from .files.media_file_metadata import MediaFileMetadataPreset
+from .files.media_file_record import MediaFileRecordPreset
+from .files.record_file_mapping import RecordFileMappingPreset
+from .files.record_media_files import RecordMediaFilesPreset
+from .files.record_with_media_files import RecordWithMediaFilesPreset
 from .records.draft_mapping import DraftMappingPreset
 from .records.draft_record import DraftPreset
 from .records.draft_record_metadata import DraftMetadataPreset
@@ -103,7 +103,7 @@ drafts_files_presets: list[type[Preset]] = [
     MediaFileDraftMetadataPreset,
     FileDraftMetadataPreset,
     # record layer
-    DraftFileMappingPreset,
+    RecordFileMappingPreset,
     # service layer
     MediaFilesRecordServiceConfigPreset,
     DraftFileRecordServiceComponentsPreset,

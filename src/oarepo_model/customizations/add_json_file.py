@@ -22,11 +22,11 @@ class AddJSONFile(AddFileToModule):
 
     def __init__(
         self,
+        symbolic_name: str,
         module_name: str,
         file_path: str,
         payload: dict[str, Any],
         exists_ok: bool = False,
-        namespace_constant: str | None = None,
     ) -> None:
         """Add a json to the model
 
@@ -34,9 +34,9 @@ class AddJSONFile(AddFileToModule):
         :param exists_ok: Whether to ignore if the list already exists.
         """
         super().__init__(
+            symbolic_name=symbolic_name,
             module_name=module_name,
             file_path=file_path,
             file_content=json.dumps(payload),
             exists_ok=exists_ok,
-            namespace_constant=namespace_constant,
         )
