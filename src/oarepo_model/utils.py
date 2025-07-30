@@ -7,6 +7,7 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 #
 import inspect
+import keyword
 import re
 
 import marshmallow
@@ -128,18 +129,22 @@ def convert_to_python_identifier(s: str) -> str:
     Convert a string to a valid Python identifier.
     Replaces invalid characters with their transliteration to english words.
     """
-    if not s or s.isidentifier():
-        return s
+    if not s:
+        return "_empty_"
 
-    ret = []
-    for c in s:
-        if not c.isidentifier():
-            ret.append(f"_{ord(c)}_")
-        else:
-            ret.append(c)
-    if not ret[0].isidentifier():
-        ret.insert(0, "_")
-    return "".join(ret)
+    if not s.isidentifier():
+        ret = []
+        for c in s:
+            if not (c.isalnum() or c == '_'):
+                ret.append(f"_{ord(c)}_")
+            else:
+                ret.append(c)
+        s = "".join(ret)
+
+    if keyword.iskeyword(s):
+        s = f"{s}_"
+
+    return s
 
 
 class PossibleMultiFormatField(marshmallow.fields.Field):

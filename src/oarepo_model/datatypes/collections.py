@@ -53,6 +53,7 @@ class ObjectDataType(DataType):
                 value
             ).create_marshmallow_field(key, value)
             for key, value in properties.items()
+            if not value.get("skip_marshmallow", False)
         }
 
         class Meta:
@@ -259,3 +260,42 @@ class ArrayDataType(DataType):
         return self._registry.get_type(element["items"]).create_relations(
             element["items"], path + [("", element)]
         )
+
+
+class PermissiveSchema(marshmallow.Schema):
+    """A permissive schema that allows any properties."""
+
+    class Meta:
+        unknown = marshmallow.INCLUDE
+
+
+class DynamicObjectDataType(ObjectDataType):
+    """A data type for multilingual dictionaries.
+
+    Their serialization is:
+    {
+        "en": "English text",
+        "fi": "Finnish text",
+        ...
+    }
+    """
+
+    TYPE = "dynamic-object"
+
+    def create_marshmallow_schema(
+        self, element: dict[str, Any]
+    ) -> type[marshmallow.Schema]:
+        return PermissiveSchema
+
+    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        return {"type": "object", "additionalProperties": True}
+
+    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        return {"type": "object", "dynamic": "true"}
+
+    @override
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        # can not get relations for dynamic objects
+        return []

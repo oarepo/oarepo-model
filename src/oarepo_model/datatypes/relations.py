@@ -54,7 +54,7 @@ class PIDRelation(ObjectDataType):
             ret["id"] = {"type": "keyword"}
         # if @v is not in keys, add it as a keyword field, set marshmallow as dump only
         if "@v" not in ret:
-            ret["@v"] = {"type": "keyword", "dump_only": True}
+            ret["@v"] = {"type": "keyword", "skip_marshmallow": True}
         return ret
 
     @override
@@ -68,7 +68,7 @@ class PIDRelation(ObjectDataType):
         cache_key = self._cache_key(element, path)
         key_names = self._key_names(element, path)
 
-        return [
+        relations: list[Customization] = [
             AddPIDRelation(
                 name=relation_name,
                 path=relation_path,
@@ -78,6 +78,15 @@ class PIDRelation(ObjectDataType):
                 **element.get("relation_field_kwargs", {}),
             )
         ]
+
+        for prop_name, prop in self._get_properties(element).items():
+            relations.extend(
+                self._registry.get_type(prop).create_relations(
+                    prop, path + [(prop_name, prop)]
+                )
+            )
+
+        return relations
 
     def _relation_path(
         self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
@@ -118,15 +127,15 @@ class PIDRelation(ObjectDataType):
     def _key_names(
         self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
     ) -> list[str]:
-        keys = []
+        keys = set()
         for key in element.get("keys", []):
             if isinstance(key, str):
-                keys.append(key)
+                keys.add(key)
             elif isinstance(key, dict):
-                keys.extend(key.keys())
+                keys.update(key.keys())
             else:
                 raise ValueError(f"Invalid key type: {type(key)}")
-        return keys
+        return list(keys)
 
 
 def set_key_model(properties: dict[str, Any], key: str, value: Any) -> None:

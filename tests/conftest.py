@@ -1,11 +1,16 @@
 import json
 import sys
 import time
+from pathlib import Path
 
 import pytest
 from flask_principal import Identity, Need, UserNeed
+from invenio_access.permissions import system_identity
 from invenio_i18n import lazy_gettext as _
 from invenio_records_resources.services.custom_fields import TextCF
+from invenio_vocabularies.cli import _process_vocab
+from invenio_vocabularies.factories import VocabularyConfig, get_vocabulary_config
+from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
 
 pytest_plugins = ("celery.contrib.pytest",)
@@ -183,6 +188,33 @@ relation_model_types = {
     }
 }
 
+vocabulary_model_types = {
+    "Metadata": {
+        "properties": {
+            "language": {
+                "type": "vocabulary",
+                "vocabulary-type": "languages",
+            },
+            "affiliation": {
+                "type": "vocabulary",
+                "vocabulary-type": "affiliations",
+            },
+            "funder": {
+                "type": "vocabulary",
+                "vocabulary-type": "funders",
+            },
+            "award": {
+                "type": "vocabulary",
+                "vocabulary-type": "awards",
+            },
+            "subject": {
+                "type": "vocabulary",
+                "vocabulary-type": "subjects",
+            },
+        }
+    }
+}
+
 
 @pytest.fixture(scope="session")
 def relation_model(empty_model):
@@ -256,6 +288,33 @@ def drafts_cf_model(model_types):
         m.unregister()
 
 
+@pytest.fixture(scope="session")
+def vocabulary_model(empty_model):
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_resources_presets
+    from oarepo_model.presets.relations import relations_presets
+
+    t1 = time.time()
+
+    vocabulary_model = model(
+        name="vocabulary_test",
+        version="1.0.0",
+        presets=[records_resources_presets, relations_presets],
+        types=[vocabulary_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    vocabulary_model.register()
+
+    t2 = time.time()
+    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+
+    try:
+        yield vocabulary_model
+    finally:
+        vocabulary_model.unregister()
+
+
 @pytest.fixture(scope="module")
 def app_config(
     app_config,
@@ -265,6 +324,7 @@ def app_config(
     records_cf_model,
     drafts_cf_model,
     relation_model,
+    vocabulary_model,
 ):
     """Override pytest-invenio app_config fixture.
 
@@ -346,3 +406,59 @@ def create_app(instance_path, entry_points):
     from invenio_app.factory import create_api as _create_api
 
     return _create_api
+
+
+@pytest.fixture
+def vocabulary_fixtures(app, db, search_clear, search):
+    """Import vocabulary fixtures."""
+
+    VocabularyType.create(id="languages", pid_type="lng")
+    db.session.commit()
+
+    for vocabulary in (
+        "languages",
+        "subjects",
+        "affiliations",
+        "funders",
+        "awards",
+    ):
+        settings = Path(__file__).parent / "vocabulary_data/settings.yaml"
+        filepath = Path(__file__).parent / f"vocabulary_data/{vocabulary}.yaml"
+        vc = get_vocabulary_config(vocabulary)
+        if vc.vocabulary_name:
+            config = vc.get_config(settings, origin=filepath)
+        else:
+
+            class VC(VocabularyConfig):
+                """Names Vocabulary Config."""
+
+                config = {
+                    "readers": [
+                        {
+                            "type": "yaml",
+                            "args": {
+                                "regex": "\\.yaml$",
+                            },
+                        },
+                    ],
+                    "writers": [
+                        {
+                            "type": "service",
+                            "args": {
+                                "service_or_name": "vocabularies",
+                                "identity": system_identity,
+                            },
+                        }
+                    ],
+                }
+                vocabulary_name = vocabulary
+
+            config = VC().get_config(settings, origin=filepath)
+
+        success, errored, filtered = _process_vocab(config)
+        print(
+            f"Vocabulary {vocabulary} processed: {success} success, {errored} errored, {filtered} filtered",
+            flush=True,
+        )
+        assert errored == 0
+        assert filtered == 0

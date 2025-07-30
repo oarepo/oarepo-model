@@ -1,0 +1,45 @@
+languages:
+  readers: 
+    - type: yaml
+      args: 
+        regex: "\\.yaml$"
+  writers:
+    - type: service
+      args: 
+        service_or_name: vocabularies
+affiliations:
+  readers: 
+    - type: yaml
+      args: 
+        regex: "\\.yaml$"
+  writers:
+    - type: service
+      args: 
+        service_or_name: affiliations
+funders:
+  readers: 
+    - type: yaml
+      args: 
+        regex: "\\.yaml$"
+  writers:
+    - type: service
+      args: 
+        service_or_name: funders
+awards:
+  readers: 
+    - type: yaml
+      args: 
+        regex: "\\.yaml$"
+  writers:
+    - type: service
+      args: 
+        service_or_name: awards
+subjects:
+  readers: 
+    - type: yaml
+      args: 
+        regex: "\\.yaml$"
+  writers:
+    - type: service
+      args: 
+        service_or_name: subjects
