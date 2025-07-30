@@ -1,0 +1,31 @@
+- name: article
+  type: object
+  properties:
+    id:
+      type: int
+    title:
+      type: fulltext+keyword
+    tags:
+      type: array
+      items:
+        type: fulltext+keyword
+
+- name: comment
+  type: object
+  properties:
+    id:
+      type: int
+    article_id:
+      type: int
+    content:
+      type: fulltext
+    author:
+      type: author 
+
+- name: author
+  type: object
+  properties:
+    name:
+      type: fulltext
+    age:
+      type: int  

@@ -7,10 +7,13 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 #
 import itertools
+import json
 from functools import partial
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Callable
+
+import yaml
 
 from .builder import InvenioModelBuilder
 from .customizations import Customization
@@ -22,6 +25,61 @@ from .register import register_model, unregister_model
 from .sorter import sort_presets
 
 
+def from_json(file_name: str, origin: str | None = None) -> Callable[[], dict]:
+    """Load custom data types from JSON files. 
+    
+    Supports two formats:
+    - A list of objects, each with a 'name' field (converted into a dictionary keyed by 'name')
+    - A dictionary of named objects directly
+    
+    If `origin` is provided, `file_name` is resolved relative to the directory of the origin file.
+    Otherwise, it is resolved relative to the current working directory.
+    
+    :param file_name: Name of the JSON file containing the data type definitions.
+    :param origin: Optional path to the file from which the load is being called (e.g., `__file__`), 
+                   used to resolve the relative path to `file_name`.
+    :return: A callable that returns a dictionary of data types when called.
+    :raises TypeError: If the loaded content is neither a list nor a dictionary.
+    """
+    path = Path(origin).parent / file_name if origin else Path.cwd() / file_name
+    def _loader() -> dict:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(raw, list):
+            return { item["name"]: item for item in raw}
+        elif isinstance(raw, dict):
+            return raw
+        else:
+            raise TypeError(f"Expected dict or list, got {type(raw)}")
+    return _loader    
+
+def from_yaml(file_name: str, origin: str | None = None) -> Callable[[], dict]:
+    """Load custom data types from YAML files. 
+    
+    Supports two formats:
+    - A list of objects, each with a 'name' field (converted into a dictionary keyed by 'name')
+    - A dictionary of named objects directly
+    
+    If `origin` is provided, `file_name` is resolved relative to the directory of the origin file.
+    Otherwise, it is resolved relative to the current working directory.
+    
+    :param file_name: Name of the YAML file containing the data type definitions.
+    :param origin: Optional path to the file from which the load is being called (e.g., `__file__`), 
+                   used to resolve the relative path to `file_name`.
+    :return: A callable that returns a dictionary of data types when called.
+    :raises TypeError: If the loaded content is neither a list nor a dictionary.
+    """
+    path = Path(origin).parent / file_name if origin else Path.cwd() / file_name
+    
+    def _loader() -> dict:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if isinstance(raw, list):
+            return { item["name"]: item for item in raw }
+        elif isinstance(raw, dict):
+            return raw
+        else:
+            raise TypeError(f"Expected dict or list, got {type(raw)}")
+    return _loader 
+
 def model(
     name: str,
     presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]] = [],
@@ -30,7 +88,7 @@ def model(
     version: str = "0.1.0",
     configuration: dict[str, Any] | None = None,
     customizations: list[Customization] | None = None,
-    types: list[str | Path | dict[str, Any]] | None = None,
+    types: list[dict[str, Any] | Callable[[], dict]] | None = None,
     metadata_type: str | None = None,
     record_type: str | None = None,
 ) -> SimpleNamespace:
@@ -61,8 +119,9 @@ def model(
         for type_collection in types:
             if isinstance(type_collection, dict):
                 type_registry.add_types(type_collection)
-            elif isinstance(type_collection, (str, Path)):
-                type_registry.add_types_from_path(type_collection)
+            elif isinstance(type_collection, Callable):
+                loaded = type_collection()
+                type_registry.add_types(loaded)
             else:
                 raise TypeError(
                     f"Invalid type collection: {type_collection}. "

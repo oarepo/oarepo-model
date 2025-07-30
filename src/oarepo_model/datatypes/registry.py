@@ -46,14 +46,6 @@ class DataTypeRegistry:
                     "Expected a dict or a subclass of DataType."
                 )
 
-    def add_types_from_path(self, path):
-        """
-        Load types from a file at the given path.
-        """
-        raise NotImplementedError(
-            "Loading types from a file path is not implemented yet."
-        )
-
     def register(self, type_name: str, datatype: DataType):
         """
         Register a data type in the registry.
