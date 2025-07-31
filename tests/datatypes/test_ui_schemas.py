@@ -565,17 +565,20 @@ def test_polymorphic_ui_schema(test_ui_schema):
         },
         extra_types={"Person": person_schema, "Organization": organization_schema},
     )
+    loc = str(get_locale()) if get_locale() else None
 
     val = {"a": {"type": "person", "first_name": "bob", "age": 123, "isActive": True}}
     ret = schema.dump(val)
+    formatted_number = format_decimal(123, locale=loc)
     assert ret == {
-        "a": {"age": "123", "isActive_i18n": "true"}
+        "a": {"age": formatted_number, "isActive_i18n": "true"}
     }  # strings are removed, number and boolean are transformed
 
     val = {"a": {"type": "organization", "name": "CVUT", "age": 100000, "isFree": True}}
     ret = schema.dump(val)
+    formatted_number = format_decimal(100000, locale=loc)
     assert ret == {
-        "a": {"age": "100,000", "isFree_i18n": "true"}
+        "a": {"age": formatted_number, "isFree_i18n": "true"}
     }  # strings are removed, number and boolean are transformed
 
 
