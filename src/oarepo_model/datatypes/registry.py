@@ -1,6 +1,10 @@
 import importlib.metadata
+import json
 import logging
-from typing import Any
+from pathlib import Path
+from typing import Any, Callable
+
+import yaml
 
 from .base import DataType
 from .wrapped import WrappedDataType
@@ -96,3 +100,59 @@ class DataTypeRegistry:
         elif "items" in v:
             v["items"] = self._unwind_shortcuts(v["items"])
         return v
+
+
+def from_json(file_name: str, origin: str | None = None) -> Callable[[], dict]:
+    """Load custom data types from JSON files. 
+    
+    Supports two formats:
+    - A list of objects, each with a 'name' field (converted into a dictionary keyed by 'name')
+    - A dictionary of named objects directly
+    
+    If `origin` is provided, `file_name` is resolved relative to the directory of the origin file.
+    Otherwise, it is resolved relative to the current working directory.
+    
+    :param file_name: Name of the JSON file containing the data type definitions.
+    :param origin: Optional path to the file from which the load is being called (e.g., `__file__`), 
+                   used to resolve the relative path to `file_name`.
+    :return: A callable that returns a dictionary of data types when called.
+    :raises TypeError: If the loaded content is neither a list nor a dictionary.
+    """
+    path = Path(origin).parent / file_name if origin else Path.cwd() / file_name
+    def _loader() -> dict:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(raw, list):
+            return { item["name"]: item for item in raw}
+        elif isinstance(raw, dict):
+            return raw
+        else:
+            raise TypeError(f"Expected dict or list, got {type(raw)}")
+    return _loader    
+
+def from_yaml(file_name: str, origin: str | None = None) -> Callable[[], dict]:
+    """Load custom data types from YAML files. 
+    
+    Supports two formats:
+    - A list of objects, each with a 'name' field (converted into a dictionary keyed by 'name')
+    - A dictionary of named objects directly
+    
+    If `origin` is provided, `file_name` is resolved relative to the directory of the origin file.
+    Otherwise, it is resolved relative to the current working directory.
+    
+    :param file_name: Name of the YAML file containing the data type definitions.
+    :param origin: Optional path to the file from which the load is being called (e.g., `__file__`), 
+                   used to resolve the relative path to `file_name`.
+    :return: A callable that returns a dictionary of data types when called.
+    :raises TypeError: If the loaded content is neither a list nor a dictionary.
+    """
+    path = Path(origin).parent / file_name if origin else Path.cwd() / file_name
+    
+    def _loader() -> dict:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if isinstance(raw, list):
+            return { item["name"]: item for item in raw }
+        elif isinstance(raw, dict):
+            return raw
+        else:
+            raise TypeError(f"Expected dict or list, got {type(raw)}")
+    return _loader 

@@ -8,7 +8,7 @@ from invenio_i18n import lazy_gettext as _
 from invenio_records_resources.services.custom_fields import TextCF
 from marshmallow_utils.fields import SanitizedHTML
 
-from oarepo_model.api import from_json, from_yaml
+from oarepo_model.datatypes.registry import from_json, from_yaml
 
 pytest_plugins = ("celery.contrib.pytest",)
 
