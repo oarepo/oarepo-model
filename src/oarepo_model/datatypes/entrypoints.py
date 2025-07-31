@@ -16,10 +16,10 @@ from .date import (
 )
 from .multilingual import I18nDictDataType
 from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataType
+from .polymorphic import PolymorphicDataType
 from .relations import PIDRelation
 from .strings import FullTextDataType, FulltextWithKeywordDataType, KeywordDataType
 from .vocabularies import VocabularyDataType
-from .polymorphic import PolymorhicDataType
 
 DATA_TYPES: dict[str, type[DataType]] = {
     KeywordDataType.TYPE: KeywordDataType,
@@ -43,5 +43,5 @@ DATA_TYPES: dict[str, type[DataType]] = {
     VocabularyDataType.TYPE: VocabularyDataType,
     I18nDictDataType.TYPE: I18nDictDataType,
     DynamicObjectDataType.TYPE: DynamicObjectDataType,
-    PolymorhicDataType.TYPE: PolymorhicDataType
+    PolymorphicDataType.TYPE: PolymorphicDataType,
 }

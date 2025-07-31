@@ -8,22 +8,41 @@ from invenio_base.utils import obj_or_import_string
 from .base import DataType
 
 
-class PolymorhicDataType(DataType):
+class PolymorphicDataType(DataType):
     """
     Data type for handling polymorphic schemas with discriminator fields.
     This allows for fields that can be one of several different types based on a discriminator field.
+
+    Supports schemas with a 'oneof' array where each item specifies a discriminator value
+    and corresponding schema type. The discriminator field determines which schema variant
+    to use for validation and serialization.
+
+    Example:
+    This schema will support two types of items (person and organization):
+       {
+           "type": "polymorphic",
+           "discriminator": "type",
+           "oneof": [
+               {"discriminator": "person", "type": "Person"},
+               {"discriminator": "organization", "type": "Organization"}
+           ]
+       }
+
+    Input will be:
+    {
+        field_name : {"type": "person", person_fields...}
+    } or
+    {
+        field_name : {"type": "organization", organization_fields...}
+    }
     """
 
     TYPE = "polymorphic"
 
-    def __init__(self, registry, name=None):
-        super().__init__(registry, name)
-        self.discriminator: str = "type"
-        self.oneof_schemas: list[dict[str, Any]] = []
-        self.polymorphic_children: dict[str, DataType] = {}
-
     @override
-    def create_marshmallow_field(self, field_name, element) -> ma.fields.Field:
+    def create_marshmallow_field(
+        self, field_name: str, element: dict[str, Any]
+    ) -> ma.fields.Field:
         """
         Create a Marshmallow field for polymorphic data type.
         Uses OneOf field with different schemas based on discriminator.
@@ -32,22 +51,12 @@ class PolymorhicDataType(DataType):
         if element.get("marshmallow_field") is not None:
             return obj_or_import_string(element["marshmallow_field"])
 
-        # get discriminator field name and oneof schemas
-        self.discriminator = element.get("discriminator", "type")
-        self.oneof_schemas = element.get("oneof", [])
+        # get discriminator field name
+        discriminator = element.get("discriminator", "type")
 
-        # create child data types for each oneof schema
-        for oneof_item in self.oneof_schemas:
-            discriminator_value = oneof_item.get("discriminator")
-            schema_type = oneof_item.get("type")
-
-            if discriminator_value and schema_type:
-                schema_def = self._registry.get_type(schema_type)
-                self.polymorphic_children[discriminator_value] = schema_def
-
-        # create a custom polymorphic field
+        # create a custom polymorphic field that distinguishes what schema to use
         return PolymorphicField(
-            discriminator=self.discriminator,
+            discriminator=discriminator,
             schemas=self._create_schema_fields(field_name, element),
             **self._get_marshmallow_field_args(field_name, element),
         )
@@ -58,18 +67,21 @@ class PolymorhicDataType(DataType):
         """
         Create marshmallow fields for each schema variant.
         """
-
         schema_fields = {}
+        oneof_schemas = element.get("oneof", [])
 
-        for oneof_item in self.oneof_schemas:
+        for oneof_item in oneof_schemas:
+            # get discriminator value (e.g. person) and schema for that value (e.g. Person)
             discriminator_value = oneof_item.get("discriminator")
+            schema_type = oneof_item.get("type")
 
-            if discriminator_value in self.polymorphic_children:
-                child_datatype = self.polymorphic_children[discriminator_value]
-                schema_fields[discriminator_value] = (
-                    child_datatype.create_marshmallow_field(
-                        field_name=discriminator_value, element={}
-                    )
+            if discriminator_value and schema_type:
+                # get class for this schema type
+                datatype = self._registry.get_type(schema_type)
+
+                # create a marshmallow field and save it
+                schema_fields[discriminator_value] = datatype.create_marshmallow_field(
+                    field_name=discriminator_value, element=oneof_item
                 )
 
         return schema_fields
@@ -79,26 +91,29 @@ class PolymorhicDataType(DataType):
         self, field_name: str, element: dict[str, Any]
     ) -> dict[str, ma.fields.Field]:
         ui_fields = {}
-
+        discriminator = element.get("discriminator", "type")
         oneof_schemas = element.get("oneof", [])
 
+        # iterate through each variant
         for oneof_item in oneof_schemas:
+            # get its disciminator and schema type
             discriminator_value = oneof_item.get("discriminator")
             schema_type = oneof_item.get("type")
 
             if discriminator_value and schema_type:
-                schema = self._registry.get_type(schema_type)
+                # get class for that specific datatype
+                datatype = self._registry.get_type(schema_type)
 
-                ui_field = schema.create_ui_marshmallow_fields(
+                # get UI fields from that datatype, where attribute is disciminator value
+                ui_field = datatype.create_ui_marshmallow_fields(
                     field_name=discriminator_value, element=oneof_item
                 )
                 if ui_field:
                     ui_fields.update(ui_field)
 
+        # return custom marshmallow field that distinguishes what schema to use
         return {
-            field_name: PolymorphicField(
-                discriminator=self.discriminator, schemas=ui_fields
-            )
+            field_name: PolymorphicField(discriminator=discriminator, schemas=ui_fields)
         }
 
     @override
@@ -111,22 +126,27 @@ class PolymorhicDataType(DataType):
 
         json_one_of_schemas = []
 
+        # iterate through each variant
         for oneof_item in oneof_schemas:
+            # get its disciminator and schema type
             discriminator_value = oneof_item.get("discriminator")
             schema_type = oneof_item.get("type")
 
             if discriminator_value and schema_type:
-                schema = self._registry.get_type(schema_type)
-                child_jsonschema = schema.create_json_schema(oneof_item)
+                # get datatype class and generate json schema from it
+                datatype = self._registry.get_type(schema_type)
+                child_jsonschema = datatype.create_json_schema(oneof_item)
 
                 if "properties" not in child_jsonschema:
                     child_jsonschema["properties"] = {}
 
+                # only 1 value is allowed in this field (e.g. person or organization)
                 child_jsonschema["properties"][discriminator] = {
                     "type": "string",
                     "const": discriminator_value,
                 }
 
+                # discriminator is a required field
                 if "required" not in child_jsonschema:
                     child_jsonschema["required"] = []
                 if discriminator not in child_jsonschema["required"]:
@@ -150,14 +170,18 @@ class PolymorhicDataType(DataType):
 
         all_properties = {discriminator: {"type": "keyword"}}
 
+        # iterate through each variant
         for oneof_item in oneof_schemas:
+            # get its discriminator and schema type
             discriminator_value = oneof_item.get("discriminator")
             schema_type = oneof_item.get("type")
 
             if discriminator_value and schema_type:
-                schema = self._registry.get_type(schema_type)
-                child_mapping = schema.create_mapping(oneof_item)
+                # get datatype class and generate mapping from it
+                datatype = self._registry.get_type(schema_type)
+                child_mapping = datatype.create_mapping(oneof_item)
 
+                # dump all properties from all variants in 1 dictionary
                 if "properties" in child_mapping:
                     all_properties.update(child_mapping["properties"])
 
@@ -165,14 +189,28 @@ class PolymorhicDataType(DataType):
 
 
 class PolymorphicField(ma.fields.Field):
+    """Custom marshmallow field class that supports handling polymorphic fields."""
+
     def __init__(
-        self, discriminator: str, schemas: dict[str, ma.fields.Field], *args, **kwargs
+        self,
+        discriminator: str = "type",
+        schemas: dict[str, ma.fields.Field] = {},
+        *args,
+        **kwargs,
     ):
+        """
+        Initialize a PolymorphicField for handling discriminated union types.
+
+        :param discriminator: The field name used to determine which schema variant to use. Defaults to "type".
+        :param schemas: A mapping from discriminator values (e.g. person/organization) to marshmallow field instances.
+        Each field handles validation and serialization for its corresponding object variant. Defaults to empty dict.
+        """
         super().__init__(*args, **kwargs)
         self.discriminator = discriminator
         self.schemas = schemas
 
     def _serialize(self, value: Any, attr: str, obj: Any, **kwargs) -> Any:
+        """Serialize by choosing correct serializer depending on the discriminator value."""
         if not isinstance(value, dict):
             return value
 
@@ -183,7 +221,8 @@ class PolymorphicField(ma.fields.Field):
 
         return value
 
-    def _deserialize(self, value, attr, data, **kwargs):
+    def _deserialize(self, value: Any, attr: str, data: any, **kwargs):
+        """Deserialize by choosing correct deserializer depending on the discriminator value."""
         discriminator_value = value.get(self.discriminator)
 
         if discriminator_value not in self.schemas:
