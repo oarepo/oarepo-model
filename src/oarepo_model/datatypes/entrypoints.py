@@ -19,6 +19,7 @@ from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataTyp
 from .relations import PIDRelation
 from .strings import FullTextDataType, FulltextWithKeywordDataType, KeywordDataType
 from .vocabularies import VocabularyDataType
+from .polymorphic import PolymorhicDataType
 
 DATA_TYPES: dict[str, type[DataType]] = {
     KeywordDataType.TYPE: KeywordDataType,
@@ -42,4 +43,5 @@ DATA_TYPES: dict[str, type[DataType]] = {
     VocabularyDataType.TYPE: VocabularyDataType,
     I18nDictDataType.TYPE: I18nDictDataType,
     DynamicObjectDataType.TYPE: DynamicObjectDataType,
+    PolymorhicDataType.TYPE: PolymorhicDataType
 }

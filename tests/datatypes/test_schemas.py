@@ -1,8 +1,9 @@
+from datetime import date, datetime, time
 from typing import Any, Callable
 
 import marshmallow as ma
 import pytest
-from datetime import date, datetime, time
+
 
 @pytest.fixture
 def test_schema(datatype_registry) -> Callable[[dict[str, Any]], ma.Schema]:
@@ -409,5 +410,39 @@ def test_edtf_interval_field(test_schema):
     val = "2005/2006-02"
     assert schema.load({"a": val}) == {"a": val}
 
-        
-                      
+
+def test_polymorphic_field(test_schema):
+    person_schema = {
+        "type": "object",
+        "properties": {"first_name": {"type": "fulltext"}, "type": {"type": "keyword"}},
+    }
+    organization_schema = {
+        "type": "object",
+        "properties": {"name": {"type": "fulltext+keyword"}, "type": {"type": "keyword"}},
+    }
+
+    schema = test_schema(
+        {
+            "type": "polymorphic",
+            "discriminator": "type",
+            "oneof": [
+                {"discriminator":"person", "type": "Person"},
+                {"discriminator":"organization", "type": "Organization"}
+            ],
+        },
+        extra_types={"Person": person_schema, "Organization": organization_schema},
+    )
+
+    val = {"a": {"type": "person", "first_name": "bob"}}
+    assert schema.load(val) == val
+    
+    val = {"a": {"type": "organization", "name": "org name"}}
+    assert schema.load(val) == val
+    
+    with pytest.raises(ma.ValidationError):
+        val = {"a": {"type": "person", "name": "bob"}}
+        schema.load(val)
+    
+    with pytest.raises(ma.ValidationError):
+        val = {"a": {"type": "organization", "first_name": "org name"}}
+        schema.load(val)
