@@ -60,7 +60,7 @@ def model(
         for type_collection in types:
             if isinstance(type_collection, dict):
                 type_registry.add_types(type_collection)
-            elif isinstance(type_collection, Callable):
+            elif callable(type_collection):
                 loaded = type_collection()
                 type_registry.add_types(loaded)
             else:
