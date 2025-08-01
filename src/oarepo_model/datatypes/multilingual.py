@@ -6,19 +6,24 @@ from oarepo_runtime.services.schema.i18n import I18nStrField, MultilingualField
 from oarepo_runtime.services.schema.i18n_ui import I18nStrUIField, MultilingualUIField
 from oarepo_model.customizations import Customization
 
-from .collections import ObjectDataType
-
-class I18nDataType(ObjectDataType):
-    """A data type for multilingual dictionaries.
-    """
-
-    TYPE = "i18n"
+from .collections import ObjectDataType, ArrayDataType
+from .base import  ARRAY_ITEM_PATH
+class MultilingualMixin:
 
     def get_multilingual_field(self, element):
         multilingual_def = element.get("multilingual", {})
         lang_name = multilingual_def.get("lang_name", "lang")
         value_name = multilingual_def.get("value_name", "value")
         return lang_name, value_name
+
+
+class I18nDataType(ObjectDataType, MultilingualMixin):
+    """A data type for multilingual dictionaries.
+    """
+
+    TYPE = "i18n"
+
+
 
     @override
     def create_marshmallow_field(
@@ -31,6 +36,25 @@ class I18nDataType(ObjectDataType):
         lang, value = self.get_multilingual_field(element)
         return  I18nStrField(lang_name=lang, value_name=value)
 
+    @override
+    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        """
+        Create a mapping for the data type.
+        This method can be overridden by subclasses to provide specific mapping creation logic.
+        """
+        lang, value = self.get_multilingual_field(element)
+        return {
+            "type": "nested",
+            "properties": {
+                lang: {"type": "keyword", "ignore_above": 256},
+                value: {
+                    "type": "text",
+                    "fields": {
+                        "keyword": {"type": "keyword", "ignore_above": 256}
+                    },
+                },
+            },
+        }
     @override
     def create_ui_marshmallow_schema(
             self, element: dict[str, Any]
@@ -50,25 +74,7 @@ class I18nDataType(ObjectDataType):
                 "properties": {lang: {"type": "string"}, value: {"type": "string"}},
             }
 
-    @override
-    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
-        """
-        Create a mapping for the data type.
-        This method can be overridden by subclasses to provide specific mapping creation logic.
-        """
-        lang, value = self.get_multilingual_field(element)
-        return {
-                    "type": "nested",
-                    "properties": {
-                        lang: {"type": "keyword", "ignore_above": 256},
-                        value: {
-                            "type": "text",
-                            "fields": {
-                                "keyword": {"type": "keyword", "ignore_above": 256}
-                            },
-                        },
-                    },
-                }
+
 
     @override
     def create_ui_model(
@@ -89,7 +95,7 @@ class I18nDataType(ObjectDataType):
             for key, value in element["properties"].items()
         }
         return ret
-class MultilingualDataType(I18nDataType):
+class MultilingualDataType(ArrayDataType, MultilingualMixin):
     """A data type for multilingual dictionaries.
     """
 
@@ -117,6 +123,25 @@ class MultilingualDataType(I18nDataType):
         return MultilingualUIField(lang_name=lang, value_name=value)
 
     @override
+    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        """
+        Create a mapping for the data type.
+        This method can be overridden by subclasses to provide specific mapping creation logic.
+        """
+        lang, value = self.get_multilingual_field(element)
+        return {
+            "type": "nested",
+            "properties": {
+                lang: {"type": "keyword", "ignore_above": 256},
+                value: {
+                    "type": "text",
+                    "fields": {
+                        "keyword": {"type": "keyword", "ignore_above": 256}
+                    },
+                },
+            },
+        }
+    @override
     def create_ui_model(
             self, element: dict[str, Any], path: list[str]
     ) -> dict[str, Any]:
@@ -130,10 +155,9 @@ class MultilingualDataType(I18nDataType):
                             'type': 'object',
                         }
         ret = super().create_ui_model(element, path)
-        ret["children"] = {
-            key: self._registry.get_type(value).create_ui_model(value, path + [key])
-            for key, value in element["properties"].items()
-        }
+        ret["child"] = self._registry.get_type(element["items"]).create_ui_model(
+            element["items"], path + [ARRAY_ITEM_PATH]
+        )
         return ret
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
