@@ -58,10 +58,6 @@ class PIDRelation(ObjectDataType):
         return ret
 
     @override
-    def create_ui_marshmallow_fields(self, field_name, element):
-        return {}  # TODO: dont know what is supposed to be here yet
-
-    @override
     def create_relations(
         self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
     ) -> list[Customization]:
