@@ -1,8 +1,9 @@
+from datetime import date, datetime, time
 from typing import Any, Callable
 
 import marshmallow as ma
 import pytest
-from datetime import date, datetime, time
+
 
 @pytest.fixture
 def test_schema(datatype_registry) -> Callable[[dict[str, Any]], ma.Schema]:
@@ -271,53 +272,53 @@ def test_forwarded_object_schema(test_schema):
     with pytest.raises(ma.ValidationError):
         schema.load({"a": {"name": "John", "age": -5}})
 
+
 def test_date_field(test_schema):
     schema = test_schema(
-        {
-            "type": "date",
-            "min_date": date(2023, 1, 1),
-            "max_date": date(2023, 12, 31)    
-        }
+        {"type": "date", "min_date": date(2023, 1, 1), "max_date": date(2023, 12, 31)}
     )
-    
+
     assert schema.load({"a": "2023-01-02"}) == {"a": date(2023, 1, 2)}
-    
+
     with pytest.raises(ma.ValidationError):
         schema.load({"a": "01/01/2023"})  # wrong format
 
     with pytest.raises(ma.ValidationError):
-        schema.load({"a": 1234}) # not a date
-    
+        schema.load({"a": 1234})  # not a date
+
     with pytest.raises(ma.ValidationError):
         schema.load({"a": "2022-12-31"})
 
     with pytest.raises(ma.ValidationError):
-        schema.load({"a": "2024-01-01"})    
-        
+        schema.load({"a": "2024-01-01"})
+
+
 def test_datetime_field(test_schema):
-    schema = test_schema({
-        "type": "datetime",
-        "min_datetime": datetime(2023, 1, 1, 0, 0, 0),
-        "max_datetime": datetime(2023, 12, 31, 23, 59, 59)    
-    })
+    schema = test_schema(
+        {
+            "type": "datetime",
+            "min_datetime": datetime(2023, 1, 1, 0, 0, 0),
+            "max_datetime": datetime(2023, 12, 31, 23, 59, 59),
+        }
+    )
 
     assert schema.load({"a": "2023-01-01T12:30:00"}) == {
         "a": datetime(2023, 1, 1, 12, 30, 0)
     }
-    
+
     assert schema.load({"a": "2023-01-01 12:30:00"}) == {
         "a": datetime(2023, 1, 1, 12, 30, 0)
-    }     
-    
-    with pytest.raises(ma.ValidationError):
-         assert schema.load({"a": "01/12/2022 14:15:00"}) # wrong format
-         
-    with pytest.raises(ma.ValidationError):
-        schema.load({"a": "2022-12-31T23:59:59"}) # out of bounds
+    }
 
     with pytest.raises(ma.ValidationError):
-        schema.load({"a": "2024-01-01T00:00:00"})    # out of bounds  
-     
+        assert schema.load({"a": "01/12/2022 14:15:00"})  # wrong format
+
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2022-12-31T23:59:59"})  # out of bounds
+
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2024-01-01T00:00:00"})  # out of bounds
+
 
 def test_time_field(test_schema):
     schema = test_schema(
@@ -332,18 +333,17 @@ def test_time_field(test_schema):
 
     with pytest.raises(ma.ValidationError):
         schema.load({"a": "08:59:59"})
-        
+
     with pytest.raises(ma.ValidationError):
         schema.load({"a": "01.02.2023"})
-    
+
     with pytest.raises(ma.ValidationError):
         schema.load({"a": "2024-01-01T00:00:00"})
-    
 
     with pytest.raises(ma.ValidationError):
         schema.load({"a": "17:00:01"})
-        
-        
+
+
 def test_edtf_time_field(test_schema):
     schema = test_schema(
         {
@@ -353,20 +353,20 @@ def test_edtf_time_field(test_schema):
 
     val = "2023"
     assert schema.load({"a": val}) == {"a": val}
-    
+
     val = "2023-01-01"
     assert schema.load({"a": val}) == {"a": val}
 
     val = "2024-01-01T00:00:00"
     assert schema.load({"a": val}) == {"a": val}
-        
+
     with pytest.raises(ma.ValidationError):
-        schema.load({"a": 2023})      
-        
-    with pytest.raises(ma.ValidationError):    
-        schema.load({"a":"12:00:00Z/13:00:00Z" })    
-        
-        
+        schema.load({"a": 2023})
+
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "12:00:00Z/13:00:00Z"})
+
+
 def test_edtf_field(test_schema):
     schema = test_schema(
         {
@@ -377,16 +377,15 @@ def test_edtf_field(test_schema):
     val = "2023-01-01"
     assert schema.load({"a": val}) == {"a": val}
 
-    
-    with pytest.raises(ma.ValidationError):   
+    with pytest.raises(ma.ValidationError):
         val = "2023/2025"
-        schema.load({"a": val}) 
-        
-    with pytest.raises(ma.ValidationError):   
+        schema.load({"a": val})
+
+    with pytest.raises(ma.ValidationError):
         val = "2024-01-01T00:00:00"
         schema.load({"a": val})
-    
-        
+
+
 def test_edtf_interval_field(test_schema):
     schema = test_schema(
         {
@@ -396,18 +395,285 @@ def test_edtf_interval_field(test_schema):
 
     val = "1964/2008"
     assert schema.load({"a": val}) == {"a": val}
-    
+
     val = "2004-06/2006-08"
     assert schema.load({"a": val}) == {"a": val}
-    
+
     val = "2004-02-01/2005-02-08"
     assert schema.load({"a": val}) == {"a": val}
-    
+
     val = "2004-02-01/2005"
     assert schema.load({"a": val}) == {"a": val}
-    
+
     val = "2005/2006-02"
     assert schema.load({"a": val}) == {"a": val}
 
-        
-                      
+
+def test_polymorphic_field(test_schema):
+    person_schema = {
+        "type": "object",
+        "properties": {"first_name": {"type": "fulltext"}, "type": {"type": "keyword"}},
+    }
+    organization_schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "fulltext+keyword"},
+            "type": {"type": "keyword"},
+        },
+    }
+
+    schema = test_schema(
+        {
+            "type": "polymorphic",
+            "discriminator": "type",
+            "oneof": [
+                {"discriminator": "person", "type": "Person"},
+                {"discriminator": "organization", "type": "Organization"},
+            ],
+        },
+        extra_types={"Person": person_schema, "Organization": organization_schema},
+    )
+
+    val = {"a": {"type": "person", "first_name": "bob"}}
+    assert schema.load(val) == val
+
+    val = {"a": {"type": "organization", "name": "org name"}}
+    assert schema.load(val) == val
+
+    with pytest.raises(ma.ValidationError):
+        val = {"a": {"type": "person", "name": "bob"}}
+        schema.load(val)
+
+    with pytest.raises(ma.ValidationError):
+        val = {"a": {"type": "organization", "first_name": "org name"}}
+        schema.load(val)
+
+    with pytest.raises(ma.ValidationError):
+        val = {
+            "a": {"type": "organization", "name": "org name", "full_name": "full_name"}
+        }
+        schema.load(val)
+
+
+def test_polymorphic_field_required(test_schema):
+    person_schema = {
+        "type": "object",
+        "properties": {"first_name": {"type": "fulltext"}, "type": {"type": "keyword"}},
+    }
+    organization_schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "fulltext+keyword"},
+            "type": {"type": "keyword"},
+        },
+    }
+
+    schema = test_schema(
+        {
+            "type": "polymorphic",
+            "discriminator": "type",
+            "oneof": [
+                {"discriminator": "person", "type": "Person"},
+                {"discriminator": "organization", "type": "Organization"},
+            ],
+            "required": True,
+        },
+        extra_types={"Person": person_schema, "Organization": organization_schema},
+    )
+    with pytest.raises(ma.ValidationError):
+        val = {}  # missing data
+        assert schema.load(val) == val
+
+
+def test_polymorphic_field_in_array(test_schema):
+    person_schema = {
+        "type": "object",
+        "properties": {"first_name": {"type": "fulltext"}, "type": {"type": "keyword"}},
+    }
+    organization_schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "fulltext+keyword"},
+            "type": {"type": "keyword"},
+        },
+    }
+
+    schema = test_schema(
+        {
+            "type": "array",
+            "items": {
+                "type": "polymorphic",
+                "discriminator": "type",
+                "oneof": [
+                    {"discriminator": "person", "type": "Person"},
+                    {"discriminator": "organization", "type": "Organization"},
+                ],
+            },
+        },
+        extra_types={"Person": person_schema, "Organization": organization_schema},
+    )
+
+    val = {"a": [{"type": "person", "first_name": "bob"}]}
+    assert schema.load(val) == val
+
+    val = {"a": [{"type": "organization", "name": "org name"}]}
+    assert schema.load(val) == val
+
+    val = {
+        "a": [
+            {"type": "person", "first_name": "bob"},
+            {"type": "person", "first_name": "bob2"},
+            {"type": "organization", "name": "org name"},
+            {"type": "organization", "name": "org name2"},
+        ]
+    }
+    assert schema.load(val) == val
+
+    with pytest.raises(ma.ValidationError):
+        val = {"a": [{"type": "person", "name": "bob"}]}
+        schema.load(val)
+
+    with pytest.raises(ma.ValidationError):
+        val = {"a": [{"type": "organization", "first_name": "org name"}]}
+        schema.load(val)
+
+    with pytest.raises(ma.ValidationError):
+        val = {
+            "a": [
+                {"type": "organization", "name": "org name", "full_name": "full_name"}
+            ]
+        }
+        schema.load(val)
+
+
+def test_polymorphic_field_json_schema(test_schema):
+    from oarepo_model.datatypes.registry import DataTypeRegistry
+
+    datatype_registry = DataTypeRegistry()
+    datatype_registry.load_entry_points()
+
+    person_schema = {
+        "type": "object",
+        "properties": {"first_name": {"type": "fulltext"}, "type": {"type": "keyword"}},
+    }
+    organization_schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "fulltext+keyword"},
+            "type": {"type": "keyword"},
+        },
+    }
+    polymorphic_schema = {
+        "type": "polymorphic",
+        "discriminator": "type",
+        "oneof": [
+            {"discriminator": "person", "type": "Person"},
+            {"discriminator": "organization", "type": "Organization"},
+        ],
+    }
+
+    extra_types = {"Person": person_schema, "Organization": organization_schema}
+    datatype_registry.add_types(extra_types)
+
+    ret = datatype_registry.get_type("polymorphic").create_json_schema(
+        element=polymorphic_schema
+    )
+
+    assert ret == {
+        "oneOf": [
+            {
+                "type": "object",
+                "unevaluatedProperties": False,
+                "properties": {
+                    "first_name": {"type": "string"},
+                    "type": {"type": "string", "const": "person"},
+                },
+                "required": ["type"],
+            },
+            {
+                "type": "object",
+                "unevaluatedProperties": False,
+                "properties": {
+                    "name": {"type": "string"},
+                    "type": {"type": "string", "const": "organization"},
+                },
+                "required": ["type"],
+            },
+        ],
+    }
+
+    print()
+
+
+def test_polymorphic_field_mapping(test_schema):
+    from oarepo_model.datatypes.registry import DataTypeRegistry
+
+    datatype_registry = DataTypeRegistry()
+    datatype_registry.load_entry_points()
+
+    person_schema = {
+        "type": "object",
+        "properties": {"first_name": {"type": "fulltext"}, "type": {"type": "keyword"}},
+    }
+    organization_schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "fulltext+keyword"},
+            "type": {"type": "keyword"},
+        },
+    }
+    polymorphic_schema = {
+        "type": "polymorphic",
+        "discriminator": "type",
+        "oneof": [
+            {"discriminator": "person", "type": "Person"},
+            {"discriminator": "organization", "type": "Organization"},
+        ],
+    }
+
+    extra_types = {"Person": person_schema, "Organization": organization_schema}
+    datatype_registry.add_types(extra_types)
+
+    ret = datatype_registry.get_type("polymorphic").create_mapping(
+        element=polymorphic_schema
+    )
+
+    # 2 keys on top level -> type and properties
+    assert ret.keys() == {"type", "properties"}
+
+    # type is object
+    assert ret["type"] == "object"
+
+    # properties has all fields from polymorphic field (from person and organization)
+    assert ret["properties"].keys() == {
+        "type",  # discriminator
+        "first_name",  # from person
+        "name",  # from org
+    }
+
+    polymorphic_schema_in_array = {
+        "type": "array",
+        "items": {
+            "type": "polymorphic",
+            "discriminator": "type",
+            "oneof": [
+                {"discriminator": "person", "type": "Person"},
+                {"discriminator": "organization", "type": "Organization"},
+            ],
+        },
+    }
+    ret = datatype_registry.get_type("array").create_mapping(
+        element=polymorphic_schema_in_array
+    )
+    # 2 keys on top level -> type and properties
+    assert ret.keys() == {"type", "properties"}
+
+    # type is object
+    assert ret["type"] == "object"
+
+    # properties has all fields from polymorphic field (from person and organization)
+    assert ret["properties"].keys() == {
+        "type",  # discriminator
+        "first_name",  # from person
+        "name",  # from org
+    }
