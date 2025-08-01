@@ -8,9 +8,8 @@
 #
 import itertools
 from functools import partial
-from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Callable
 
 from .builder import InvenioModelBuilder
 from .customizations import Customization
@@ -30,7 +29,7 @@ def model(
     version: str = "0.1.0",
     configuration: dict[str, Any] | None = None,
     customizations: list[Customization] | None = None,
-    types: list[str | Path | dict[str, Any]] | None = None,
+    types: list[dict[str, Any] | Callable[[], dict]] | None = None,
     metadata_type: str | None = None,
     record_type: str | None = None,
 ) -> SimpleNamespace:
@@ -61,8 +60,9 @@ def model(
         for type_collection in types:
             if isinstance(type_collection, dict):
                 type_registry.add_types(type_collection)
-            elif isinstance(type_collection, (str, Path)):
-                type_registry.add_types_from_path(type_collection)
+            elif callable(type_collection):
+                loaded = type_collection()
+                type_registry.add_types(loaded)
             else:
                 raise TypeError(
                     f"Invalid type collection: {type_collection}. "

@@ -13,6 +13,8 @@ from invenio_vocabularies.factories import VocabularyConfig, get_vocabulary_conf
 from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
 
+from oarepo_model.datatypes.registry import from_json, from_yaml
+
 pytest_plugins = ("celery.contrib.pytest",)
 
 
@@ -35,6 +37,43 @@ def model_types():
             }
         }
     }
+
+@pytest.fixture(scope="session")
+def model_types_in_json():
+    """Model types fixture."""
+    # Define the model types used in the tests
+    return [
+        from_json("tests/data_types_in_json_dict.json"),
+        from_json("tests/data_types_in_json_list.json")
+    ]
+
+@pytest.fixture(scope="session")
+def model_types_in_yaml():
+    """Model types fixture."""
+    # Define the model types used in the tests
+    return [
+        from_yaml("tests/data_types_in_yaml_list.yaml"),
+        from_yaml("tests/data_types_in_yaml_dict.yaml")
+    ]
+
+
+@pytest.fixture(scope="session")
+def model_types_in_json_with_origin():
+    """Model types fixture."""
+    # Define the model types used in the tests
+    return [
+        from_json("data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"),
+        from_json("data_types_in_json_list.json", origin="tests/data_types_in_json_list.json")
+    ]
+
+@pytest.fixture(scope="session")
+def model_types_in_yaml_with_origin():
+    """Model types fixture."""
+    # Define the model types used in the tests
+    return [
+        from_yaml("data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"),
+        from_yaml("data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml")
+    ]
 
 
 #
