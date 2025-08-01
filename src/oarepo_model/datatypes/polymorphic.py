@@ -4,6 +4,10 @@ from typing import Any, override
 
 import marshmallow as ma
 from invenio_base.utils import obj_or_import_string
+from marshmallow.utils import get_value
+from marshmallow.utils import (
+    missing as missing_,
+)
 
 from .base import DataType
 
@@ -209,12 +213,25 @@ class PolymorphicField(ma.fields.Field):
         self.discriminator = discriminator
         self.schemas = schemas
 
+    def get_discriminator_value(self, obj):
+        val = get_value(
+            obj,
+            self.discriminator,
+        )
+
+        if val is missing_:
+            error = self.make_error(key="required")
+            error.field_name = self.discriminator
+            raise error
+
+        return val
+
     def _serialize(self, value: Any, attr: str, obj: Any, **kwargs) -> Any:
         """Serialize by choosing correct serializer depending on the discriminator value."""
         if not isinstance(value, dict):
             return value
 
-        discriminator_value = value.get(self.discriminator)
+        discriminator_value = self.get_discriminator_value(value)
         if discriminator_value in self.schemas:
             schema_field = self.schemas[discriminator_value]
             return schema_field._serialize(value, attr, obj, **kwargs)
@@ -223,7 +240,7 @@ class PolymorphicField(ma.fields.Field):
 
     def _deserialize(self, value: Any, attr: str, data: any, **kwargs):
         """Deserialize by choosing correct deserializer depending on the discriminator value."""
-        discriminator_value = value.get(self.discriminator)
+        discriminator_value = self.get_discriminator_value(value)
 
         if discriminator_value not in self.schemas:
             self.fail("unknown_type", type=discriminator_value)
