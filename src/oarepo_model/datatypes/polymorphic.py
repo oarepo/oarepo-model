@@ -166,7 +166,6 @@ class PolymorphicDataType(DataType):
 
         return {
             "oneOf": json_one_of_schemas,
-            "discriminator": {"propertyName": discriminator},
         }
 
     @override

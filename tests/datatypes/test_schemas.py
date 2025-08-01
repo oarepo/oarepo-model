@@ -600,7 +600,6 @@ def test_polymorphic_field_json_schema(test_schema):
                 "required": ["type"],
             },
         ],
-        "discriminator": {"propertyName": "type"},
     }
 
     print()
