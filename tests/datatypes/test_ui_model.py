@@ -205,6 +205,63 @@ def test_object_inside_object_ui_model(test_ui_model):
         },
     }
 
+def test_i18n_schema(test_ui_model):
+    ui_model = test_ui_model(
+        {
+            "type": "i18n",
+
+        }
+    )
+    assert ui_model == {
+            'help': 'a.help',
+            'label': 'a.label',
+            'hint': 'a.hint',
+            'input': 'i18n',
+            'children': {
+                'lang': {
+                    'help': 'a/lang.help',
+                    'label': 'a/lang.label',
+                    'hint': 'a/lang.hint',
+                    'required': True,
+                    'input': 'keyword'},
+                'value': {
+                    'help': 'a/value.help',
+                    'label': 'a/value.label',
+                    'hint': 'a/value.hint',
+                    'required': True,
+                    'input': 'keyword'
+                }
+            }
+    }
+
+
+def test_multilingual_schema(test_ui_model):
+    ui_model = test_ui_model(
+        {
+            "type": "multilingual",
+
+        }
+    )
+    assert ui_model == {
+        'help': 'a.help',
+        'label': 'a.label',
+        'hint': 'a.hint',
+        'input': 'multilingual',
+        'children':
+            {'lang': {
+                'help': 'a/lang.help',
+                'label': 'a/lang.label',
+                'hint': 'a/lang.hint',
+                'required': True,
+                'input': 'keyword'},
+             'value': {
+                 'help': 'a/value.help',
+                 'label': 'a/value.label',
+                 'hint': 'a/value.hint',
+                 'required': True,
+                 'input': 'keyword'}
+            }
+    }
 
 def test_array(test_ui_model):
     ui_model = test_ui_model(

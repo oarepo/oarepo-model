@@ -254,6 +254,22 @@ vocabulary_model_types = {
     }
 }
 
+multilingual_model_types = {
+    "Metadata": {
+        "properties": {
+            "abstract": {
+                "type": "i18n",
+                "multilingual": {"lang_name": "jazyk", "value_name": "hodnotka"}
+            },
+            "title": {
+                "type": "i18n",
+            },
+            "rights": {
+                "type": "multilingual",
+            }
+        }
+    }
+}
 
 @pytest.fixture(scope="session")
 def relation_model(empty_model):
@@ -353,6 +369,30 @@ def vocabulary_model(empty_model):
     finally:
         vocabulary_model.unregister()
 
+@pytest.fixture(scope="session")
+def multilingual_model(empty_model):
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_resources_presets
+
+    t1 = time.time()
+
+    multilingual_model = model(
+        name="multilingual_test",
+        version="1.0.0",
+        presets=[records_resources_presets],
+        types=[multilingual_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    multilingual_model.register()
+
+    t2 = time.time()
+    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+
+    try:
+        yield multilingual_model
+    finally:
+        multilingual_model.unregister()
 
 @pytest.fixture(scope="module")
 def app_config(
