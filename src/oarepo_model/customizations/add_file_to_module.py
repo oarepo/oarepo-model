@@ -8,7 +8,6 @@
 #
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 from .base import Customization
@@ -23,9 +22,10 @@ class AddFileToModule(Customization):
 
     def __init__(
         self,
+        symbolic_name: str,
         module_name: str,
         file_path: str,
-        file_content: str | bytes,
+        file_content: str,
         exists_ok: bool = False,
         namespace_constant: str | None = None,
     ) -> None:
@@ -38,34 +38,15 @@ class AddFileToModule(Customization):
         :param namespace_constant: If set, a variable with this name will be added to the module
             containing the namespace of the module and path to the file as a tuple.
         """
-        super().__init__(module_name)
+        super().__init__(symbolic_name)
+        self.module_name = module_name
         self.file_path = file_path
         self.file_content = file_content
         self.exists_ok = exists_ok
-        self.namespace_constant = namespace_constant
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-        # note: implementation should be changed to be in-memory only
-        # (with cooperation of oarepo_model.register)
-        ret = builder.get_module(self.name)
-        base_directory = ret.__file__
-        if not base_directory.endswith("/__init__.py"):
-            raise ValueError(f"Module '{self.name}' does not have a valid file path.")
-        pth = Path(base_directory).parent / self.file_path
-        pth.parent.mkdir(parents=True, exist_ok=True)
-        if pth.exists() and not self.exists_ok:
-            raise ValueError(
-                f"File '{self.file_path}' already exists in module '{self.name}'."
-            )
-        with pth.open("wb") as f:
-            if isinstance(self.file_content, str):
-                f.write(self.file_content.encode("utf-8"))
-            else:
-                f.write(self.file_content)
 
-        if self.namespace_constant:
-            builder.add_constant(
-                self.namespace_constant,
-                (self.name, self.file_path),
-            )
+        builder.add_file(
+            self.name, self.module_name, self.file_path, self.file_content, self.exists_ok
+        )

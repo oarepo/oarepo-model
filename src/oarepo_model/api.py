@@ -6,10 +6,10 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+import itertools
 from functools import partial
-from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Callable
 
 from .builder import InvenioModelBuilder
 from .customizations import Customization
@@ -29,7 +29,7 @@ def model(
     version: str = "0.1.0",
     configuration: dict[str, Any] | None = None,
     customizations: list[Customization] | None = None,
-    types: list[str | Path | dict[str, Any]] | None = None,
+    types: list[dict[str, Any] | Callable[[], dict]] | None = None,
     metadata_type: str | None = None,
     record_type: str | None = None,
 ) -> SimpleNamespace:
@@ -60,8 +60,9 @@ def model(
         for type_collection in types:
             if isinstance(type_collection, dict):
                 type_registry.add_types(type_collection)
-            elif isinstance(type_collection, (str, Path)):
-                type_registry.add_types_from_path(type_collection)
+            elif callable(type_collection):
+                loaded = type_collection()
+                type_registry.add_types(loaded)
             else:
                 raise TypeError(
                     f"Invalid type collection: {type_collection}. "
@@ -78,6 +79,9 @@ def model(
         for preset_cls in preset_list_or_preset:
             preset = preset_cls()
             sorted_presets.append(preset)
+
+    # filter out presets that do not have only_if condition satisfied
+    sorted_presets = filter_only_if(sorted_presets)
 
     sorted_presets = sort_presets(sorted_presets)
 
@@ -139,3 +143,18 @@ def run_checks(model: SimpleNamespace) -> None:
                 raise ValueError(
                     f"Model {model.name} has a SQLAlchemy model {key} without a valid __tablename__."
                 )
+
+
+def filter_only_if(presets: list[Preset]) -> list[Preset]:
+    # if there is no only_if, we can return all presets
+    if not any(p.only_if for p in presets):
+        return presets
+
+    # otherwise get all provided dependencies
+    all_provides = set(itertools.chain.from_iterable(p.provides for p in presets))
+
+    # and return only those presets that do not have only_if or have all dependencies satisfied
+    # by the provided dependencies
+    return [
+        p for p in presets if not p.only_if or all(d in all_provides for d in p.only_if)
+    ]

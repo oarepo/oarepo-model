@@ -10,15 +10,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generator
 
-from invenio_records.systemfields import ModelField
-from invenio_records_resources.records.systemfields import (
-    FilesField,
-)
+from invenio_records.dumpers.relations import RelationDumperExt
 
-from oarepo_model.customizations import (
-    AddMixins,
-    Customization,
-)
+from oarepo_model.customizations import AddToList, Customization
 from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
@@ -26,15 +20,11 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class RecordWithFilesPreset(Preset):
-    """
-    Preset for records_resources.records
-    """
+class RelationsDumperExtPreset(Preset):
 
-    depends_on = [
-        "FileRecord",  # need to have this dependency because of system fields
+    modifies = [
+        "record_dumper_extensions",
     ]
-    modifies = ["Record"]
 
     def apply(
         self,
@@ -42,12 +32,7 @@ class RecordWithFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
-        class RecordWithFilesMixin:
-            files = FilesField(store=False, file_cls=dependencies.get("FileRecord"))
-            bucket_id = ModelField()
-            bucket = ModelField(dump=False)
-
-        yield AddMixins(
-            "Record",
-            RecordWithFilesMixin,
+        yield AddToList(
+            "record_dumper_extensions",
+            RelationDumperExt("relations"),
         )

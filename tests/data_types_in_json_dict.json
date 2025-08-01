@@ -1,0 +1,33 @@
+{
+  "person": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "int"
+      },
+      "name": {
+        "type": "fulltext"
+      },
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "creator": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "int"
+      },
+      "handles": {
+        "type": "array",
+        "items": {
+          "type": "fulltext"
+        }
+      },
+      "active": {
+        "type": "boolean"
+      }
+    }
+  }
+}

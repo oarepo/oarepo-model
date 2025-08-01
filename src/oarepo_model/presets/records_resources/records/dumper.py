@@ -15,7 +15,7 @@ from oarepo_runtime.records.systemfields.mapping import SystemFieldDumperExt
 
 from oarepo_model.customizations import (
     AddClass,
-    AddClassList,
+    AddList,
     AddMixins,
     AddToList,
     Customization,
@@ -44,17 +44,14 @@ class RecordDumperPreset(Preset):
             extensions = Dependency(
                 "record_dumper_extensions",
                 default=[],
-                transform=lambda extensions: [ext() for ext in extensions],
             )
 
         yield AddClass("RecordDumper", clazz=SearchDumper)
         yield AddMixins("RecordDumper", RecordDumperMixin)
-        yield AddClassList("record_dumper_extensions")
+        yield AddList("record_dumper_extensions")
 
-        # TODO: we might not need this extension at all, as we should implement
-        # pre_dump/post_load on our systemfields instead of methods handled
-        # by this extension !!!
+        # TODO: remove this when we review oarepo-runtime
         yield AddToList(
             "record_dumper_extensions",
-            SystemFieldDumperExt,
+            SystemFieldDumperExt(),
         )

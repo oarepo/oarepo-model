@@ -25,6 +25,8 @@ oarepo13 = [
     "invenio-records-resources[tests,opensearch2]",
     "invenio-drafts-resources[tests,opensearch2]",
     "invenio-rdm-records[tests,opensearch2]",
+    "invenio-previewer",
+    "invenio-vocabularies[tests,opensearch2]",
 ]
 tests = [
     "pytest-invenio",

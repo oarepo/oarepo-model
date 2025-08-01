@@ -7,7 +7,11 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 #
 import inspect
+import keyword
 import re
+
+import marshmallow
+from invenio_db import db
 
 
 def add_to_class_list_preserve_mro(
@@ -58,7 +62,11 @@ def add_to_class_list_preserve_mro(
 def is_mro_consistent(class_list: list[type]) -> bool:
     try:
         # Directly attempt to create the MRO
-        mro = type("_", tuple(class_list), {}).mro()
+        created_class = type("_", tuple(class_list), {})
+        mro = created_class.mro()
+        # If the created class is sqlalchemy, remove it from sqlachemy mapping
+        if issubclass(created_class, db.Model):
+            db.Model.registry._dispose_cls(created_class)
         # Check if our classes appear in the same order
         filtered_mro = [c for c in mro if c in class_list]
         return filtered_mro == class_list
@@ -84,7 +92,9 @@ def make_mro_consistent(class_list: list[type]) -> list[type]:
                 try:
                     # Test if inserting at position i would be valid
                     temp_order = result[:i] + [cls] + result[i:]
-                    type("_", tuple(temp_order), {})
+                    created_class = type("_", tuple(temp_order), {})
+                    if issubclass(created_class, db.Model):
+                        db.Model.registry._dispose_cls(created_class)
                     insert_pos = i
                     break
                 except TypeError:
@@ -112,3 +122,66 @@ def camel_case_split(s):
 def title_case(s):
     parts = camel_case_split(s)
     return "".join(part.capitalize() for part in parts)
+
+
+def convert_to_python_identifier(s: str) -> str:
+    """
+    Convert a string to a valid Python identifier.
+    Replaces invalid characters with their transliteration to english words.
+    """
+    if not s:
+        return "_empty_"
+
+    if not s.isidentifier():
+        ret = []
+        for c in s:
+            if not (c.isalnum() or c == '_'):
+                ret.append(f"_{ord(c)}_")
+            else:
+                ret.append(c)
+        s = "".join(ret)
+
+    if keyword.iskeyword(s):
+        s = f"{s}_"
+
+    return s
+
+
+class PossibleMultiFormatField(marshmallow.fields.Field):
+    """Helper class to wrap around different formatting options of a marshmallow field.
+
+    Class keeps different formatters (e.g. for boolean or number).
+    Returns only formatted value if there is only 1 formatter or wrapped in a dictionary (see date example in test_ui_schemas).
+    """
+
+    def __init__(
+        self, formatters: dict[str, marshmallow.fields.Field], *args, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.formatters = formatters
+
+    def _serialize(self, value, attr, obj, **kwargs) -> dict[str, str] | str:
+        if value is None:
+            return None
+
+        # if there is only 1 format, just return its formatted value
+        if len(self.formatters) == 1:
+            formatter = next(iter(self.formatters))
+            return formatter._serialize(value, attr, obj, **kwargs)
+
+        # otherwise return key: value dictionary
+        return {
+            key: field._serialize(value, attr, obj, **kwargs)
+            for key, field in self.formatters.items()
+        }
+
+    def as_marshmallow_field(
+        self,
+    ) -> dict[str, marshmallow.fields.Field] | marshmallow.fields.Field:
+        if (
+            len(self.formatters) >= 2
+        ):  # return self if there are multiple formatting (serialization is handled by this class too)
+            return self
+        return next(
+            iter(self.formatters.values())
+        )  # return only formatted value, so there is no key in the output

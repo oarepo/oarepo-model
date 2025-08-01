@@ -43,6 +43,18 @@ class KeywordDataType(DataType):
             )
         return ret
 
+    def create_ui_model(
+        self, element: dict[str, Any], path: list[str]
+    ) -> dict[str, Any]:
+        ret = super().create_ui_model(element, path)
+        if "min_length" in element:
+            ret["min_length"] = element["min_length"]
+        if "max_length" in element:
+            ret["max_length"] = element["max_length"]
+        if "pattern" in element:
+            ret["pattern"] = element["pattern"]
+        return ret
+
 
 class FullTextDataType(KeywordDataType):
     """

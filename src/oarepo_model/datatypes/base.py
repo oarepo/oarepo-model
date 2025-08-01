@@ -6,7 +6,11 @@ from invenio_base.utils import obj_or_import_string
 from marshmallow.fields import Field
 
 if TYPE_CHECKING:
+    from oarepo_model.customizations.base import Customization
+
     from .registry import DataTypeRegistry
+
+ARRAY_ITEM_PATH = "[]"
 
 
 class DataType:
@@ -52,6 +56,16 @@ class DataType:
             **self._get_marshmallow_field_args(field_name, element)
         )
 
+    def create_ui_marshmallow_fields(
+        self, field_name: str, element: dict[str, Any]
+    ) -> dict[str, Field]:
+        """
+        Create a Marshmallow UI field for the data type.
+        This method should be overridden by subclasses to provide specific UI field creation logic.
+        """
+        # if there is no UI transformation, leave it out, therefore there are no copied values in UI
+        return {}
+
     def _get_marshmallow_field_class(
         self, field_name: str, element: dict[str, Any]
     ) -> type[Field]:
@@ -79,6 +93,10 @@ class DataType:
         return {
             "required": element.get("required", False),
             "allow_none": element.get("allow_none", False),
+            "dump_only": element.get("dump_only", False),
+            "load_only": element.get("load_only", False),
+            "attribute": field_name,
+            "data_key": field_name,
         }
 
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
@@ -106,3 +124,55 @@ class DataType:
         raise NotImplementedError(
             f"{self.__class__.__name__} neither implements create_mapping nor provides self.mapping_type"
         )
+
+    def create_relations(
+        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+    ) -> list[Customization]:
+        """
+        Create relations for the data type.
+        This method can be overridden by subclasses to provide specific relations creation logic.
+        """
+        return []
+
+    def create_ui_model(
+        self, element: dict[str, Any], path: list[str]
+    ) -> dict[str, Any]:
+        """
+        Create a UI model for the data type.
+        This method should be overridden by subclasses to provide specific UI model creation logic.
+        """
+
+        # replace array items:
+        # a,[],b => a,b
+        # a, [], b, [] => a, b, item
+        replaced_arrays = [x for x in path[:-1] if x is not ARRAY_ITEM_PATH]
+        if path[-1] is ARRAY_ITEM_PATH:
+            # if the last element is ARRAY_ITEM_PATH, we replace it with "item"
+            replaced_arrays.append("item")
+        else:
+            replaced_arrays.append(path[-1])
+
+        target_path = "/".join(replaced_arrays)
+
+        ret: dict[str, Any] = {
+            "help": (
+                element["help.key"] if "help.key" in element else f"{target_path}.help"
+            ),
+            "label": (
+                element["label.key"]
+                if "label.key" in element
+                else f"{target_path}.label"
+            ),
+            "hint": (
+                element["hint.key"] if "hint.key" in element else f"{target_path}.hint"
+            ),
+        }
+        if "required" in element and element["required"]:
+            ret["required"] = True
+
+        if "input" in element:
+            ret["input"] = element["input"]
+        else:
+            ret["input"] = element["type"]
+
+        return ret

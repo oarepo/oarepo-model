@@ -9,9 +9,9 @@
 import importlib.abc
 import importlib.resources.abc
 import importlib.util
+from pathlib import Path, PurePosixPath
 import sys
 from importlib.metadata import Distribution, DistributionFinder
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Optional
 
@@ -48,8 +48,32 @@ Version: {self.model.version}
         return self.namespace.entry_points
 
     @property
-    def files(self):
-        return []
+    def files(self) -> list:
+        ret = []
+        for file_name, file_content in self.namespace.__files__.items():
+            ret.append(
+                InMemoryPath(
+                    f"runtime_models_{self.model.name}/{file_name}", file_content
+                )
+            )
+
+        return ret
+
+
+class InMemoryPath(PurePosixPath):
+    def __init__(self, path: str, file_content: str | None = None) -> None:
+        super().__init__(path)
+        self.file_content = file_content
+
+    def read_text(self, encoding: str = "utf-8") -> str:
+        if self.file_content is None:
+            raise ValueError("Can not read file without content")
+        return self.file_content
+
+    def read_binary(self) -> bytes:
+        if self.file_content is None:
+            raise ValueError("Can not read file without content")
+        return self.file_content.encode("utf-8")
 
 
 def locate_file(namespace, name):
@@ -113,6 +137,11 @@ class ModelImporter(importlib.abc.MetaPathFinder):
             submodule_root = submodule.split(".")[0]
 
             if hasattr(namespace, submodule_root):
+                if not isinstance(getattr(namespace, submodule_root), SimpleNamespace):
+                    raise ImportError(
+                        f"Expected a SimpleNamespace for {submodule_root}, "
+                        f"but got {type(getattr(namespace, submodule_root))}"
+                    )
 
                 class Loader:
                     def create_module(self, spec):
@@ -127,16 +156,9 @@ class ModelImporter(importlib.abc.MetaPathFinder):
                         return locate_file(namespace, name)
 
             else:
-
-                class Loader:
-                    def create_module(self, spec):
-                        return None
-
-                    def exec_module(self, module):
-                        pass
-
-                    def get_resource_reader(self, name):
-                        return locate_file(namespace, name)
+                raise ImportError(
+                    f"Namespace 'runtime_models_{self.model.base_name}' does not contain '{submodule_root}'"
+                )
 
             return importlib.util.spec_from_loader(
                 fullname, loader=Loader(), is_package=True
@@ -152,11 +174,9 @@ class ModelImporter(importlib.abc.MetaPathFinder):
         loading the metadata for packages matching the ``context``,
         a DistributionFinder.Context instance.
         """
-        if (
-            not context.name
-            or context.name.lower().replace("-", "_")
-            == f"runtime_models_{self.model.name}"
-        ):
+        if not context.name or context.name.lower().replace(
+            "-", "_"
+        ) == f"runtime_models_{self.model.name}".replace("-", "_"):
             return [ModelDistribution(self.model, self.namespace)]
         return []
 

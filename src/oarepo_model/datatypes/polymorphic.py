@@ -1,0 +1,257 @@
+from __future__ import annotations
+
+from typing import Any, override
+
+import marshmallow as ma
+from deepmerge import always_merger
+from invenio_base.utils import obj_or_import_string
+from marshmallow.utils import get_value
+from marshmallow.utils import (
+    missing as missing_,
+)
+
+from .base import DataType
+
+
+class PolymorphicDataType(DataType):
+    """
+    Data type for handling polymorphic schemas with discriminator fields.
+    This allows for fields that can be one of several different types based on a discriminator field.
+
+    Supports schemas with a 'oneof' array where each item specifies a discriminator value
+    and corresponding schema type. The discriminator field determines which schema variant
+    to use for validation and serialization.
+
+    Example:
+    This schema will support two types of items (person and organization):
+       {
+           "type": "polymorphic",
+           "discriminator": "type",
+           "oneof": [
+               {"discriminator": "person", "type": "Person"},
+               {"discriminator": "organization", "type": "Organization"}
+           ]
+       }
+
+    Input will be:
+    {
+        field_name : {"type": "person", person_fields...}
+    } or
+    {
+        field_name : {"type": "organization", organization_fields...}
+    }
+    """
+
+    TYPE = "polymorphic"
+
+    @override
+    def create_marshmallow_field(
+        self, field_name: str, element: dict[str, Any]
+    ) -> ma.fields.Field:
+        """
+        Create a Marshmallow field for polymorphic data type.
+        Uses OneOf field with different schemas based on discriminator.
+        """
+
+        if element.get("marshmallow_field") is not None:
+            return obj_or_import_string(element["marshmallow_field"])
+
+        # get discriminator field name
+        discriminator = element.get("discriminator", "type")
+
+        # create a custom polymorphic field that distinguishes what schema to use
+        return PolymorphicField(
+            discriminator=discriminator,
+            alternatives=self._create_schema_fields(field_name, element),
+            **self._get_marshmallow_field_args(field_name, element),
+        )
+
+    def _create_schema_fields(
+        self, field_name: str, element: dict[str, Any]
+    ) -> dict[str, ma.fields.Field]:
+        """
+        Create marshmallow fields for each schema variant.
+        """
+        schema_fields = {}
+        oneof_schemas = element.get("oneof", [])
+
+        for oneof_item in oneof_schemas:
+            # get discriminator value (e.g. person) and schema for that value (e.g. Person)
+            discriminator_value = oneof_item.get("discriminator")
+            schema_type = oneof_item.get("type")
+
+            if discriminator_value and schema_type:
+                # get class for this schema type
+                datatype = self._registry.get_type(schema_type)
+
+                # create a marshmallow field and save it
+                schema_fields[discriminator_value] = datatype.create_marshmallow_field(
+                    field_name=field_name, element=oneof_item
+                )
+
+        return schema_fields
+
+    @override
+    def create_ui_marshmallow_fields(
+        self, field_name: str, element: dict[str, Any]
+    ) -> dict[str, ma.fields.Field]:
+        alternative_fields = {}
+        discriminator = element.get("discriminator", "type")
+        oneof_schemas = element.get("oneof", [])
+
+        # iterate through each variant
+        for oneof_item in oneof_schemas:
+            # get its disciminator and schema type
+            discriminator_value = oneof_item.get("discriminator")
+            schema_type = oneof_item.get("type")
+
+            if discriminator_value and schema_type:
+                # get class for that specific datatype
+                datatype = self._registry.get_type(schema_type)
+
+                # get UI fields from that datatype, where attribute is disciminator value
+                ui_fields = datatype.create_ui_marshmallow_fields(
+                    field_name=field_name, element=oneof_item
+                )
+                if len(ui_fields) != 1:
+                    raise NotImplementedError(
+                        "Current version can only handle 1 UI field in polymorphic type!"
+                    )
+
+                alternative_fields[discriminator_value] = next(iter(ui_fields.values()))
+
+        # return custom marshmallow field that distinguishes what schema to use
+        return {
+            field_name: PolymorphicField(
+                discriminator=discriminator, alternatives=alternative_fields
+            )
+        }
+
+    @override
+    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        """
+        Create JSON schema for polymorphic type using oneOf.
+        """
+        discriminator = element.get("discriminator", "type")
+        oneof_schemas = element.get("oneof", [])
+
+        json_one_of_schemas = []
+
+        # iterate through each variant
+        for oneof_item in oneof_schemas:
+            # get its disciminator and schema type
+            discriminator_value = oneof_item.get("discriminator")
+            schema_type = oneof_item.get("type")
+
+            if discriminator_value and schema_type:
+                # get datatype class and generate json schema from it
+                datatype = self._registry.get_type(schema_type)
+                child_jsonschema = datatype.create_json_schema(oneof_item)
+
+                if "properties" not in child_jsonschema:
+                    child_jsonschema["properties"] = {}
+
+                # only 1 value is allowed in this field (e.g. person or organization)
+                child_jsonschema["properties"][discriminator] = {
+                    "type": "string",
+                    "const": discriminator_value,
+                }
+
+                # discriminator is a required field
+                if "required" not in child_jsonschema:
+                    child_jsonschema["required"] = []
+                if discriminator not in child_jsonschema["required"]:
+                    child_jsonschema["required"].append(discriminator)
+
+                json_one_of_schemas.append(child_jsonschema)
+
+        return {
+            "oneOf": json_one_of_schemas,
+        }
+
+    @override
+    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        """
+        Create a mapping for the data type.
+        Uses object type with properties from all possible schemas.
+        """
+        discriminator = element.get("discriminator", "type")
+        oneof_schemas = element.get("oneof", [])
+
+        all_properties = {discriminator: {"type": "keyword"}}
+
+        # iterate through each variant
+        for oneof_item in oneof_schemas:
+            # get its discriminator and schema type
+            discriminator_value = oneof_item.get("discriminator")
+            schema_type = oneof_item.get("type")
+
+            if discriminator_value and schema_type:
+                # get datatype class and generate mapping from it
+                datatype = self._registry.get_type(schema_type)
+                child_mapping = datatype.create_mapping(oneof_item)
+
+                # dump all properties from all variants in 1 dictionary
+                if "properties" in child_mapping:
+                    all_properties = always_merger.merge(
+                        all_properties, child_mapping["properties"]
+                    )
+
+        return {"type": "object", "properties": all_properties}
+
+
+class PolymorphicField(ma.fields.Field):
+    """Custom marshmallow field class that supports handling polymorphic fields."""
+
+    def __init__(
+        self,
+        discriminator: str = "type",
+        alternatives: dict[str, ma.fields.Field] = {},
+        *args,
+        **kwargs,
+    ):
+        """
+        Initialize a PolymorphicField for handling discriminated union types.
+
+        :param discriminator: The field name used to determine which schema variant to use. Defaults to "type".
+        :param alternatives: A mapping from discriminator values (e.g. person/organization) to marshmallow field instances.
+        Each field handles validation and serialization for its corresponding object variant. Defaults to empty dict.
+        """
+        super().__init__(*args, **kwargs)
+        self.discriminator = discriminator
+        self.alternatives = alternatives
+
+    def get_discriminator_value(self, obj):
+        val = get_value(
+            obj,
+            self.discriminator,
+        )
+
+        if val is missing_:
+            error = self.make_error(key="required")
+            error.field_name = self.discriminator
+            raise error
+
+        return val
+
+    def _serialize(self, value: Any, attr: str, obj: Any, **kwargs) -> Any:
+        """Serialize by choosing correct serializer depending on the discriminator value."""
+        if not isinstance(value, dict):
+            return value
+
+        discriminator_value = self.get_discriminator_value(value)
+        if discriminator_value in self.alternatives:
+            schema_field = self.alternatives[discriminator_value]
+            return schema_field._serialize(value, attr, obj, **kwargs)
+
+        return value
+
+    def _deserialize(self, value: Any, attr: str, data: any, **kwargs):
+        """Deserialize by choosing correct deserializer depending on the discriminator value."""
+        discriminator_value = self.get_discriminator_value(value)
+
+        if discriminator_value not in self.alternatives:
+            self.fail("unknown_type", type=discriminator_value)
+
+        schema_field = self.alternatives[discriminator_value]
+        return schema_field._deserialize(value, attr, data, **kwargs)

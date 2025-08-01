@@ -23,8 +23,8 @@ class DraftMappingPreset(Preset):
     Preset for record service class.
     """
 
-    depends_on = ["RECORD_MAPPING_PATH"]
-    provides = ["DRAFT_MAPPING_PATH"]
+    depends_on = ["record-mapping"]
+    provides = ["draft-mapping"]
 
     def apply(
         self,
@@ -33,13 +33,11 @@ class DraftMappingPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
 
-        # TODO: the namespace_constant is not pretty
         yield CopyFile(
-            source_module_name=dependencies["RECORD_MAPPING_PATH"][0],
-            source_file_path=dependencies["RECORD_MAPPING_PATH"][1],
+            source_symbolic_name="record-mapping",
+            target_symbolic_name="draft-mapping",
             target_module_name="mappings",
             target_file_path=f"os-v2/{model.base_name}/draft-metadata-v{model.version}.json",
-            namespace_constant="DRAFT_MAPPING_PATH",
         )
 
         parent_mapping = {
@@ -89,14 +87,6 @@ class DraftMappingPreset(Preset):
             }
         }
 
-        yield PatchJSONFile(
-            "mappings",
-            f"os-v2/{model.base_name}/draft-metadata-v{model.version}.json",
-            parent_mapping,
-        )
+        yield PatchJSONFile("draft-mapping", parent_mapping)
 
-        yield PatchJSONFile(
-            dependencies["RECORD_MAPPING_PATH"][0],
-            dependencies["RECORD_MAPPING_PATH"][1],
-            parent_mapping,
-        )
+        yield PatchJSONFile("record-mapping", parent_mapping)

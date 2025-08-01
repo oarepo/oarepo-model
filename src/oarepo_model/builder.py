@@ -150,6 +150,10 @@ class BuilderConstant(Partial):
 
 
 class BuilderModule(Partial, SimpleNamespace):
+    def __init__(self, module_name: str):
+        super().__init__(module_name)
+        self.files = {}
+
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
         """Build a module from the partial."""
         self.built = True
@@ -157,6 +161,7 @@ class BuilderModule(Partial, SimpleNamespace):
         # if any of those has a __get__ method, call it. This will handle
         # Dependency descriptors and other similar cases.
         ret = SimpleNamespace()
+        ret.__files__ = self.files
         for attr in self.__dict__:
             try:
                 if attr.startswith("_") and attr != "__file__":
@@ -175,11 +180,27 @@ class BuilderModule(Partial, SimpleNamespace):
                 ) from e
         return ret
 
+    def add_file(self, file_path: str, content: str) -> None:
+        self.files[file_path] = content
+
     def __setitem__(self, key: str, value: Any) -> None:
         """Simulate a dictionary's x["key"] = value."""
         if self.built:
             raise RuntimeError("Cannot set item after the module is built.")
         setattr(self, key, value)
+
+class BuilderFile(Partial):
+
+    def __init__(self, name, module_name: str, file_path: str, content: str):
+        super().__init__(name)
+        self.module_name = module_name
+        self.file_path = file_path
+        self.content = content
+
+    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
+        self.built = True
+
+        return {"module-name": self.module_name, "file-path": self.file_path, "content": self.content}
 
 
 class InvenioModelBuilder:
@@ -279,6 +300,21 @@ class InvenioModelBuilder:
         self.partials[name] = _module = BuilderModule(name)
         return _module
 
+    def add_file(self, symbolic_name:str,  module_name: str, file_path: str, content: str, exists_ok: bool = False) -> BuilderFile:
+        """Add a file to the builder."""
+
+        if symbolic_name in self.partials:
+            if exists_ok:
+                return cast(BuilderFile, self.partials[symbolic_name])
+            raise AlreadyRegisteredError(f"Module {symbolic_name} already exists.")
+
+        ret = BuilderFile(symbolic_name, module_name, file_path, content)
+        self.partials[symbolic_name] = ret
+        return ret
+
+    def get_file(self, symbolic_name: str) -> BuilderFile:
+        return self._get(symbolic_name, BuilderFile)
+
     def get_module(self, name: str) -> BuilderModule:
         return self._get(name, BuilderModule)
 
@@ -332,6 +368,17 @@ class InvenioModelBuilder:
             return ret
         return getattr(self.ns, key)
 
+    def collect_files(self):
+        self.ns.__files__ = {}
+
+        for partial in self.partials.values():
+            if not isinstance(partial, BuilderFile):
+                continue
+
+            self.ns.__files__[f"{partial.module_name}/{partial.file_path}"] = (
+                partial.content
+            )
+
     def build(self) -> SimpleNamespace:
         for key in self.partials.keys():
             self.build_partial(key)
@@ -344,4 +391,5 @@ class InvenioModelBuilder:
 
         self.ns.entry_points = entry_points
         self.runtime_dependencies.bind_dependencies(self.ns)
+        self.collect_files()
         return self.ns

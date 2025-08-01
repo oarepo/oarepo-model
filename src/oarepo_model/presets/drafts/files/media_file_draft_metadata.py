@@ -24,7 +24,7 @@ from oarepo_model.customizations import (
 from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
-from ...records_resources.file_records.file_record_model_mixin import (
+from ...records_resources.files.file_record_model_mixin import (
     FileRecordModelMixin,
 )
 

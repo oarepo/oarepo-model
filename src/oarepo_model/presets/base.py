@@ -24,6 +24,7 @@ class Preset:
     provides: list[str] = []
     modifies: list[str] = []
     depends_on: list[str] = []
+    only_if: list[str] = []
 
     def apply(
         self,

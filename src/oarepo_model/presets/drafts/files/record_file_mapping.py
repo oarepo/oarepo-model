@@ -23,7 +23,7 @@ class RecordFileMappingPreset(Preset):
     Preset for record service class.
     """
 
-    depends_on = ["RECORD_MAPPING_PATH"]
+    modifies = ["record-mapping"]
 
     def apply(
         self,
@@ -35,26 +35,14 @@ class RecordFileMappingPreset(Preset):
         file_mapping = {
             "mappings": {
                 "properties": {
-                    "files": {
-                        "type": "object",
-                        "properties": {
-                            "enabled": {"type": "boolean"},
-                        },
-                    },
                     "media_files": {
                         "type": "object",
                         "properties": {
                             "enabled": {"type": "boolean"},
                         },
                     },
-                    "bucket_id": {"type": "keyword", "index": False},
-                    "media_bucket_id": {"type": "keyword", "index": False},
                 }
             }
         }
 
-        yield PatchJSONFile(
-            dependencies["RECORD_MAPPING_PATH"][0],
-            dependencies["RECORD_MAPPING_PATH"][1],
-            file_mapping,
-        )
+        yield PatchJSONFile("record-mapping", file_mapping)

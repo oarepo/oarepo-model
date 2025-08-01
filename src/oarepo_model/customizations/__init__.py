@@ -23,6 +23,7 @@ from .add_to_module import AddToModule
 from .base import Customization
 from .change_base import ChangeBase
 from .copy_file import CopyFile
+from .high_level import AddPIDRelation
 from .patch_json_file import PatchJSONFile
 
 __all__ = [
@@ -44,4 +45,5 @@ __all__ = [
     "ChangeBase",
     "CopyFile",
     "PatchJSONFile",
+    "AddPIDRelation",
 ]

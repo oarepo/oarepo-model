@@ -18,12 +18,12 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class DraftFileMappingPreset(Preset):
+class CustomFieldsJSONSchemaPreset(Preset):
     """
-    Preset for record service class.
+    Preset for records_resources.records.mapping
     """
 
-    depends_on = ["DRAFT_MAPPING_PATH"]
+    depends_on = ["record-jsonschema"]
 
     def apply(
         self,
@@ -32,21 +32,16 @@ class DraftFileMappingPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization, None, None]:
 
-        file_mapping = {
-            "mappings": {
-                "properties": {
-                    "files": {
-                        "type": "object",
-                        "properties": {
-                            "enabled": {"type": "boolean"},
-                        },
-                    },
-                }
+        jsonschema = {
+            "properties": {
+                "custom_fields": {
+                    "type": "object",
+                    "additionalProperties": True,
+                },
             }
         }
 
         yield PatchJSONFile(
-            dependencies["DRAFT_MAPPING_PATH"][0],
-            dependencies["DRAFT_MAPPING_PATH"][1],
-            file_mapping,
+            "record-jsonschema",
+            jsonschema,
         )
