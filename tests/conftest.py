@@ -404,6 +404,7 @@ def app_config(
     drafts_cf_model,
     relation_model,
     vocabulary_model,
+    multilingual_model
 ):
     """Override pytest-invenio app_config fixture.
 
