@@ -48,6 +48,20 @@ def input_data():
         },
     }
 
+@pytest.fixture(scope="function")
+def input_data_more_complex():
+    """Input data (as coming from the view layer)."""
+    return {
+        "metadata": {
+            "title": "Test",
+            "some_bool_val": True,
+            "height": 123
+        },
+        "files": {
+            "enabled": True,
+        },
+    }
+
 
 @pytest.fixture(scope="function")
 def input_data_with_files_disabled(input_data):
@@ -55,3 +69,17 @@ def input_data_with_files_disabled(input_data):
     data = input_data.copy()
     data["files"]["enabled"] = False
     return data
+
+class DefaultHeaders:
+    json = {
+        "content-type": "application/json",
+        "accept": "application/json",
+    }
+    ui = {
+             "accept": "application/vnd.inveniordm.v1+json",
+    }
+
+@pytest.fixture(scope="module")
+def headers():
+    """Default headers for making requests."""
+    return DefaultHeaders

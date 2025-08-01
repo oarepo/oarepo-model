@@ -34,9 +34,12 @@ def model_types():
         "Metadata": {
             "properties": {
                 "title": {"type": "fulltext+keyword", "required": True},
+                "some_bool_val": {"type": "boolean"},
+                "height": {"type": "int"},
             }
         }
     }
+
 
 @pytest.fixture(scope="session")
 def model_types_in_json():
@@ -44,8 +47,9 @@ def model_types_in_json():
     # Define the model types used in the tests
     return [
         from_json("tests/data_types_in_json_dict.json"),
-        from_json("tests/data_types_in_json_list.json")
+        from_json("tests/data_types_in_json_list.json"),
     ]
+
 
 @pytest.fixture(scope="session")
 def model_types_in_yaml():
@@ -53,7 +57,7 @@ def model_types_in_yaml():
     # Define the model types used in the tests
     return [
         from_yaml("tests/data_types_in_yaml_list.yaml"),
-        from_yaml("tests/data_types_in_yaml_dict.yaml")
+        from_yaml("tests/data_types_in_yaml_dict.yaml"),
     ]
 
 
@@ -62,17 +66,26 @@ def model_types_in_json_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_json("data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"),
-        from_json("data_types_in_json_list.json", origin="tests/data_types_in_json_list.json")
+        from_json(
+            "data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"
+        ),
+        from_json(
+            "data_types_in_json_list.json", origin="tests/data_types_in_json_list.json"
+        ),
     ]
+
 
 @pytest.fixture(scope="session")
 def model_types_in_yaml_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_yaml("data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"),
-        from_yaml("data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml")
+        from_yaml(
+            "data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"
+        ),
+        from_yaml(
+            "data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml"
+        ),
     ]
 
 
@@ -384,12 +397,12 @@ def app_config(
 
     app_config["THEME_FRONTPAGE"] = False
 
-    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = (
-        {  # hack to avoid pool_timeout set in invenio_app_rdm
-            "pool_pre_ping": False,
-            "pool_recycle": 3600,
-        }
-    )
+    app_config[
+        "SQLALCHEMY_ENGINE_OPTIONS"
+    ] = {  # hack to avoid pool_timeout set in invenio_app_rdm
+        "pool_pre_ping": False,
+        "pool_recycle": 3600,
+    }
 
     app_config["RDM_NAMESPACES"] = {
         "cern": "https://greybook.cern.ch/",

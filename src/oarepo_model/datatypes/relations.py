@@ -61,7 +61,6 @@ class PIDRelation(ObjectDataType):
     def create_relations(
         self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
     ) -> list[Customization]:
-
         relation_path = self._relation_path(element, path)
         relation_name = self._relation_name(element, path)
         pid_field = self._pid_field(element, path)
