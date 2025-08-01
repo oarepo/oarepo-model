@@ -455,6 +455,36 @@ def test_polymorphic_field(test_schema):
         schema.load(val)
 
 
+def test_polymorphic_field_required(test_schema):
+    person_schema = {
+        "type": "object",
+        "properties": {"first_name": {"type": "fulltext"}, "type": {"type": "keyword"}},
+    }
+    organization_schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "fulltext+keyword"},
+            "type": {"type": "keyword"},
+        },
+    }
+
+    schema = test_schema(
+        {
+            "type": "polymorphic",
+            "discriminator": "type",
+            "oneof": [
+                {"discriminator": "person", "type": "Person"},
+                {"discriminator": "organization", "type": "Organization"},
+            ],
+            "required": True,
+        },
+        extra_types={"Person": person_schema, "Organization": organization_schema},
+    )
+    with pytest.raises(ma.ValidationError):
+        val = {}  # missing data
+        assert schema.load(val) == val
+
+
 def test_polymorphic_field_in_array(test_schema):
     person_schema = {
         "type": "object",
