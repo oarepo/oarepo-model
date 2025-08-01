@@ -61,7 +61,7 @@ class PolymorphicDataType(DataType):
         # create a custom polymorphic field that distinguishes what schema to use
         return PolymorphicField(
             discriminator=discriminator,
-            schemas=self._create_schema_fields(field_name, element),
+            alternatives=self._create_schema_fields(field_name, element),
             **self._get_marshmallow_field_args(field_name, element),
         )
 
@@ -85,7 +85,7 @@ class PolymorphicDataType(DataType):
 
                 # create a marshmallow field and save it
                 schema_fields[discriminator_value] = datatype.create_marshmallow_field(
-                    field_name=discriminator_value, element=oneof_item
+                    field_name=field_name, element=oneof_item
                 )
 
         return schema_fields
@@ -94,7 +94,7 @@ class PolymorphicDataType(DataType):
     def create_ui_marshmallow_fields(
         self, field_name: str, element: dict[str, Any]
     ) -> dict[str, ma.fields.Field]:
-        ui_fields = {}
+        alternative_fields = {}
         discriminator = element.get("discriminator", "type")
         oneof_schemas = element.get("oneof", [])
 
@@ -109,15 +109,21 @@ class PolymorphicDataType(DataType):
                 datatype = self._registry.get_type(schema_type)
 
                 # get UI fields from that datatype, where attribute is disciminator value
-                ui_field = datatype.create_ui_marshmallow_fields(
-                    field_name=discriminator_value, element=oneof_item
+                ui_fields = datatype.create_ui_marshmallow_fields(
+                    field_name=field_name, element=oneof_item
                 )
-                if ui_field:
-                    ui_fields.update(ui_field)
+                if len(ui_fields) != 1:
+                    raise NotImplementedError(
+                        "Current version can only handle 1 UI field in polymorphic type!"
+                    )
+
+                alternative_fields[discriminator_value] = next(iter(ui_fields.values()))
 
         # return custom marshmallow field that distinguishes what schema to use
         return {
-            field_name: PolymorphicField(discriminator=discriminator, schemas=ui_fields)
+            field_name: PolymorphicField(
+                discriminator=discriminator, alternatives=alternative_fields
+            )
         }
 
     @override
@@ -198,7 +204,7 @@ class PolymorphicField(ma.fields.Field):
     def __init__(
         self,
         discriminator: str = "type",
-        schemas: dict[str, ma.fields.Field] = {},
+        alternatives: dict[str, ma.fields.Field] = {},
         *args,
         **kwargs,
     ):
@@ -206,12 +212,12 @@ class PolymorphicField(ma.fields.Field):
         Initialize a PolymorphicField for handling discriminated union types.
 
         :param discriminator: The field name used to determine which schema variant to use. Defaults to "type".
-        :param schemas: A mapping from discriminator values (e.g. person/organization) to marshmallow field instances.
+        :param alternatives: A mapping from discriminator values (e.g. person/organization) to marshmallow field instances.
         Each field handles validation and serialization for its corresponding object variant. Defaults to empty dict.
         """
         super().__init__(*args, **kwargs)
         self.discriminator = discriminator
-        self.schemas = schemas
+        self.alternatives = alternatives
 
     def get_discriminator_value(self, obj):
         val = get_value(
@@ -232,8 +238,8 @@ class PolymorphicField(ma.fields.Field):
             return value
 
         discriminator_value = self.get_discriminator_value(value)
-        if discriminator_value in self.schemas:
-            schema_field = self.schemas[discriminator_value]
+        if discriminator_value in self.alternatives:
+            schema_field = self.alternatives[discriminator_value]
             return schema_field._serialize(value, attr, obj, **kwargs)
 
         return value
@@ -242,8 +248,8 @@ class PolymorphicField(ma.fields.Field):
         """Deserialize by choosing correct deserializer depending on the discriminator value."""
         discriminator_value = self.get_discriminator_value(value)
 
-        if discriminator_value not in self.schemas:
+        if discriminator_value not in self.alternatives:
             self.fail("unknown_type", type=discriminator_value)
 
-        schema_field = self.schemas[discriminator_value]
+        schema_field = self.alternatives[discriminator_value]
         return schema_field._deserialize(value, attr, data, **kwargs)
