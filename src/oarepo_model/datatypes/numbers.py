@@ -62,6 +62,20 @@ class NumberDataType(DataType):
         ret["strict"] = element.get("strict_validation", True)
         return ret
 
+    def create_ui_model(
+        self, element: dict[str, Any], path: list[str]
+    ) -> dict[str, Any]:
+        ret = super().create_ui_model(element, path)
+        if "min_inclusive" in element:
+            ret["min_inclusive"] = element["min_inclusive"]
+        if "min_exclusive" in element:
+            ret["min_exclusive"] = element["min_exclusive"]
+        if "max_inclusive" in element:
+            ret["max_inclusive"] = element["max_inclusive"]
+        if "max_exclusive" in element:
+            ret["max_exclusive"] = element["max_exclusive"]
+        return ret
+
 
 class IntegerDataType(NumberDataType):
     TYPE = "int"

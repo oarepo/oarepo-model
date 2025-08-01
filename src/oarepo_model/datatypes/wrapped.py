@@ -64,7 +64,7 @@ class WrappedDataType(DataType):
         return self.impl.create_ui_marshmallow_fields(
             field_name, self._merge_type_dict(element)
         )
-    
+
     def create_marshmallow_schema(
         self, element: dict[str, Any]
     ) -> type[marshmallow.Schema]:
@@ -75,7 +75,7 @@ class WrappedDataType(DataType):
         return cast(Any, self.impl).create_marshmallow_schema(
             self._merge_type_dict(element)
         )
-        
+
     def create_ui_marshmallow_schema(
         self, element: dict[str, Any]
     ) -> type[marshmallow.Schema]:
@@ -85,7 +85,7 @@ class WrappedDataType(DataType):
         """
         return cast(Any, self.impl).create_ui_marshmallow_schema(
             self._merge_type_dict(element)
-        )    
+        )
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
@@ -100,6 +100,11 @@ class WrappedDataType(DataType):
         self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
     ) -> list[Customization]:
         return self.impl.create_relations(self._merge_type_dict(element), path)
+
+    def create_ui_model(
+        self, element: dict[str, Any], path: list[str]
+    ) -> dict[str, Any]:
+        return self.impl.create_ui_model(self._merge_type_dict(element), path)
 
 
 def strict_merge(a, b):
