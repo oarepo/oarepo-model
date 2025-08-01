@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, override
 
 import marshmallow as ma
+from deepmerge import always_merger
 from invenio_base.utils import obj_or_import_string
 from marshmallow.utils import get_value
 from marshmallow.utils import (
@@ -192,7 +193,9 @@ class PolymorphicDataType(DataType):
 
                 # dump all properties from all variants in 1 dictionary
                 if "properties" in child_mapping:
-                    all_properties.update(child_mapping["properties"])
+                    all_properties = always_merger.merge(
+                        all_properties, child_mapping["properties"]
+                    )
 
         return {"type": "object", "properties": all_properties}
 
