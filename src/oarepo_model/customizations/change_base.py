@@ -6,6 +6,14 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for changing base classes of model classes.
+
+This module provides the ChangeBase customization that allows replacing one
+base class with another in a model class's inheritance hierarchy. It supports
+exact matching or subclass matching and can optionally fail silently if the
+target base class is not found.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -31,8 +39,8 @@ class ChangeBase(Customization):
         name: str,
         old_base_class: type,
         new_base_class: type,
-        fail: bool = True,
-        subclass: bool = False,
+        fail: bool = True,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
+        subclass: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
     ) -> None:
         """Initialize the ChangeBase customization.
 
@@ -50,20 +58,16 @@ class ChangeBase(Customization):
         clz = builder.get_class(self.name)
         if clz.built:
             raise RuntimeError(
-                f"Cannot change base class of {self.name} after it has been built."
+                f"Cannot change base class of {self.name} after it has been built.",
             )
         for idx, base in enumerate(clz.base_classes):
-            if (
-                self.old_base_class is base
-                or self.subclass
-                and issubclass(base, self.old_base_class)
-            ):
+            if self.old_base_class is base or (self.subclass and issubclass(base, self.old_base_class)):
                 clz.base_classes[idx] = self.new_base_class
                 break
         else:
             if self.fail:
                 raise BaseClassNotFoundError(
-                    f"Base class {self.old_base_class.__name__} not found in {self.name} base classes {clz.base_classes}."
+                    f"Base class {self.old_base_class.__name__} not found in "
+                    f"{self.name} base classes {clz.base_classes}.",
                 )
-            else:
-                return
+            return

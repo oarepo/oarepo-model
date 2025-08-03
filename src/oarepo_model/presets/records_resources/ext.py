@@ -6,10 +6,16 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Extension preset for records and resources functionality.
+
+This module provides the ExtPreset that configures the main Flask extension
+for handling records, resources, and services in Invenio applications.
+"""
+
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from oarepo_runtime.config import build_config
 
@@ -25,41 +31,43 @@ from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from flask import Flask
+    from flask.blueprints import BlueprintSetupState
+    from invenio_records_resources.resources.records import RecordResource
+    from invenio_records_resources.services.records import RecordService
+
     from oarepo_model.builder import InvenioModelBuilder
 
 
 class ExtPreset(Preset):
-    """
-    Preset for extension class.
-    """
+    """Preset for extension class."""
 
-    provides = [
-        "Ext",
-    ]
+    provides = ("Ext",)
 
-    modifies = [
+    modifies = (
         "app_application_blueprint_initializers",
         "api_application_blueprint_initializers",
-    ]
+    )
 
-    def apply(
+    @override
+    def apply(  # noqa C901: complexity is high
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         runtime_dependencies = builder.get_runtime_dependencies()
 
         class ExtBase:
-            """
-            Base class for extension.
-            """
+            """Base class for extension."""
 
-            def __init__(self, app=None):
+            def __init__(self, app: Flask | None = None):
                 if app:
                     self.init_app(app)
 
-            def init_app(self, app):
+            def init_app(self, app: Flask) -> None:
                 """Flask application initialization."""
                 self.app = app
 
@@ -67,22 +75,22 @@ class ExtPreset(Preset):
                 app.extensions[builder.model.base_name] = self
                 self.init_extensions(app)
 
-            def init_extensions(self, app):
+            def init_extensions(self, app: Flask) -> None:
                 """Initialize extensions."""
                 # This method can be overridden in subclasses to initialize
                 # additional extensions or services.
-                pass
 
-            def init_config(self, app):
+            def init_config(self, app: Flask) -> None:
                 """Initialize configuration."""
                 OAREPO_PRIMARY_RECORD_SERVICE = app.config.setdefault(
-                    "OAREPO_PRIMARY_RECORD_SERVICE", {}
+                    "OAREPO_PRIMARY_RECORD_SERVICE",
+                    {},
                 )
                 for record_service_getter in runtime_dependencies.get(
                     "primary_record_service",
                 ):
                     record_class, record_service_id = record_service_getter(
-                        runtime_dependencies
+                        runtime_dependencies,
                     )
                     if record_class not in OAREPO_PRIMARY_RECORD_SERVICE:
                         # Register the primary record service for the record class
@@ -90,46 +98,42 @@ class ExtPreset(Preset):
                         OAREPO_PRIMARY_RECORD_SERVICE[record_class] = record_service_id
 
         class ServicesResourcesExtMixin(ModelMixin):
-            """
-            Mixin for extension class.
-            """
+            """Mixin for extension class."""
 
             @cached_property
-            def records_service(self):
+            def records_service(self) -> RecordService:
                 return runtime_dependencies.get("RecordService")(
                     **self.records_service_params,
                 )
 
             @property
-            def records_service_params(self):
-                """
-                Parameters for the record service.
-                """
+            def records_service_params(self) -> dict[str, Any]:
+                """Parameters for the record service."""
                 return {
                     "config": build_config(
-                        runtime_dependencies.get("RecordServiceConfig"), self.app
-                    )
+                        runtime_dependencies.get("RecordServiceConfig"),
+                        self.app,
+                    ),
                 }
 
             @cached_property
-            def records_resource(self):
+            def records_resource(self) -> RecordResource:
                 return runtime_dependencies.get("RecordResource")(
                     **self.records_resource_params,
                 )
 
             @property
-            def records_resource_params(self):
-                """
-                Parameters for the record resource.
-                """
+            def records_resource_params(self) -> dict[str, Any]:
+                """Parameters for the record resource."""
                 return {
                     "service": self.records_service,
                     "config": build_config(
-                        runtime_dependencies.get("RecordResourceConfig"), self.app
+                        runtime_dependencies.get("RecordResourceConfig"),
+                        self.app,
                     ),
                 }
 
-            def init_config(self, app):
+            def init_config(self, app: Flask) -> None:
                 super().init_config(app)
 
         yield AddClass("Ext", clazz=ExtBase)
@@ -154,7 +158,7 @@ class ExtPreset(Preset):
             ),
         )
 
-        def add_to_service_and_indexer_registry(state):
+        def add_to_service_and_indexer_registry(state: BlueprintSetupState) -> None:
             """Init app."""
             app = state.app
             ext = app.extensions[model.base_name]
@@ -166,7 +170,9 @@ class ExtPreset(Preset):
             ):
                 service = service_getter(ext)
                 service_id = service_id_getter(ext)
-                if service_id not in sregistry._services:
+                if (
+                    service_id not in sregistry._services  # noqa: SLF001 private member access
+                ):
                     sregistry.register(service, service_id=service_id)
 
             # Register indexer
@@ -176,12 +182,12 @@ class ExtPreset(Preset):
             ):
                 indexer = indexer_getter(ext)
                 service_id = service_id_getter(ext)
-                if indexer and service_id not in iregistry._indexers:
+                if (
+                    indexer and service_id not in iregistry._indexers  # noqa: SLF001 private member access
+                ):
                     iregistry.register(indexer, indexer_id=service_id)
 
-        add_to_service_and_indexer_registry.__name__ = (
-            f"{model.base_name}_add_to_service_and_indexer_registry"
-        )
+        add_to_service_and_indexer_registry.__name__ = f"{model.base_name}_add_to_service_and_indexer_registry"
 
         yield AddToDictionary(
             "app_application_blueprint_initializers",

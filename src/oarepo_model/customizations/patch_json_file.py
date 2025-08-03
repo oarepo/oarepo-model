@@ -6,16 +6,27 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for patching JSON files in the model.
+
+This module provides the PatchJSONFile customization that allows modification
+of existing JSON files by merging new data with the existing content. It supports
+both static payloads and dynamic payloads through callable functions that receive
+the current file content as input.
+"""
+
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, Callable, override
+from typing import TYPE_CHECKING, Any, override
 
 from deepmerge import always_merger
 
+from ..utils import dump_to_json
 from .base import Customization
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
 
@@ -28,7 +39,7 @@ class PatchJSONFile(Customization):
         symbolic_name: str,
         payload: dict[str, Any] | Callable[[dict[str, Any]], dict[str, Any]],
     ) -> None:
-        """Add a json to the model
+        """Add a json to the model.
 
         :param name: The name of the list to be added.
         :param exists_ok: Whether to ignore if the list already exists.
@@ -44,4 +55,4 @@ class PatchJSONFile(Customization):
             new_data = self.payload(previous_data)
         else:
             new_data = always_merger.merge(previous_data, self.payload)
-        ret.content = json.dumps(new_data)
+        ret.content = dump_to_json(new_data)

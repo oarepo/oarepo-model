@@ -6,6 +6,13 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+
+"""Customization for adding modules to OARepo models.
+
+This module provides the AddModule customization that allows adding new modules
+to an OARepo model during the building process.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -26,7 +33,7 @@ class AddModule(Customization):
     def __init__(
         self,
         name: str,
-        exists_ok: bool = False,
+        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
         file_path: str | None = None,
     ) -> None:
         """Initialize the AddModule customization.

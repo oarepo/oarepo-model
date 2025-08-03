@@ -1,21 +1,36 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
 from datetime import time
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import marshmallow as ma
 import pytest
 from babel.numbers import format_decimal
 from flask_babel import get_locale
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 
 @pytest.fixture
 def test_ui_schema(datatype_registry) -> Callable[[dict[str, Any]], ma.Schema]:
     def _test_schema(
-        element: dict[str, Any], extra_types: dict[str, Any] | None = None
+        element: dict[str, Any],
+        extra_types: dict[str, Any] | None = None,
     ) -> ma.Schema:
         if extra_types:
             datatype_registry.add_types(extra_types)
         flds = datatype_registry.get_type(element).create_ui_marshmallow_fields(
-            field_name="a", element=element
+            field_name="a",
+            element=element,
         )
         return ma.Schema.from_dict(flds)()
 
@@ -26,18 +41,16 @@ def test_keyword_ui_schema(test_ui_schema):
     schema = test_ui_schema(
         {
             "type": "keyword",
-        }
+        },
     )
-    assert (
-        schema.dump({"a": "test"}) == {}
-    )  # no ui serialization -> we can leave it out
+    assert schema.dump({"a": "test"}) == {}  # no ui serialization -> we can leave it out
 
 
 def test_date_ui_schema(test_ui_schema):
     schema = test_ui_schema(
         {
             "type": "date",
-        }
+        },
     )
 
     assert schema.dump({"a": "2023-01-01"}) == {
@@ -52,7 +65,7 @@ def test_datetime_ui_schema(test_ui_schema):
     schema = test_ui_schema(
         {
             "type": "datetime",
-        }
+        },
     )
 
     assert schema.dump({"a": "2023-01-01T12:30:00"}) == {
@@ -79,7 +92,7 @@ def test_boolean_ui_schema(test_ui_schema):
     schema = test_ui_schema(
         {
             "type": "boolean",
-        }
+        },
     )
 
     assert schema.dump({"a": True}) == {"a_i18n": "true"}
@@ -91,7 +104,7 @@ def test_numbers_ui_schema(test_ui_schema):
     schema = test_ui_schema(
         {
             "type": "int",
-        }
+        },
     )
 
     loc = str(get_locale()) if get_locale() else None
@@ -101,7 +114,7 @@ def test_numbers_ui_schema(test_ui_schema):
     schema = test_ui_schema(
         {
             "type": "float",
-        }
+        },
     )
 
     val = format_decimal(123.456, locale=loc)
@@ -119,7 +132,7 @@ def test_object_ui_schema(test_ui_schema):
                 "name": {"type": "keyword", "required": True},
                 "age": {"type": "int", "min_inclusive": 0},
             },
-        }
+        },
     )
 
     test_data = {"a": {"name": "John", "age": 30}}
@@ -139,12 +152,12 @@ def test_object_inside_object_schema(test_ui_schema):
                         "age": {"type": "int", "min_inclusive": 0},
                     },
                     "required": True,
-                }
+                },
             },
-        }
+        },
     )
     assert schema.dump({"a": {"person": {"name": "Alice", "age": 25}}}) == {
-        "a": {"person": {"age": "25"}}
+        "a": {"person": {"age": "25"}},
     }
 
 
@@ -155,7 +168,7 @@ def test_array_ui_ints(test_ui_schema):
             "items": {"type": "int"},
             "min_items": 1,
             "max_items": 5,
-        }
+        },
     )
 
     loc = str(get_locale()) if get_locale() else None
@@ -175,7 +188,7 @@ def test_array_ui_bools(test_ui_schema):
             "items": {"type": "boolean"},
             "min_items": 1,
             "max_items": 5,
-        }
+        },
     )
 
     res = schema.dump({"a": [True, True, False]})
@@ -192,7 +205,7 @@ def test_array_ui_strings(test_ui_schema):
             "items": {"type": "keyword"},
             "min_items": 1,
             "max_items": 5,
-        }
+        },
     )
 
     res = schema.dump({"a": ["keyword1", "keyword2", "keyword3"]})
@@ -212,7 +225,7 @@ def test_array_ui_of_objects(test_ui_schema):
             },
             "min_items": 1,
             "max_items": 3,
-        }
+        },
     )
 
     res = schema.dump({"a": [{"name": "Bob", "age": 30}, {"name": "Alice", "age": 25}]})
@@ -220,7 +233,7 @@ def test_array_ui_of_objects(test_ui_schema):
         "a": [
             {"age": "30"},
             {"age": "25"},
-        ]
+        ],
     }
 
 
@@ -284,7 +297,7 @@ def test_multiple_items_in_dictionary_in_array(test_ui_schema):
     )
 
     res = schema.dump(
-        {"a": [{"name": "John", "measurements": [123, 456, 789, 123.456]}]}
+        {"a": [{"name": "John", "measurements": [123, 456, 789, 123.456]}]},
     )
     assert res == {"a": [{"measurements": ["123", "456", "789", "123.456"]}]}
 
@@ -296,7 +309,7 @@ def test_ui_schema_multiple_transformations(test_ui_schema):
             "items": {
                 "type": "date",
             },
-        }
+        },
     )
 
     res = schema.dump({"a": ["2023-01-02"]})
@@ -389,75 +402,77 @@ def test_ui_every_format_in_object(test_ui_schema):
                     {"name": "Johny", "measurements": [], "birthday": "2023-12-30"},
                     {"name": "Johnyy", "measurements": [123], "birthday": "2023-12-29"},
                 ],
-            }
-        }
+            },
+        },
     )
 
-    assert (
-        res
-        == {
-            "a": {
-                # no string formatting -> name is left out
-                "age": "30",  # age is formatted but same key name is kept
-                "height": "1.82",  # height is formatted but same key name is kept
-                "date_l10n_long": "December 31, 2023",  # 4 different formats for the specific date
-                "date_l10n_medium": "Dec 31, 2023",  # new key has prefix of an original key name
-                "date_l10n_short": "12/31/23",
-                "date_l10n_full": "Sunday, December 31, 2023",
-                "some_other_date_l10n_long": "December 31, 2023",  # 4 different formats for the another specific date
-                "some_other_date_l10n_medium": "Dec 31, 2023",  # new key has prefix of an original key name
-                "some_other_date_l10n_short": "12/31/23",
-                "some_other_date_l10n_full": "Sunday, December 31, 2023",
-                "is_draft_i18n": "true",  # boolean is formatted always with i18n suffix
-                "arrays": {
-                    "array_bool": [
-                        "true"
-                    ],  # bools in arrays are just transformed individually a placed in array
-                    "array_int": [
-                        "1"
-                    ],  # numbers in arrays are just transformed individually a placed in array
-                    "array_float": ["1.1"],
-                    "array_date": [  # each date has 4 transformations, so dictionary is created for each original date
-                        {
-                            "item_l10n_long": "January 1, 2023",
-                            "item_l10n_medium": "Jan 1, 2023",
-                            "item_l10n_short": "1/1/23",
-                            "item_l10n_full": "Sunday, January 1, 2023",
-                        }
-                    ],
-                },
-                "array_of_objects": [
+    assert res == {
+        "a": {
+            # no string formatting -> name is left out
+            "age": "30",  # age is formatted but same key name is kept
+            "height": "1.82",  # height is formatted but same key name is kept
+            "date_l10n_long": "December 31, 2023",  # 4 different formats for the specific date
+            "date_l10n_medium": "Dec 31, 2023",  # new key has prefix of an original key name
+            "date_l10n_short": "12/31/23",
+            "date_l10n_full": "Sunday, December 31, 2023",
+            # 4 different formats for the another specific date
+            "some_other_date_l10n_long": "December 31, 2023",
+            # new key has prefix of an original key name
+            "some_other_date_l10n_medium": "Dec 31, 2023",
+            "some_other_date_l10n_short": "12/31/23",
+            "some_other_date_l10n_full": "Sunday, December 31, 2023",
+            "is_draft_i18n": "true",  # boolean is formatted always with i18n suffix
+            "arrays": {
+                "array_bool": [
+                    "true",
+                ],  # bools in arrays are just transformed individually a placed in array
+                "array_int": [
+                    "1",
+                ],  # numbers in arrays are just transformed individually a placed in array
+                "array_float": ["1.1"],
+                "array_date": [
+                    # each date has 4 transformations, so dictionary is created
+                    # for each original date
                     {
-                        # name is left out -> no ui representation
-                        "measurements": [
-                            "123",
-                            "456",
-                            "789",
-                            "123.456",
-                        ],  # numbers in arrays are just transformed individually a placed in array
-                        "birthday_l10n_long": "December 31, 2023",  # just testing nested structures, same logic as above
-                        "birthday_l10n_medium": "Dec 31, 2023",
-                        "birthday_l10n_short": "12/31/23",
-                        "birthday_l10n_full": "Sunday, December 31, 2023",
-                    },
-                    {
-                        "measurements": [],  # testing empty arrays
-                        "birthday_l10n_long": "December 30, 2023",
-                        "birthday_l10n_medium": "Dec 30, 2023",
-                        "birthday_l10n_short": "12/30/23",
-                        "birthday_l10n_full": "Saturday, December 30, 2023",
-                    },
-                    {
-                        "measurements": ["123"],
-                        "birthday_l10n_long": "December 29, 2023",
-                        "birthday_l10n_medium": "Dec 29, 2023",
-                        "birthday_l10n_short": "12/29/23",
-                        "birthday_l10n_full": "Friday, December 29, 2023",
+                        "item_l10n_long": "January 1, 2023",
+                        "item_l10n_medium": "Jan 1, 2023",
+                        "item_l10n_short": "1/1/23",
+                        "item_l10n_full": "Sunday, January 1, 2023",
                     },
                 ],
-            }
-        }
-    )
+            },
+            "array_of_objects": [
+                {
+                    # name is left out -> no ui representation
+                    "measurements": [
+                        "123",
+                        "456",
+                        "789",
+                        "123.456",
+                    ],  # numbers in arrays are just transformed individually a placed in array
+                    # just testing nested structures, same logic as above
+                    "birthday_l10n_long": "December 31, 2023",
+                    "birthday_l10n_medium": "Dec 31, 2023",
+                    "birthday_l10n_short": "12/31/23",
+                    "birthday_l10n_full": "Sunday, December 31, 2023",
+                },
+                {
+                    "measurements": [],  # testing empty arrays
+                    "birthday_l10n_long": "December 30, 2023",
+                    "birthday_l10n_medium": "Dec 30, 2023",
+                    "birthday_l10n_short": "12/30/23",
+                    "birthday_l10n_full": "Saturday, December 30, 2023",
+                },
+                {
+                    "measurements": ["123"],
+                    "birthday_l10n_long": "December 29, 2023",
+                    "birthday_l10n_medium": "Dec 29, 2023",
+                    "birthday_l10n_short": "12/29/23",
+                    "birthday_l10n_full": "Friday, December 29, 2023",
+                },
+            ],
+        },
+    }
 
     # there are 4 UI representation of a date in UI, all should be there
     assert "date_l10n_long" in res["a"]
@@ -493,8 +508,8 @@ def test_ui_every_format_in_object(test_ui_schema):
                     "array_strings": [],
                 },
                 "array_of_objects": [],
-            }
-        }
+            },
+        },
     )
     # same logic as above, just more tests
     assert res == {
@@ -530,7 +545,7 @@ def test_ui_every_format_in_object(test_ui_schema):
                 ],
             },
             "array_of_objects": [],
-        }
+        },
     }
 
 
@@ -571,14 +586,14 @@ def test_polymorphic_ui_schema(test_ui_schema):
     ret = schema.dump(val)
     formatted_number = format_decimal(123, locale=loc)
     assert ret == {
-        "a": {"age": formatted_number, "isActive_i18n": "true"}
+        "a": {"age": formatted_number, "isActive_i18n": "true"},
     }  # strings are removed, number and boolean are transformed
 
     val = {"a": {"type": "organization", "name": "CVUT", "age": 100000, "isFree": True}}
     ret = schema.dump(val)
     formatted_number = format_decimal(100000, locale=loc)
     assert ret == {
-        "a": {"age": formatted_number, "isFree_i18n": "true"}
+        "a": {"age": formatted_number, "isFree_i18n": "true"},
     }  # strings are removed, number and boolean are transformed
 
 
@@ -623,18 +638,18 @@ def test_polymorphic_ui_schema_in_array(test_ui_schema):
     formatted_number = format_decimal(123, locale=loc)
     ret = schema.dump(val)
     assert ret == {
-        "a": [{"age": formatted_number, "isActive_i18n": "true"}]
+        "a": [{"age": formatted_number, "isActive_i18n": "true"}],
     }  # strings are removed, number and boolean are transformed
     # -------------------------------------------------------------
 
     # ---------------- 1 item in array ----------------------------
     val = {
-        "a": [{"type": "organization", "name": "CVUT", "age": 100000, "isFree": True}]
+        "a": [{"type": "organization", "name": "CVUT", "age": 100000, "isFree": True}],
     }
     ret = schema.dump(val)
     formatted_number = format_decimal(100000, locale=loc)
     assert ret == {
-        "a": [{"age": formatted_number, "isFree_i18n": "true"}]
+        "a": [{"age": formatted_number, "isFree_i18n": "true"}],
     }  # strings are removed, number and boolean are transformed
     # -------------------------------------------------------------
 
@@ -645,7 +660,7 @@ def test_polymorphic_ui_schema_in_array(test_ui_schema):
             {"type": "person", "first_name": "bob2", "age": 0, "isActive": False},
             {"type": "organization", "name": "MIT", "age": 666, "isFree": False},
             {"type": "organization", "name": "Standford", "age": 1337, "isFree": False},
-        ]
+        ],
     }
     formatted_number1 = format_decimal(123, locale=loc)
     formatted_number2 = format_decimal(0, locale=loc)
@@ -658,7 +673,7 @@ def test_polymorphic_ui_schema_in_array(test_ui_schema):
             {"age": formatted_number2, "isActive_i18n": "false"},
             {"age": formatted_number3, "isFree_i18n": "false"},
             {"age": formatted_number4, "isFree_i18n": "false"},
-        ]
+        ],
     }
     # -------------------------------------------------------------
 
@@ -711,7 +726,7 @@ def test_polymorphic_ui_schema_in_obj(test_ui_schema):
                 "age": 100,
                 "isFree": True,
             },
-        }
+        },
     }
 
     ret = schema.dump(val)
@@ -723,5 +738,5 @@ def test_polymorphic_ui_schema_in_obj(test_ui_schema):
             "publication_date_l10n_short": "12/31/23",
             "publication_date_l10n_full": "Sunday, December 31, 2023",
             "supported_by": {"age": formatted_number, "isFree_i18n": "true"},
-        }
+        },
     }

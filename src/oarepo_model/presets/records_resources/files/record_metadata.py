@@ -6,9 +6,16 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Preset for adding file support to record metadata.
+
+This module provides a preset that extends RecordMetadata with file handling capabilities
+by adding a bucket_id foreign key and bucket relationship to the Bucket model from
+invenio_files_rest. This enables records to have associated file storage.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_db import db
 from invenio_files_rest.models import Bucket
@@ -19,31 +26,32 @@ from oarepo_model.customizations import (
     AddMixins,
     Customization,
 )
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class RecordMetadataWithFilesPreset(Preset):
-    """
-    Preset for records_resources.records
-    """
+    """Preset for extending RecordMetadata with file support."""
 
-    modifies = ["RecordMetadata"]
+    modifies = ("RecordMetadata",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         class RecordMetadataWithFilesMixin:
             bucket_id = db.Column(UUIDType, db.ForeignKey(Bucket.id))
 
             @declared_attr
-            def bucket(cls):
+            def bucket(cls):  # noqa
                 return db.relationship(Bucket)
 
         yield AddMixins(

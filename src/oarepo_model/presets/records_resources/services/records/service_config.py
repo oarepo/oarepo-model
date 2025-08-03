@@ -6,11 +6,14 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Module to generate config for the record service."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_records_resources.services import (
+    Link,
     LinksTemplate,
     RecordLink,
     pagination_links,
@@ -35,27 +38,30 @@ from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from invenio_records_resources.services.records.components import Component
+
     from oarepo_model.builder import InvenioModelBuilder
 
 
 class RecordServiceConfigPreset(Preset):
-    """
-    Preset for record service config class.
-    """
+    """Preset for record service config class."""
 
-    provides = [
+    provides = (
         "RecordServiceConfig",
         "record_service_components",
         "record_links_item",
         "record_search_item",
-    ]
+    )
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         api_base = "{+api}/" + builder.model.slug + "/"
         ui_base = "{+ui}/" + builder.model.slug + "/"
 
@@ -82,12 +88,12 @@ class RecordServiceConfigPreset(Preset):
             search_item_links_template = LinksTemplate
 
             @property
-            def components(self):
+            def components(self) -> list[Component]:
                 # TODO: needs to be fixed as we have multiple mixins and the sources
                 # in oarepo-runtime do not support this yet
                 # return process_service_configs(
-                #     self, self.get_model_dependency("record_service_components")
-                # )
+                #     self, self.get_model_dependency("record_service_components") # noqa: ERA001
+                #
                 return [
                     *super().components,
                     *self.get_model_dependency("record_service_components"),
@@ -96,7 +102,7 @@ class RecordServiceConfigPreset(Preset):
             model = builder.model.name
 
             @property
-            def links_item(self):
+            def links_item(self) -> dict[str, Link]:
                 try:
                     supercls_links = super().links_item
                 except AttributeError:  # if they aren't defined in the superclass
@@ -109,7 +115,7 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search_item(self):
+            def links_search_item(self) -> dict[str, Link]:
                 try:
                     supercls_links = super().links_search_item
                 except AttributeError:  # if they aren't defined in the superclass
@@ -121,7 +127,7 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search(self):
+            def links_search(self) -> dict[str, Link]:
                 try:
                     supercls_links = super().links_search
                 except AttributeError:  # if they aren't defined in the superclass

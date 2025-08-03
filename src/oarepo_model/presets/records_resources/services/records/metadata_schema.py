@@ -6,35 +6,37 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Module to generate metadata schema for records."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 import marshmallow
 
 from oarepo_model.customizations import AddClass, AddMixins, Customization
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class MetadataSchemaPreset(Preset):
-    """
-    Preset for record service class.
-    """
+    """Preset for record service class."""
 
-    provides = ["MetadataSchema"]
-    modifies = ["RecordSchema"]
+    provides = ("MetadataSchema",)
+    modifies = ("RecordSchema",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
-
+    ) -> Generator[Customization]:
         if model.metadata_type is not None:
             from .record_schema import get_marshmallow_schema
 

@@ -1,4 +1,22 @@
-from .base import DataType
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+
+"""Entry points registry for OARepo data types.
+
+This module provides a centralized registry of all available data types that can be
+discovered and used by the OARepo model system through entry points registration.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from .boolean import BooleanDataType
 from .collections import (
     ArrayDataType,
@@ -20,6 +38,9 @@ from .polymorphic import PolymorphicDataType
 from .relations import PIDRelation
 from .strings import FullTextDataType, FulltextWithKeywordDataType, KeywordDataType
 from .vocabularies import VocabularyDataType
+
+if TYPE_CHECKING:
+    from .base import DataType
 
 DATA_TYPES: dict[str, type[DataType]] = {
     KeywordDataType.TYPE: KeywordDataType,

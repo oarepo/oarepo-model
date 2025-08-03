@@ -6,6 +6,13 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+
+"""Customization for adding mixins to OARepo model classes.
+
+This module provides the AddMixins customization that allows adding mixin classes
+to existing classes in an OARepo model during the building process.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override

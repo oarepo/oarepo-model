@@ -6,33 +6,39 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Preset for draft record Opensearch mapping configuration.
+
+This module provides the DraftMappingPreset that configures
+Opensearch mappings for draft records in Invenio applications.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from oarepo_model.customizations import CopyFile, Customization, PatchJSONFile
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class DraftMappingPreset(Preset):
-    """
-    Preset for record service class.
-    """
+    """Preset for record service class."""
 
-    depends_on = ["record-mapping"]
-    provides = ["draft-mapping"]
+    depends_on = ("record-mapping",)
+    provides = ("draft-mapping",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
-
+    ) -> Generator[Customization]:
         yield CopyFile(
             source_symbolic_name="record-mapping",
             target_symbolic_name="draft-mapping",
@@ -52,7 +58,7 @@ class DraftMappingPreset(Preset):
                             "latest_id": {"type": "keyword"},
                             "latest_index": {"type": "integer"},
                             "next_draft_id": {"type": "keyword"},
-                        }
+                        },
                     },
                     "has_draft": {"type": "boolean"},
                     "record_status": {"type": "keyword"},
@@ -62,7 +68,7 @@ class DraftMappingPreset(Preset):
                             "pid_type": {"type": "keyword", "index": False},
                             "pk": {"type": "long", "index": False},
                             "status": {"type": "keyword", "index": False},
-                        }
+                        },
                     },
                     "fork_version_id": {"type": "long"},
                     "parent": {
@@ -79,12 +85,12 @@ class DraftMappingPreset(Preset):
                                     "pid_type": {"type": "keyword", "index": False},
                                     "pk": {"type": "long", "index": False},
                                     "status": {"type": "keyword", "index": False},
-                                }
+                                },
                             },
-                        }
+                        },
                     },
-                }
-            }
+                },
+            },
         }
 
         yield PatchJSONFile("draft-mapping", parent_mapping)

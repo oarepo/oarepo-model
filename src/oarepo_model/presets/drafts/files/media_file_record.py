@@ -6,9 +6,17 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Preset for creating media file record API class.
+
+This module provides a preset that creates a MediaFileRecord class based on
+Invenio's FileRecord API. This class represents individual media files
+attached to published records and provides methods for media file access
+and metadata management.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_records_resources.records.api import FileRecord as InvenioFileRecord
 
@@ -21,24 +29,23 @@ from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
 
 
 class MediaFileRecordPreset(Preset):
-    """
-    Preset for records_resources.records
-    """
+    """Preset for creating media file record API class."""
 
-    provides = [
-        "MediaFileRecord",
-    ]
+    provides = ("MediaFileRecord",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         class FileRecordMixin:
             """Mixin for the file record."""
 

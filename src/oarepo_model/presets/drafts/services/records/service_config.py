@@ -6,9 +6,17 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Preset for configuring draft-enabled record service.
+
+This module provides a preset that extends the record service configuration
+to support drafts functionality. It changes the base service config from
+RecordServiceConfig to DraftServiceConfig and adds appropriate links for
+draft operations like publish, edit, and version management.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_drafts_resources.services import (
     RecordServiceConfig as DraftServiceConfig,
@@ -39,27 +47,27 @@ from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
 
 
 class DraftServiceConfigPreset(Preset):
-    """
-    Preset for record service config class.
-    """
+    """Preset for record service config class."""
 
-    modifies = [
+    modifies = (
         "RecordServiceConfig",
         "record_links_item",
         "record_search_item",
-    ]
+    )
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
-
+    ) -> Generator[Customization]:
         class DraftServiceConfigMixin(ModelMixin):
             draft_cls = Dependency("Draft")
 
@@ -82,7 +90,8 @@ class DraftServiceConfigPreset(Preset):
                 cond=is_published_record(),
                 if_=RecordLink(ui_url, when=has_permission("read")),
                 else_=RecordLink(
-                    ui_url + "/preview", when=has_permission("read_draft")
+                    ui_url + "/preview",
+                    when=has_permission("read_draft"),
                 ),
             ),
         }
@@ -92,27 +101,30 @@ class DraftServiceConfigPreset(Preset):
             {
                 **self_links,
                 "latest": RecordLink(
-                    api_url + "/versions/latest", when=has_permission("read")
+                    api_url + "/versions/latest",
+                    when=has_permission("read"),
                 ),
                 "latest_html": RecordLink(
-                    ui_url + "/latest", when=has_permission("read")
+                    ui_url + "/latest",
+                    when=has_permission("read"),
                 ),
                 # Note: semantics change from oarepo v12: this link is only on a
                 # published record if the record has a draft record
                 "draft": RecordLink(
                     api_url + "/draft",
-                    when=is_published_record()
-                    & has_draft()
-                    & has_draft_permission("read_draft"),
+                    when=is_published_record() & has_draft() & has_draft_permission("read_draft"),
                 ),
                 "record": RecordLink(
-                    api_url, when=has_published_record() & has_permission("read")
+                    api_url,
+                    when=has_published_record() & has_permission("read"),
                 ),
                 "publish": RecordLink(
-                    api_url + "/draft/actions/publish", when=has_permission("publish")
+                    api_url + "/draft/actions/publish",
+                    when=has_permission("publish"),
                 ),
                 "versions": RecordLink(
-                    api_url + "/versions", when=has_permission("search_versions")
+                    api_url + "/versions",
+                    when=has_permission("search_versions"),
                 ),
             },
         )

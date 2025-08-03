@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2025 CESNET z.s.p.o.
 #
@@ -18,6 +17,8 @@
 
 
 """Records Models."""
+
+from __future__ import annotations
 
 from invenio_db import db
 from invenio_files_rest.models import ObjectVersion
@@ -39,7 +40,7 @@ class FileRecordModelMixin:
     """Filename key (can be path-like also)."""
 
     @declared_attr
-    def record_id(cls):
+    def record_id(cls):  # noqa first argument name must be 'self'
         """Record ID foreign key."""
         return db.Column(
             UUIDType,
@@ -49,12 +50,12 @@ class FileRecordModelMixin:
         )
 
     @declared_attr
-    def record(cls):
-        """Record the file belnogs to."""
+    def record(cls):  # noqa first argument name must be 'self'
+        """Record the file belongs to."""
         return db.relationship(cls.__record_model_cls__)
 
     @declared_attr
-    def object_version_id(cls):
+    def object_version_id(cls):  # noqa first argument name must be 'self'
         """Object version ID foreign key."""
         return db.Column(
             UUIDType,
@@ -64,19 +65,6 @@ class FileRecordModelMixin:
         )
 
     @declared_attr
-    def object_version(cls):
+    def object_version(cls):  # noqa first argument name must be 'self'
         """Object version connected to the record file."""
         return db.relationship(ObjectVersion)
-
-    # @declared_attr
-    # def __table_args__(cls):
-    #     """Table args."""
-    #     return (
-    #         # To make sure we don't have duplicate keys for record files
-    #         db.Index(
-    #             f"uidx_{cls.__tablename__}_record_id_key",
-    #             "record_id",
-    #             "key",
-    #             unique=True,
-    #         ),
-    #     )

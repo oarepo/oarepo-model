@@ -6,6 +6,17 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+
+"""Exception classes for OARepo model building and processing.
+
+This module defines custom exception classes used throughout the OARepo model
+building process, including errors for model building, registration, and
+customization application.
+"""
+
+from __future__ import annotations
+
+
 class ModelBuildError(Exception):
     """Exception raised for errors in the model building process."""
 

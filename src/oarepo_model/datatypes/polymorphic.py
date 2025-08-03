@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+"""Data type for polymorphic schemas with discriminator fields.
+
+This module provides the PolymorphicDataType class for handling fields that can
+be one of several different types based on a discriminator field. It includes
+the PolymorphicField Marshmallow field for runtime type resolution and validation.
+The data type supports 'oneof' schemas where each variant specifies a discriminator
+value and corresponding schema type.
+"""
+
 from __future__ import annotations
 
 from typing import Any, override
@@ -14,8 +31,8 @@ from .base import DataType
 
 
 class PolymorphicDataType(DataType):
-    """
-    Data type for handling polymorphic schemas with discriminator fields.
+    """Data type for handling polymorphic schemas with discriminator fields.
+
     This allows for fields that can be one of several different types based on a discriminator field.
 
     Supports schemas with a 'oneof' array where each item specifies a discriminator value
@@ -40,19 +57,21 @@ class PolymorphicDataType(DataType):
     {
         field_name : {"type": "organization", organization_fields...}
     }
+
     """
 
     TYPE = "polymorphic"
 
     @override
     def create_marshmallow_field(
-        self, field_name: str, element: dict[str, Any]
+        self,
+        field_name: str,
+        element: dict[str, Any],
     ) -> ma.fields.Field:
-        """
-        Create a Marshmallow field for polymorphic data type.
+        """Create a Marshmallow field for polymorphic data type.
+
         Uses OneOf field with different schemas based on discriminator.
         """
-
         if element.get("marshmallow_field") is not None:
             return obj_or_import_string(element["marshmallow_field"])
 
@@ -67,11 +86,11 @@ class PolymorphicDataType(DataType):
         )
 
     def _create_schema_fields(
-        self, field_name: str, element: dict[str, Any]
+        self,
+        field_name: str,
+        element: dict[str, Any],
     ) -> dict[str, ma.fields.Field]:
-        """
-        Create marshmallow fields for each schema variant.
-        """
+        """Create marshmallow fields for each schema variant."""
         schema_fields = {}
         oneof_schemas = element.get("oneof", [])
 
@@ -86,14 +105,17 @@ class PolymorphicDataType(DataType):
 
                 # create a marshmallow field and save it
                 schema_fields[discriminator_value] = datatype.create_marshmallow_field(
-                    field_name=field_name, element=oneof_item
+                    field_name=field_name,
+                    element=oneof_item,
                 )
 
         return schema_fields
 
     @override
     def create_ui_marshmallow_fields(
-        self, field_name: str, element: dict[str, Any]
+        self,
+        field_name: str,
+        element: dict[str, Any],
     ) -> dict[str, ma.fields.Field]:
         alternative_fields = {}
         discriminator = element.get("discriminator", "type")
@@ -111,11 +133,12 @@ class PolymorphicDataType(DataType):
 
                 # get UI fields from that datatype, where attribute is disciminator value
                 ui_fields = datatype.create_ui_marshmallow_fields(
-                    field_name=field_name, element=oneof_item
+                    field_name=field_name,
+                    element=oneof_item,
                 )
                 if len(ui_fields) != 1:
                     raise NotImplementedError(
-                        "Current version can only handle 1 UI field in polymorphic type!"
+                        "Current version can only handle 1 UI field in polymorphic type!",
                     )
 
                 alternative_fields[discriminator_value] = next(iter(ui_fields.values()))
@@ -123,15 +146,14 @@ class PolymorphicDataType(DataType):
         # return custom marshmallow field that distinguishes what schema to use
         return {
             field_name: PolymorphicField(
-                discriminator=discriminator, alternatives=alternative_fields
-            )
+                discriminator=discriminator,
+                alternatives=alternative_fields,
+            ),
         }
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
-        """
-        Create JSON schema for polymorphic type using oneOf.
-        """
+        """Create JSON schema for polymorphic type using oneOf."""
         discriminator = element.get("discriminator", "type")
         oneof_schemas = element.get("oneof", [])
 
@@ -171,8 +193,8 @@ class PolymorphicDataType(DataType):
 
     @override
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
-        """
-        Create a mapping for the data type.
+        """Create a mapping for the data type.
+
         Uses object type with properties from all possible schemas.
         """
         discriminator = element.get("discriminator", "type")
@@ -194,7 +216,8 @@ class PolymorphicDataType(DataType):
                 # dump all properties from all variants in 1 dictionary
                 if "properties" in child_mapping:
                     all_properties = always_merger.merge(
-                        all_properties, child_mapping["properties"]
+                        all_properties,
+                        child_mapping["properties"],
                     )
 
         return {"type": "object", "properties": all_properties}
@@ -205,23 +228,27 @@ class PolymorphicField(ma.fields.Field):
 
     def __init__(
         self,
-        discriminator: str = "type",
-        alternatives: dict[str, ma.fields.Field] = {},
-        *args,
-        **kwargs,
+        discriminator: str,
+        alternatives: dict[str, ma.fields.Field],
+        *args: Any,
+        **kwargs: Any,
     ):
-        """
-        Initialize a PolymorphicField for handling discriminated union types.
+        """Initialize a PolymorphicField for handling discriminated union types.
 
-        :param discriminator: The field name used to determine which schema variant to use. Defaults to "type".
-        :param alternatives: A mapping from discriminator values (e.g. person/organization) to marshmallow field instances.
-        Each field handles validation and serialization for its corresponding object variant. Defaults to empty dict.
+        :param discriminator:
+            The field name used to determine which schema variant to use.
+            Defaults to "type".
+        :param alternatives:
+            A mapping from discriminator values (e.g. person/organization)
+            to marshmallow field instances. Each field handles validation and
+            serialization for its corresponding object variant. Defaults to empty dict.
         """
         super().__init__(*args, **kwargs)
         self.discriminator = discriminator
         self.alternatives = alternatives
 
-    def get_discriminator_value(self, obj):
+    def get_discriminator_value(self, obj: Any) -> str:
+        """Get the discriminator value from the object."""
         val = get_value(
             obj,
             self.discriminator,
@@ -234,7 +261,8 @@ class PolymorphicField(ma.fields.Field):
 
         return val
 
-    def _serialize(self, value: Any, attr: str, obj: Any, **kwargs) -> Any:
+    @override
+    def _serialize(self, value: Any, attr: str | None, obj: Any, **kwargs: Any) -> Any:
         """Serialize by choosing correct serializer depending on the discriminator value."""
         if not isinstance(value, dict):
             return value
@@ -242,11 +270,23 @@ class PolymorphicField(ma.fields.Field):
         discriminator_value = self.get_discriminator_value(value)
         if discriminator_value in self.alternatives:
             schema_field = self.alternatives[discriminator_value]
-            return schema_field._serialize(value, attr, obj, **kwargs)
+            return schema_field._serialize(  # noqa: SLF001 private access
+                value,
+                attr,
+                obj,
+                **kwargs,
+            )
 
         return value
 
-    def _deserialize(self, value: Any, attr: str, data: any, **kwargs):
+    @override
+    def _deserialize(
+        self,
+        value: Any,
+        attr: str | None,
+        data: Any,
+        **kwargs: Any,
+    ) -> Any:
         """Deserialize by choosing correct deserializer depending on the discriminator value."""
         discriminator_value = self.get_discriminator_value(value)
 
@@ -254,4 +294,9 @@ class PolymorphicField(ma.fields.Field):
             self.fail("unknown_type", type=discriminator_value)
 
         schema_field = self.alternatives[discriminator_value]
-        return schema_field._deserialize(value, attr, data, **kwargs)
+        return schema_field._deserialize(  # noqa: SLF001 private access
+            value,
+            attr,
+            data,
+            **kwargs,
+        )

@@ -6,6 +6,14 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for creating new dictionaries in the model.
+
+This module provides the AddDictionary customization that creates new dictionaries
+with specified names and optional default values in the model builder. These
+dictionaries can be used to collect key-value pairs and configuration data
+during the model building process.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
@@ -24,7 +32,10 @@ class AddDictionary(Customization):
     """
 
     def __init__(
-        self, name: str, default: dict[str, Any] | None = None, exists_ok: bool = False
+        self,
+        name: str,
+        default: dict[str, Any] | None = None,
+        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
     ) -> None:
         """Initialize the AddDictionary customization.
 

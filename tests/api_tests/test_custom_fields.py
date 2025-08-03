@@ -1,3 +1,14 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
+
 def test_custom_fields(
     app,
     identity_simple,
@@ -33,7 +44,7 @@ def test_draft_custom_fields(
     location,
 ):
     service = drafts_cf_model.proxies.current_service
-    schema = drafts_cf_model.RecordSchema
+    _schema = drafts_cf_model.RecordSchema
 
     # Create an item
     item = service.create(

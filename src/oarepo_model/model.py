@@ -6,15 +6,30 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+
+"""Core model classes and data structures for OARepo models.
+
+This module contains the fundamental data classes and structures that represent
+OARepo models, including model metadata, configuration, and runtime dependencies.
+"""
+
+from __future__ import annotations
+
 import dataclasses
-from types import SimpleNamespace
-from typing import Any, Callable
+from contextlib import suppress
+from typing import TYPE_CHECKING, Any, override
 
 from .utils import title_case
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from types import SimpleNamespace
 
 
 @dataclasses.dataclass
 class InvenioModel:
+    """A class representing an Invenio model with metadata and configuration."""
+
     name: str
     version: str
     description: str
@@ -57,14 +72,13 @@ class CachedDescriptor:
     attr: str
 
     def __set_name__(self, owner: type, name: str) -> None:
-        try:
+        """Set the name of the attribute and initialize the cache."""
+        with suppress(AttributeError):
             super().__set_name__(owner, name)
-        except AttributeError:
-            # If the superclass does not have __set_name__, we set the attribute directly
-            pass
         self.attr = name
 
     def __get__(self, instance: InvenioModel, owner: type) -> Any:
+        """Get the cached value or compute it if not cached."""
         if instance and hasattr(instance, f"_cached_{self.attr}"):
             ret = getattr(instance, f"_cached_{self.attr}")[0]
         elif owner and hasattr(owner, f"_cached_{self.attr}"):
@@ -78,7 +92,10 @@ class CachedDescriptor:
                 oarepo_model_namespace = instance.oarepo_model_namespace
 
             ret = self.real_get_value(
-                instance, owner, oarepo_model, oarepo_model_namespace
+                instance,
+                owner,
+                oarepo_model,
+                oarepo_model_namespace,
             )
             if instance is None:
                 setattr(owner, f"_cached_{self.attr}", [ret])
@@ -103,10 +120,14 @@ class CachedDescriptor:
 
 
 class FromModelConfiguration[T](CachedDescriptor):
+    """A descriptor that retrieves a value from the InvenioModel configuration."""
+
     def __init__(self, key: str, default: T | None = None) -> None:
+        """Initialize the FromModelConfiguration descriptor."""
         self.key = key
         self.default = default
 
+    @override
     def real_get_value(
         self,
         instance: InvenioModel,
@@ -118,9 +139,13 @@ class FromModelConfiguration[T](CachedDescriptor):
 
 
 class FromModel[T](CachedDescriptor):
+    """A descriptor that retrieves a value from the InvenioModel."""
+
     def __init__(self, callback: Callable[[InvenioModel], T]) -> None:
+        """Initialize the FromModel descriptor with a callback."""
         self.callback = callback
 
+    @override
     def real_get_value(
         self,
         instance: InvenioModel,
@@ -132,10 +157,14 @@ class FromModel[T](CachedDescriptor):
 
 
 class AddToList[T](CachedDescriptor):
+    """A descriptor that adds items to a list at a specific position."""
+
     def __init__(self, *data: T, position: int = -1) -> None:
+        """Initialize the AddToList descriptor."""
         self.data = list(data)
         self.position = position
 
+    @override
     def real_get_value(
         self,
         instance: InvenioModel,
@@ -147,7 +176,7 @@ class AddToList[T](CachedDescriptor):
             super_value = owner.mro()[1].__getattribute__(self.attr)
         else:
             super_value = super(instance.__class__, instance).__getattribute__(
-                self.attr
+                self.attr,
             )
 
         if super_value is None:
@@ -161,29 +190,29 @@ class AddToList[T](CachedDescriptor):
 
         if self.position < 0:
             return super_value + list(self.data)
-        else:
-            return (
-                super_value[: self.position]
-                + list(self.data)
-                + super_value[self.position :]
-            )
+        return super_value[: self.position] + list(self.data) + super_value[self.position :]
 
 
 MISSING = object()
 
 
 class Dependency(CachedDescriptor):
+    """A descriptor for model dependencies."""
+
     def __init__(
         self,
         *keys: str,
         transform: Callable[..., Any] | None = None,
         default: Any = MISSING,
     ) -> None:
+        """Initialize the Dependency descriptor."""
         self.keys = keys
-        assert self.keys, "At least one key must be provided for Dependency"
+        if not keys:
+            raise ValueError("At least one key must be provided for Dependency")
         self.transform = transform
         self.default = default
 
+    @override
     def real_get_value(
         self,
         instance: InvenioModel,
@@ -193,10 +222,7 @@ class Dependency(CachedDescriptor):
     ) -> Any:
         ret = []
         default: list | tuple
-        if len(self.keys) == 1 or not isinstance(self.default, (list, tuple)):
-            default = [self.default]
-        else:
-            default = self.default
+        default = [self.default] if len(self.keys) == 1 or not isinstance(self.default, (list, tuple)) else self.default
 
         for idx, key in enumerate(self.keys):
             if not hasattr(target_namespace, key):
@@ -204,7 +230,7 @@ class Dependency(CachedDescriptor):
                     ret.append(default[idx])
                 else:
                     raise AttributeError(
-                        f"Model {oarepo_model.name} does not have attribute '{key}'"
+                        f"Model {oarepo_model.name} does not have attribute '{key}'",
                     )
             else:
                 ret.append(getattr(target_namespace, key))
@@ -213,14 +239,17 @@ class Dependency(CachedDescriptor):
             return self.transform(*ret)
 
         if len(ret) == 1:
-            assert (
-                ret[0] is not None
-            ), f"Dependency {self.keys[0]} is None, but expected a value."
+            if ret[0] is None:
+                raise ValueError(
+                    f"Dependency {self.keys[0]} is None, but expected a value.",
+                )
             return ret[0]
         return ret
 
 
 class ModelMixin:
+    """A mixin class for InvenioModel that provides access to the model and its namespace."""
+
     oarepo_model_namespace: Any
 
     def get_model_dependency(self, key: str) -> Any:
@@ -232,17 +261,15 @@ class RuntimeDependencies:
     """A class to hold bound dependencies for a model."""
 
     def __init__(self) -> None:
+        """Initialize the RuntimeDependencies with an empty namespace."""
         self.dependencies: SimpleNamespace | None = None
 
     def bind_dependencies(self, dependencies: SimpleNamespace) -> None:
-        """
-        Bind dependencies to the model.
-        """
+        """Bind dependencies to the model."""
         self.dependencies = dependencies
 
     def get(self, key: str) -> Any:
-        """
-        Get a bound dependency by key.
+        """Get a bound dependency by key.
 
         :param key: The key of the dependency to get.
         :return: The value of the dependency.

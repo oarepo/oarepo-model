@@ -6,9 +6,17 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Preset for creating FileMetadata database model.
+
+This module provides a preset that creates a FileMetadata class for storing
+file metadata in the database. It includes table structure, indexes for
+efficient querying, and relationships to record models through the
+FileRecordModelMixin.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_db import db
 from invenio_records.models import RecordMetadataBase
@@ -21,41 +29,40 @@ from oarepo_model.customizations import (
     AddMixins,
     Customization,
 )
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 from .file_record_model_mixin import FileRecordModelMixin
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class FileMetadataPreset(Preset):
-    """
-    Preset for file metadata class
-    """
+    """Preset for FileMetadata class."""
 
-    provides = [
-        "FileMetadata",
-    ]
+    provides = ("FileMetadata",)
 
-    depends_on = [
+    depends_on = (
         # need to have this dependency because of __record_model_cls__ attribute
         "RecordMetadata",
-    ]
+    )
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         class FileMetadataMixin:
             __tablename__ = f"{builder.model.base_name}_files"
             __record_model_cls__ = dependencies.get("RecordMetadata")
 
         @declared_attr
-        def __table_args__(cls):
+        def __table_args__(cls):  # noqa first argument name must be 'self'
             """Table args."""
             return (
                 db.Index(
@@ -78,6 +85,9 @@ class FileMetadataPreset(Preset):
         yield AddClass("FileMetadata")
         yield AddClassField("FileMetadata", "__table_args__", __table_args__)
         yield AddBaseClasses(
-            "FileMetadata", db.Model, RecordMetadataBase, FileRecordModelMixin
+            "FileMetadata",
+            db.Model,
+            RecordMetadataBase,
+            FileRecordModelMixin,
         )
         yield AddMixins("FileMetadata", FileMetadataMixin)

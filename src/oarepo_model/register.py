@@ -1,3 +1,5 @@
+"""A module for registering and unregistering OAREPO models into the Python import system."""
+
 #
 # Copyright (c) 2025 CESNET z.s.p.o.
 #
@@ -6,24 +8,40 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+from __future__ import annotations
+
 import importlib.abc
+import importlib.machinery
+import importlib.metadata
 import importlib.resources.abc
 import importlib.util
-from pathlib import Path, PurePosixPath
 import sys
 from importlib.metadata import Distribution, DistributionFinder
-from types import SimpleNamespace
-from typing import Optional
+from pathlib import PurePosixPath
+from types import ModuleType, SimpleNamespace
+from typing import TYPE_CHECKING, Any, override
 
-from .model import InvenioModel
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from importlib.metadata._meta import SimplePath
+
+    from .model import InvenioModel
 
 
 class ModelDistribution(Distribution):
+    """A distribution for the in-memory OAREPO model."""
+
     def __init__(self, model: InvenioModel, namespace: SimpleNamespace):
+        """Initialize the ModelDistribution with a model and namespace.
+
+        :param model: The InvenioModel instance.
+        :param namespace: The namespace associated with the model containing entry points and files.
+        """
         self.model = model
         self.namespace = namespace
 
-    def read_text(self, filename) -> Optional[str]:
+    @override
+    def read_text(self, filename: str) -> str | None:
         if filename == "METADATA":
             return f"""
 Metadata-Version: 2.1
@@ -37,156 +55,190 @@ Version: {self.model.version}
     """.strip()
         return None
 
-    def locate_file(self, path):
-        """
-        Model does not have any files to locate.
-        """
+    @override
+    def locate_file(
+        self,
+        path: Any,
+    ) -> SimplePath:
+        """Model does not have any files to locate."""
         raise NotImplementedError("Not implemented")
 
     @property
-    def entry_points(self):
+    @override
+    def entry_points(self) -> importlib.metadata.EntryPoints:
         return self.namespace.entry_points
 
     @property
+    @override
     def files(self) -> list:
         ret = []
         for file_name, file_content in self.namespace.__files__.items():
             ret.append(
                 InMemoryPath(
-                    f"runtime_models_{self.model.name}/{file_name}", file_content
-                )
+                    f"runtime_models_{self.model.name}/{file_name}",
+                    file_content,
+                ),
             )
 
         return ret
 
 
 class InMemoryPath(PurePosixPath):
+    """A PurePosixPath that can read text content from an in-memory string."""
+
     def __init__(self, path: str, file_content: str | None = None) -> None:
+        """Initialize the InMemoryPath with a path and optional file content."""
         super().__init__(path)
         self.file_content = file_content
 
-    def read_text(self, encoding: str = "utf-8") -> str:
+    def read_text(
+        self,
+        encoding: str | None = "utf-8",  # noqa: ARG002 unused argument
+    ) -> str:
+        """Read the text content of the in-memory file."""
         if self.file_content is None:
             raise ValueError("Can not read file without content")
         return self.file_content
 
     def read_binary(self) -> bytes:
+        """Read the binary content of the in-memory file."""
         if self.file_content is None:
             raise ValueError("Can not read file without content")
         return self.file_content.encode("utf-8")
 
 
-def locate_file(namespace, name):
-    name_list = name.split(".")[1:]
-    pth = None
-    for n in name_list:
-        if pth is not None:
-            pth = pth / n
-        else:
-            pth = Path(getattr(namespace, n).__file__).parent
-
-    return FileReader(pth)
-
-
-class FileReader(importlib.resources.abc.TraversableResources):
-    def __init__(self, pth):
-        self.path = pth
-
-    def resource_path(self, resource):
-        """
-        Return the file system path to prevent
-        `resources.path()` from creating a temporary
-        copy.
-        """
-        return str(self.path.joinpath(resource))
-
-    def files(self):
-        return self.path
-
-
 class ModelImporter(importlib.abc.MetaPathFinder):
+    """A MetaPathFinder for dynamically loading OAREPO models."""
+
     def __init__(self, model: InvenioModel, namespace: SimpleNamespace):
+        """Initialize the ModelImporter with a model and namespace."""
         self.model = model
         self.namespace = namespace
 
-    def find_spec(self, fullname, path, target=None):
+    def find_spec(
+        self,
+        fullname: str,
+        path: Sequence[str] | None = None,  # noqa: ARG002 unused argument
+        target: ModuleType | None = None,  # noqa: ARG002 unused argument
+    ) -> importlib.machinery.ModuleSpec | None:
+        """Find the specification for the model based on its name."""
         namespace = self.namespace
-        if fullname == f"runtime_models_{self.model.base_name}":
-            # Create a module spec dynamically
-
-            class Loader:
-                def create_module(self, spec):
-                    return None
-
-                def exec_module(self, module):
-                    module.__dict__.update(namespace.__dict__)
-
-                def get_resource_reader(self, name):
-                    raise NotImplementedError(
-                        "ModelImporter does not support resource "
-                        "reading for the root of the generated model"
-                    )
-
-            return importlib.util.spec_from_loader(
-                fullname, loader=Loader(), is_package=True
-            )
-        elif fullname.startswith(f"runtime_models_{self.model.base_name}."):
-            # create an empty spec for now but will need to be filled later
-
-            submodule = fullname[len(f"runtime_models_{self.model.base_name}.") :]
-            submodule_root = submodule.split(".")[0]
-
-            if hasattr(namespace, submodule_root):
-                if not isinstance(getattr(namespace, submodule_root), SimpleNamespace):
-                    raise ImportError(
-                        f"Expected a SimpleNamespace for {submodule_root}, "
-                        f"but got {type(getattr(namespace, submodule_root))}"
-                    )
-
-                class Loader:
-                    def create_module(self, spec):
-                        return None
-
-                    def exec_module(self, module):
-                        module.__dict__.update(
-                            getattr(namespace, submodule_root).__dict__
-                        )
-
-                    def get_resource_reader(self, name):
-                        return locate_file(namespace, name)
-
-            else:
-                raise ImportError(
-                    f"Namespace 'runtime_models_{self.model.base_name}' does not contain '{submodule_root}'"
-                )
-
-            return importlib.util.spec_from_loader(
-                fullname, loader=Loader(), is_package=True
-            )
+        if self._is_root_module_name(fullname):
+            return self._make_root_module_spec(fullname, namespace)
+        if self._is_submodule_name(fullname):
+            return self._make_submodule_spec(fullname, namespace)
 
         return None  # Let other finders handle it
 
-    def find_distributions(self, context: DistributionFinder.Context):
-        """
-        Find distributions.
+    def _is_root_module_name(self, fullname: str) -> bool:
+        """Check if the module name is the root module of the model."""
+        return fullname == f"runtime_models_{self.model.base_name}"
+
+    def _is_submodule_name(self, fullname: str) -> bool:
+        """Check if the module name is a submodule of the model."""
+        return fullname.startswith(f"runtime_models_{self.model.base_name}.")
+
+    def _make_root_module_spec(
+        self,
+        fullname: str,
+        namespace: SimpleNamespace,
+    ) -> importlib.machinery.ModuleSpec | None:
+        class Loader(importlib.abc.Loader):
+            def create_module(
+                self,
+                spec: importlib.machinery.ModuleSpec,  # noqa: ARG002
+            ) -> None:
+                return None
+
+            def exec_module(self, module: ModuleType) -> None:
+                module.__dict__.update(namespace.__dict__)
+
+            def get_resource_reader(
+                self,
+                name: str,
+            ) -> importlib.resources.abc.ResourceReader:
+                raise NotImplementedError(
+                    "ModelImporter does not support resource reading for the root of the generated model",
+                )
+
+        return importlib.util.spec_from_loader(
+            fullname,
+            loader=Loader(),
+            is_package=True,
+        )
+
+    def _make_submodule_spec(
+        self,
+        fullname: str,
+        namespace: SimpleNamespace,
+    ) -> importlib.machinery.ModuleSpec | None:
+        submodule = fullname[len(f"runtime_models_{self.model.base_name}.") :]
+        submodule_root = submodule.split(".")[0]
+
+        if hasattr(namespace, submodule_root):
+            if not isinstance(getattr(namespace, submodule_root), SimpleNamespace):
+                raise ImportError(
+                    f"Expected a SimpleNamespace for {submodule_root}, "
+                    f"but got {type(getattr(namespace, submodule_root))}",
+                )
+
+            class Loader(importlib.abc.Loader):
+                def create_module(
+                    self,
+                    spec: importlib.machinery.ModuleSpec,  # noqa: ARG002
+                ) -> None:
+                    return None
+
+                def exec_module(self, module: ModuleType) -> None:
+                    module.__dict__.update(
+                        getattr(namespace, submodule_root).__dict__,
+                    )
+
+                def get_resource_reader(
+                    self,
+                    name: str,
+                ) -> importlib.resources.abc.ResourceReader:
+                    raise NotImplementedError(
+                        "ModelImporter does not support resource reading for the root of the generated model",
+                    )
+
+        else:
+            raise ImportError(
+                f"Namespace 'runtime_models_{self.model.base_name}' does not contain '{submodule_root}'",
+            )
+
+        return importlib.util.spec_from_loader(
+            fullname,
+            loader=Loader(),
+            is_package=True,
+        )
+
+    def find_distributions(
+        self,
+        context: DistributionFinder.Context,
+    ) -> list[Distribution]:
+        """Find distributions.
 
         Return an iterable of all Distribution instances capable of
         loading the metadata for packages matching the ``context``,
         a DistributionFinder.Context instance.
         """
         if not context.name or context.name.lower().replace(
-            "-", "_"
+            "-",
+            "_",
         ) == f"runtime_models_{self.model.name}".replace("-", "_"):
             return [ModelDistribution(self.model, self.namespace)]
         return []
 
 
-def register_model(model: InvenioModel, namespace: SimpleNamespace):
-    """
-    Register the model importer to the meta path.
-    This allows dynamic loading of the model based on its configuration.
-    """
+def register_model(model: InvenioModel, namespace: SimpleNamespace) -> None:
+    """Register the model importer to the meta path.
 
+    This allows dynamic loading of the model based on its configuration.
+
+    :param model: The model to register.
+    :param namespace: The namespace associated with the model.
+    """
     # prevent multiple registrations of the same model
     for importer in sys.meta_path:
         if isinstance(importer, ModelImporter) and importer.model == model:
@@ -197,10 +249,13 @@ def register_model(model: InvenioModel, namespace: SimpleNamespace):
     sys.meta_path.insert(0, importer)
 
 
-def unregister_model(model: InvenioModel, namespace: SimpleNamespace):
-    """
-    Unregister the model importer from the meta path.
+def unregister_model(model: InvenioModel) -> None:
+    """Unregister the model importer from the meta path.
+
     This allows cleanup of the model registration.
+
+    :param model: The model to unregister.
+    :param namespace: The namespace associated with the model.
     """
     for i, importer in enumerate(sys.meta_path):
         if isinstance(importer, ModelImporter) and importer.model == model:
