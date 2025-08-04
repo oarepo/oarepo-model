@@ -1,3 +1,13 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
 from io import BytesIO
 
 import pytest
@@ -14,7 +24,6 @@ def test_simple_flow(
     search_clear,
     location,
 ):
-    Record = draft_model.Record
     Draft = draft_model.Draft
 
     # Create an item
@@ -31,10 +40,13 @@ def test_simple_flow(
 
     # Search it
     res = test_draft_service.search_drafts(
-        identity_simple, q=f"id:{id_}", size=25, page=1
+        identity_simple,
+        q=f"id:{id_}",
+        size=25,
+        page=1,
     )
     assert res.total == 1
-    first_hit = list(res.hits)[0]
+    first_hit = next(iter(res.hits))
     assert first_hit["metadata"] == read_item.data["metadata"]
     assert first_hit["links"].items() <= read_item.links.items()
 
@@ -45,10 +57,7 @@ def test_simple_flow(
     assert item.id == update_item.id
     assert update_item["metadata"]["title"] == "New title"
 
-    print("Updated item:", update_item.data)
-
     # Can not publish as publishing needs files support in drafts
-    # assert test_draft_service.publish(identity_simple, id_)
 
     test_draft_service.delete_draft(identity_simple, id_)
     Draft.index.refresh()
@@ -61,16 +70,18 @@ def test_simple_flow(
     assert res.total == 0
 
 
-#
 def add_file_to_draft(draft_file_service, draft_id, file_id, identity):
     """Add a file to the record."""
     result = draft_file_service.init_files(identity, draft_id, data=[{"key": file_id}])
-    file_md = list(result.entries)[0]
+    file_md = next(iter(result.entries))
     assert file_md["key"] == "test.txt"
     assert file_md["status"] == "pending"
 
     draft_file_service.set_file_content(
-        identity, draft_id, file_id, BytesIO(b"test file content")
+        identity,
+        draft_id,
+        file_id,
+        BytesIO(b"test file content"),
     )
     result = draft_file_service.commit_file(identity, draft_id, file_id)
     file_md = result.data
@@ -111,6 +122,9 @@ def test_simple_flow_with_files(
     pytest.raises(PIDDeletedError, draft_service_with_files.read, identity_simple, id_)
     # - search
     res = draft_service_with_files.search(
-        identity_simple, q=f"id:{id_}", size=25, page=1
+        identity_simple,
+        q=f"id:{id_}",
+        size=25,
+        page=1,
     )
     assert res.total == 0

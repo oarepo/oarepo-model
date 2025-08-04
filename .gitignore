@@ -15,3 +15,11 @@ wheels/
 
 # uv
 uv.lock
+
+/.env-services
+/.runner.sh
+
+.coverage
+coverage.xml
+coverage.json
+versions.json

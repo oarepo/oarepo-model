@@ -6,6 +6,13 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+
+"""Customization for adding base classes to OARepo model components.
+
+This module provides the AddBaseClasses customization that allows adding base classes
+to existing classes in an OARepo model during the building process.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override

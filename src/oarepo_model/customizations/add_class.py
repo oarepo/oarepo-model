@@ -6,6 +6,13 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+
+"""Customization for adding classes to OARepo model modules.
+
+This module provides the AddClass customization that allows adding new classes
+to specified modules within an OARepo model during the building process.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -25,7 +32,10 @@ class AddClass(Customization):
     """
 
     def __init__(
-        self, name: str, clazz: type | None = None, exists_ok: bool = False
+        self,
+        name: str,
+        clazz: type | None = None,
+        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
     ) -> None:
         """Initialize the AddClass customization.
 

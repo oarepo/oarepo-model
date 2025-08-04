@@ -1,33 +1,59 @@
-from typing import Any
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+
+"""String data types for OARepo models.
+
+This module provides string-based data type implementations including basic strings,
+keywords, full text fields, and editable text areas for use in OARepo models.
+"""
+
+from __future__ import annotations
+
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, override
 
 import marshmallow.fields
 import marshmallow.validate
 
 from .base import DataType
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 
 class KeywordDataType(DataType):
+    """A data type representing a keyword field in the Oarepo model."""
 
     TYPE = "keyword"
 
     marshmallow_field_class = marshmallow.fields.String
     jsonschema_type = "string"
-    mapping_type = {
-        "type": "keyword",
-        "ignore_above": 256,
-    }
+    mapping_type = MappingProxyType(
+        {
+            "type": "keyword",
+            "ignore_above": 256,
+        },
+    )
 
     def _get_marshmallow_field_args(
-        self, field_name: str, element: dict[str, Any]
+        self,
+        field_name: str,
+        element: dict[str, Any],
     ) -> dict[str, Any]:
         ret = super()._get_marshmallow_field_args(field_name, element)
 
         if "min_length" in element or "max_length" in element:
             ret.setdefault("validate", []).append(
                 marshmallow.validate.Length(
-                    min=element.get("min_length", None),
-                    max=element.get("max_length", None),
-                )
+                    min=element.get("min_length"),
+                    max=element.get("max_length"),
+                ),
             )
         if "required" in element and "min_length" not in element:
             # required strings must have min_length set to 1 if it is not already set
@@ -35,16 +61,19 @@ class KeywordDataType(DataType):
 
         if "enum" in element:
             ret.setdefault("validate", []).append(
-                marshmallow.validate.OneOf(element["enum"])
+                marshmallow.validate.OneOf(element["enum"]),
             )
         if "pattern" in element:
             ret.setdefault("validate", []).append(
-                marshmallow.validate.Regexp(element["pattern"])
+                marshmallow.validate.Regexp(element["pattern"]),
             )
         return ret
 
+    @override
     def create_ui_model(
-        self, element: dict[str, Any], path: list[str]
+        self,
+        element: dict[str, Any],
+        path: list[str],
     ) -> dict[str, Any]:
         ret = super().create_ui_model(element, path)
         if "min_length" in element:
@@ -57,25 +86,27 @@ class KeywordDataType(DataType):
 
 
 class FullTextDataType(KeywordDataType):
-    """
-    A data type representing a full-text field in the Oarepo model.
+    """A data type representing a full-text field in the Oarepo model.
+
     This class can be extended to create custom full-text data types.
     """
 
     TYPE = "fulltext"
-    mapping_type = {
-        "type": "text",
-    }
+    mapping_type = MappingProxyType(
+        {
+            "type": "text",
+        },
+    )
 
 
 class FulltextWithKeywordDataType(KeywordDataType):
-    """
-    A data type representing a full-text field with keyword validation in the Oarepo model.
+    """A data type representing a full-text field with keyword validation in the Oarepo model.
+
     This class can be extended to create custom full-text with keyword data types.
     """
 
     TYPE = "fulltext+keyword"
-    mapping_type = {
+    mapping_type: Mapping[str, Any] = {
         "type": "text",
         "fields": {
             "keyword": {

@@ -1,10 +1,31 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+
+"""Data type registry for OARepo models.
+
+This module provides the DataTypeRegistry class that manages registration and
+loading of data types from various sources including entry points, YAML files,
+and JSON files for use in OARepo models.
+"""
+
+from __future__ import annotations
+
 import importlib.metadata
 import json
 import logging
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import yaml
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from .base import DataType
 from .wrapped import WrappedDataType
@@ -13,25 +34,20 @@ log = logging.getLogger("oarepo_model")
 
 
 class DataTypeRegistry:
-    """
-    Registry for types used in the model.
-    This is a placeholder for the actual implementation.
-    """
+    """Registry for types used in the model."""
 
     def __init__(self) -> None:
+        """Initialize the data type registry."""
         self.types: dict[str, DataType] = {}
 
     def load_entry_points(self) -> None:
-        """
-        Load types from entry points.
-        This is a placeholder for the actual implementation.
-        """
+        """Load types from entry points."""
         for ep in importlib.metadata.entry_points(group="oarepo_model.datatypes"):
             self.add_types(ep.load())
 
-    def add_types(self, type_dict: dict[str, Any]):
-        """
-        Add types to the registry from a dictionary.
+    def add_types(self, type_dict: dict[str, Any]) -> None:
+        """Add types to the registry from a dictionary.
+
         :param type_dict: A dictionary where keys are type names and values are either DataType
                          subclasses or dictionaries defining the type.
         """
@@ -40,27 +56,24 @@ class DataTypeRegistry:
         for type_name, type_cls_or_dict in type_dict.items():
             if isinstance(type_cls_or_dict, dict):
                 self.register(
-                    type_name, WrappedDataType(self, type_name, type_cls_or_dict)
+                    type_name,
+                    WrappedDataType(self, type_name, type_cls_or_dict),
                 )
             elif issubclass(type_cls_or_dict, DataType):
                 self.register(type_name, type_cls_or_dict(self, type_name))
             else:
                 raise TypeError(
-                    f"Invalid type for {type_name}: {type_cls_or_dict}. "
-                    "Expected a dict or a subclass of DataType."
+                    f"Invalid type for {type_name}: {type_cls_or_dict}. Expected a dict or a subclass of DataType.",
                 )
 
-    def register(self, type_name: str, datatype: DataType):
-        """
-        Register a data type in the registry.
-        """
+    def register(self, type_name: str, datatype: DataType) -> None:
+        """Register a data type in the registry."""
         if type_name in self.types:
-            log.warning(f"Type {type_name} is already registered, overwriting.")
+            log.warning("Type %s is already registered, overwriting.", type_name)
         self.types[type_name] = datatype
 
     def get_type(self, type_name_or_dict: str | dict[str, Any]) -> DataType:
-        """
-        Get a data type by its name.
+        """Get a data type by its name.
 
         :param type_name: The name of the data type.
         :return: The data type instance.
@@ -82,17 +95,19 @@ class DataTypeRegistry:
         return self.types[type_name]
 
     def _unwind_shortcuts_in_properties(
-        self, type_dict: dict[str, Any]
+        self,
+        type_dict: dict[str, Any],
     ) -> dict[str, Any]:
         ret: dict[str, Any] = {}
         for k, v in type_dict.items():
+            vv = v
             if k.endswith("[]"):
-                v = {"type": "array", "items": v}
-            v = self._unwind_shortcuts(v)
-            ret[k] = v
+                vv = {"type": "array", "items": vv}
+            vv = self._unwind_shortcuts(vv)
+            ret[k] = vv
         return ret
 
-    def _unwind_shortcuts(self, v):
+    def _unwind_shortcuts(self, v: Any) -> Any:
         if not isinstance(v, dict):
             return v
         if "properties" in v:
@@ -124,10 +139,9 @@ def from_json(file_name: str, origin: str | None = None) -> Callable[[], dict]:
         raw = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(raw, list):
             return {item.pop("name"): item for item in raw}
-        elif isinstance(raw, dict):
+        if isinstance(raw, dict):
             return raw
-        else:
-            raise TypeError(f"Expected dict or list, got {type(raw)}")
+        raise TypeError(f"Expected dict or list, got {type(raw)}")
 
     return _loader
 
@@ -154,9 +168,8 @@ def from_yaml(file_name: str, origin: str | None = None) -> Callable[[], dict]:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
         if isinstance(raw, list):
             return {item.pop("name"): item for item in raw}
-        elif isinstance(raw, dict):
+        if isinstance(raw, dict):
             return raw
-        else:
-            raise TypeError(f"Expected dict or list, got {type(raw)}")
+        raise TypeError(f"Expected dict or list, got {type(raw)}")
 
     return _loader

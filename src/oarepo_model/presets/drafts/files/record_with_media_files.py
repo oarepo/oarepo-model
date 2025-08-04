@@ -6,9 +6,16 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Preset for adding media files support to published records.
+
+This module provides a preset that extends published records with media files
+functionality by adding system fields for managing media files, including
+the media_files FilesField and associated bucket fields for file storage.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_drafts_resources.services.records.components.media_files import (
     MediaFilesAttrConfig,
@@ -22,29 +29,30 @@ from oarepo_model.customizations import (
     AddMixins,
     Customization,
 )
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class RecordWithMediaFilesPreset(Preset):
-    """
-    Preset for records_resources.records
-    """
+    """Preset that adds media files support to published records."""
 
-    depends_on = [
+    depends_on = (
         "MediaFileRecord",  # need to have this dependency because of system fields
-    ]
-    modifies = ["Record"]
+    )
+    modifies = ("Record",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         class RecordWithMediaFilesMixin:
             media_files = FilesField(
                 key=MediaFilesAttrConfig["_files_attr_key"],

@@ -1,19 +1,34 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
 from datetime import date, datetime, time
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import marshmallow as ma
 import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 @pytest.fixture
 def test_schema(datatype_registry) -> Callable[[dict[str, Any]], ma.Schema]:
     def _test_schema(
-        element: dict[str, Any], extra_types: dict[str, Any] | None = None
+        element: dict[str, Any],
+        extra_types: dict[str, Any] | None = None,
     ) -> ma.Schema:
         if extra_types:
             datatype_registry.add_types(extra_types)
         fld = datatype_registry.get_type(element).create_marshmallow_field(
-            field_name="a", element=element
+            field_name="a",
+            element=element,
         )
         return ma.Schema.from_dict({"a": fld})()
 
@@ -27,7 +42,7 @@ def test_keyword_schema(test_schema):
             "min_length": 1,
             "max_length": 10,
             "pattern": "^[a-zA-Z ]+$",
-        }
+        },
     )
     assert schema.load({"a": "test"}) == {"a": "test"}
     with pytest.raises(ma.ValidationError):
@@ -47,7 +62,7 @@ def test_fulltext_schema(test_schema):
             "min_length": 1,
             "max_length": 10,
             "pattern": "^[a-zA-Z ]+$",
-        }
+        },
     )
     assert schema.load({"a": "test"}) == {"a": "test"}
     with pytest.raises(ma.ValidationError):
@@ -67,7 +82,7 @@ def test_fulltext_plus_keyword_schema(test_schema):
             "min_length": 1,
             "max_length": 10,
             "pattern": "^[a-zA-Z ]+$",
-        }
+        },
     )
     assert schema.load({"a": "test"}) == {"a": "test"}
     with pytest.raises(ma.ValidationError):
@@ -86,7 +101,7 @@ def test_integer_schema(test_schema):
             "type": "int",
             "min_inclusive": 0,
             "max_inclusive": 100,
-        }
+        },
     )
     assert schema.load({"a": 50}) == {"a": 50}
     with pytest.raises(ma.ValidationError):
@@ -105,7 +120,7 @@ def test_float_schema(test_schema):
             "type": "float",
             "min_inclusive": 0.0,
             "max_inclusive": 100.0,
-        }
+        },
     )
     assert schema.load({"a": 50.5}) == {"a": 50.5}
     with pytest.raises(ma.ValidationError):
@@ -134,10 +149,10 @@ def test_object_schema(test_schema):
                 "name": {"type": "keyword", "required": True},
                 "age": {"type": "int", "min_inclusive": 0},
             },
-        }
+        },
     )
     assert schema.load({"a": {"name": "John", "age": 30}}) == {
-        "a": {"name": "John", "age": 30}
+        "a": {"name": "John", "age": 30},
     }
     with pytest.raises(ma.ValidationError):
         schema.load({"a": {"name": "", "age": 30}})
@@ -161,12 +176,12 @@ def test_object_inside_object_schema(test_schema):
                         "age": {"type": "int", "min_inclusive": 0},
                     },
                     "required": True,
-                }
+                },
             },
-        }
+        },
     )
     assert schema.load({"a": {"person": {"name": "Alice", "age": 25}}}) == {
-        "a": {"person": {"name": "Alice", "age": 25}}
+        "a": {"person": {"name": "Alice", "age": 25}},
     }
     with pytest.raises(ma.ValidationError):
         schema.load({"a": {"person": {"name": "", "age": 25}}})
@@ -234,7 +249,7 @@ def test_array(test_schema):
             "items": {"type": "keyword"},
             "min_items": 1,
             "max_items": 5,
-        }
+        },
     )
     assert schema.load({"a": ["item1", "item2"]}) == {"a": ["item1", "item2"]}
     with pytest.raises(ma.ValidationError):
@@ -258,10 +273,10 @@ def test_array_of_objects(test_schema):
             },
             "min_items": 1,
             "max_items": 3,
-        }
+        },
     )
     assert schema.load(
-        {"a": [{"name": "Bob", "age": 30}, {"name": "Alice", "age": 25}]}
+        {"a": [{"name": "Bob", "age": 30}, {"name": "Alice", "age": 25}]},
     ) == {"a": [{"name": "Bob", "age": 30}, {"name": "Alice", "age": 25}]}
     with pytest.raises(ma.ValidationError):
         schema.load({"a": []})
@@ -279,8 +294,8 @@ def test_array_of_objects(test_schema):
                     {"name": "Alice", "age": 25},
                     {"name": "Charlie", "age": 20},
                     {"name": "Dave", "age": 40},
-                ]
-            }
+                ],
+            },
         )
 
 
@@ -316,7 +331,7 @@ def test_forwarded_object_schema(test_schema):
         },
     )
     assert schema.load({"a": {"name": "John", "age": 30}}) == {
-        "a": {"name": "John", "age": 30}
+        "a": {"name": "John", "age": 30},
     }
     with pytest.raises(ma.ValidationError):
         schema.load({"a": {"name": "", "age": 30}})
@@ -326,7 +341,7 @@ def test_forwarded_object_schema(test_schema):
 
 def test_date_field(test_schema):
     schema = test_schema(
-        {"type": "date", "min_date": date(2023, 1, 1), "max_date": date(2023, 12, 31)}
+        {"type": "date", "min_date": date(2023, 1, 1), "max_date": date(2023, 12, 31)},
     )
 
     assert schema.load({"a": "2023-01-02"}) == {"a": date(2023, 1, 2)}
@@ -345,20 +360,22 @@ def test_date_field(test_schema):
 
 
 def test_datetime_field(test_schema):
+    min_dt = datetime(2023, 1, 1, 0, 0, 0)  # noqa: DTZ001 no naive datetime
+    max_dt = datetime(2023, 12, 31, 23, 59, 59)  # noqa: DTZ001 no naive datetime
     schema = test_schema(
         {
             "type": "datetime",
-            "min_datetime": datetime(2023, 1, 1, 0, 0, 0),
-            "max_datetime": datetime(2023, 12, 31, 23, 59, 59),
-        }
+            "min_datetime": min_dt,
+            "max_datetime": max_dt,
+        },
     )
 
     assert schema.load({"a": "2023-01-01T12:30:00"}) == {
-        "a": datetime(2023, 1, 1, 12, 30, 0)
+        "a": datetime(2023, 1, 1, 12, 30, 0),  # noqa: DTZ001 no naive datetime
     }
 
     assert schema.load({"a": "2023-01-01 12:30:00"}) == {
-        "a": datetime(2023, 1, 1, 12, 30, 0)
+        "a": datetime(2023, 1, 1, 12, 30, 0),  # noqa: DTZ001 no naive datetime
     }
 
     with pytest.raises(ma.ValidationError):
@@ -428,12 +445,12 @@ def test_edtf_field(test_schema):
     val = "2023-01-01"
     assert schema.load({"a": val}) == {"a": val}
 
+    val = "2023/2025"
     with pytest.raises(ma.ValidationError):
-        val = "2023/2025"
         schema.load({"a": val})
 
+    val = "2024-01-01T00:00:00"
     with pytest.raises(ma.ValidationError):
-        val = "2024-01-01T00:00:00"
         schema.load({"a": val})
 
 
@@ -491,18 +508,18 @@ def test_polymorphic_field(test_schema):
     val = {"a": {"type": "organization", "name": "org name"}}
     assert schema.load(val) == val
 
+    val = {"a": {"type": "person", "name": "bob"}}
     with pytest.raises(ma.ValidationError):
-        val = {"a": {"type": "person", "name": "bob"}}
         schema.load(val)
 
+    val = {"a": {"type": "organization", "first_name": "org name"}}
     with pytest.raises(ma.ValidationError):
-        val = {"a": {"type": "organization", "first_name": "org name"}}
         schema.load(val)
 
+    val = {
+        "a": {"type": "organization", "name": "org name", "full_name": "full_name"},
+    }
     with pytest.raises(ma.ValidationError):
-        val = {
-            "a": {"type": "organization", "name": "org name", "full_name": "full_name"}
-        }
         schema.load(val)
 
 
@@ -531,8 +548,8 @@ def test_polymorphic_field_required(test_schema):
         },
         extra_types={"Person": person_schema, "Organization": organization_schema},
     )
+    val = {}  # missing data
     with pytest.raises(ma.ValidationError):
-        val = {}  # missing data
         assert schema.load(val) == val
 
 
@@ -576,24 +593,24 @@ def test_polymorphic_field_in_array(test_schema):
             {"type": "person", "first_name": "bob2"},
             {"type": "organization", "name": "org name"},
             {"type": "organization", "name": "org name2"},
-        ]
+        ],
     }
     assert schema.load(val) == val
 
+    val = {"a": [{"type": "person", "name": "bob"}]}
     with pytest.raises(ma.ValidationError):
-        val = {"a": [{"type": "person", "name": "bob"}]}
         schema.load(val)
 
+    val = {"a": [{"type": "organization", "first_name": "org name"}]}
     with pytest.raises(ma.ValidationError):
-        val = {"a": [{"type": "organization", "first_name": "org name"}]}
         schema.load(val)
 
+    val = {
+        "a": [
+            {"type": "organization", "name": "org name", "full_name": "full_name"},
+        ],
+    }
     with pytest.raises(ma.ValidationError):
-        val = {
-            "a": [
-                {"type": "organization", "name": "org name", "full_name": "full_name"}
-            ]
-        }
         schema.load(val)
 
 
@@ -627,7 +644,7 @@ def test_polymorphic_field_json_schema(test_schema):
     datatype_registry.add_types(extra_types)
 
     ret = datatype_registry.get_type("polymorphic").create_json_schema(
-        element=polymorphic_schema
+        element=polymorphic_schema,
     )
 
     assert ret == {
@@ -652,8 +669,6 @@ def test_polymorphic_field_json_schema(test_schema):
             },
         ],
     }
-
-    print()
 
 
 def test_polymorphic_field_mapping(test_schema):
@@ -686,7 +701,7 @@ def test_polymorphic_field_mapping(test_schema):
     datatype_registry.add_types(extra_types)
 
     ret = datatype_registry.get_type("polymorphic").create_mapping(
-        element=polymorphic_schema
+        element=polymorphic_schema,
     )
 
     # 2 keys on top level -> type and properties
@@ -714,7 +729,7 @@ def test_polymorphic_field_mapping(test_schema):
         },
     }
     ret = datatype_registry.get_type("array").create_mapping(
-        element=polymorphic_schema_in_array
+        element=polymorphic_schema_in_array,
     )
     # 2 keys on top level -> type and properties
     assert ret.keys() == {"type", "properties"}

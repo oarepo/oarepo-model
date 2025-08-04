@@ -6,6 +6,14 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for creating class lists in the model.
+
+This module provides the AddClassList customization that creates new class lists
+with specified names in the model builder. Class lists are collections of classes
+that maintain proper method resolution order (MRO) when reordered, making them
+suitable for managing inheritance hierarchies and mixin collections.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -24,7 +32,11 @@ class AddClassList(Customization):
     to keep the mro.
     """
 
-    def __init__(self, name: str, exists_ok: bool = False) -> None:
+    def __init__(
+        self,
+        name: str,
+        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
+    ) -> None:
         """Initialize the AddClass customization.
 
         :param name: The name of the class to be added.

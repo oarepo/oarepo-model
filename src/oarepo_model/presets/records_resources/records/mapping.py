@@ -6,32 +6,34 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Module to generate mappings module and entry point for records."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from oarepo_model.customizations import AddEntryPoint, AddModule, Customization
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class MappingPreset(Preset):
-    """
-    Preset for records_resources.records.mapping
-    """
+    """Preset that creates a mappings module and adds a mapping entry point."""
 
-    provides = ["mappings"]
+    provides = ("mappings",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
-
+    ) -> Generator[Customization]:
         yield AddModule("mappings", exists_ok=True)
 
         yield AddEntryPoint(

@@ -1,3 +1,13 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
 import pytest
 from invenio_app.factory import create_api as _create_api
 
@@ -38,7 +48,7 @@ def file_service(app):
     return app.extensions["test"].files_service
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def input_data():
     """Input data (as coming from the view layer)."""
     return {
@@ -49,7 +59,7 @@ def input_data():
     }
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def input_data_with_files_disabled(input_data):
     """Input data with files disabled."""
     data = input_data.copy()

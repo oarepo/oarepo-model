@@ -6,9 +6,15 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Application blueprint preset for record operations.
+
+This module provides the AppBlueprintPreset that configures
+application-level blueprints for handling record views and UI in Invenio applications.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from flask import Blueprint
 
@@ -18,43 +24,47 @@ from oarepo_model.customizations import (
     AddToModule,
     Customization,
 )
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from flask import Flask
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class AppBlueprintPreset(Preset):
-    """
-    Preset for app blueprint.
-    """
+    """Preset for app blueprint."""
 
-    modifies = ["blueprints"]
-    provides = ["app_application_blueprint_initializers"]
+    modifies = ("blueprints",)
+    provides = ("app_application_blueprint_initializers",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
-
+    ) -> Generator[Customization]:
         yield AddDictionary("app_application_blueprint_initializers", exists_ok=True)
 
         dependencies = builder.get_runtime_dependencies()
 
         @staticmethod  # need to use staticmethod as python's magic always passes self as the first argument
-        def create_app_blueprint(app):
+        def create_app_blueprint(app: Flask) -> Blueprint:
             """Create DocumentsRecord blueprint."""
             with app.app_context():
                 blueprint = Blueprint(
-                    f"{model.base_name}_app", __name__, url_prefix="/{model.slug}/"
+                    f"{model.base_name}_app",
+                    __name__,
+                    url_prefix="/{model.slug}/",
                 )
 
-                for initializer_name, initializer_func in dependencies.get(
-                    "app_application_blueprint_initializers"
-                ).items():
+                for initializer_func in dependencies.get(
+                    "app_application_blueprint_initializers",
+                ).values():
                     blueprint.record_once(initializer_func)
 
             return blueprint

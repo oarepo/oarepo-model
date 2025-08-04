@@ -6,9 +6,15 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Preset for draft record API model.
+
+This module provides the DraftRecordPreset that creates
+draft record API classes for the draft/publish workflow.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_drafts_resources.records import Draft as InvenioDraft
 from invenio_rdm_records.records.systemfields import HasDraftCheckField
@@ -25,33 +31,33 @@ from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
 
 
 class DraftPreset(Preset):
-    """
-    Preset for Draft record.
-    """
+    """Preset for Draft record."""
 
-    depends_on = [
+    depends_on = (
         "RecordMetadata",
         "PIDField",
         "PIDProvider",
         "PIDFieldContext",
-    ]
+    )
 
-    provides = [
-        "Draft",
-    ]
+    provides = ("Draft",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         class DraftMixin:
             """Base class for records in the model.
+
             This class extends InvenioRecord and can be customized further.
             """
 
@@ -77,7 +83,8 @@ class DraftPreset(Preset):
             )
 
             dumper = Dependency(
-                "RecordDumper", transform=lambda RecordDumper: RecordDumper()
+                "RecordDumper",
+                transform=lambda RecordDumper: RecordDumper(),  # noqa class name
             )
 
             # note: we need to use the has_draft field from rdm records

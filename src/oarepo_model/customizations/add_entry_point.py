@@ -6,6 +6,14 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for adding entry points to the model.
+
+This module provides the AddEntryPoint customization that registers entry points
+in the model's setup configuration. Entry points are specific locations in code
+where functionality can be accessed by external systems or plugins, commonly
+used for plugin discovery and extension mechanisms.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -29,7 +37,7 @@ class AddEntryPoint(Customization):
         name: str,
         value: str,
         separator: str = ":",
-        overwrite: bool = False,
+        overwrite: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
     ) -> None:
         """Initialize the AddEntryPoint customization.
 

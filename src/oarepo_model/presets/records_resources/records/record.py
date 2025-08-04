@@ -6,9 +6,11 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Module to generate record class."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_records.systemfields import ConstantField
 from invenio_records_resources.records.api import Record as InvenioRecord
@@ -23,33 +25,33 @@ from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
 
 
 class RecordPreset(Preset):
-    """
-    Preset for records_resources.records
-    """
+    """Preset that generates a base record class."""
 
-    depends_on = [
+    depends_on = (
         "RecordMetadata",
         "PIDField",
         "PIDProvider",
         "PIDFieldContext",
-    ]
+    )
 
-    provides = [
-        "Record",
-    ]
+    provides = ("Record",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         class RecordMixin:
             """Base class for records in the model.
+
             This class extends InvenioRecord and can be customized further.
             """
 
@@ -71,7 +73,8 @@ class RecordPreset(Preset):
             )
 
             dumper = Dependency(
-                "RecordDumper", transform=lambda RecordDumper: RecordDumper()
+                "RecordDumper",
+                transform=lambda RecordDumper: RecordDumper(),  # noqa: N803
             )
 
         yield AddClass(

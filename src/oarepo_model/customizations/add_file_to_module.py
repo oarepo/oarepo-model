@@ -6,6 +6,14 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for adding files to modules.
+
+This module provides the AddFileToModule customization that creates new files
+with specified content in modules. The files can contain any text content and
+are identified by symbolic names for easy reference throughout the model building
+process.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -26,8 +34,7 @@ class AddFileToModule(Customization):
         module_name: str,
         file_path: str,
         file_content: str,
-        exists_ok: bool = False,
-        namespace_constant: str | None = None,
+        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
     ) -> None:
         """Initialize the AddFileToModule customization.
 
@@ -46,7 +53,10 @@ class AddFileToModule(Customization):
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-
         builder.add_file(
-            self.name, self.module_name, self.file_path, self.file_content, self.exists_ok
+            self.name,
+            self.module_name,
+            self.file_path,
+            self.file_content,
+            self.exists_ok,
         )

@@ -1,17 +1,32 @@
-from typing import Any, Callable
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 @pytest.fixture
 def test_ui_model(datatype_registry) -> Callable[[dict[str, Any]], dict[str, Any]]:
     def _test_ui_model(
-        element: dict[str, Any], extra_types: dict[str, Any] | None = None
+        element: dict[str, Any],
+        extra_types: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         if extra_types:
             datatype_registry.add_types(extra_types)
         return datatype_registry.get_type(element).create_ui_model(
-            element=element, path=["a"]
+            element=element,
+            path=["a"],
         )
 
     return _test_ui_model
@@ -24,7 +39,7 @@ def test_keyword_ui_model(test_ui_model):
             "min_length": 1,
             "max_length": 10,
             "pattern": "^[a-zA-Z ]+$",
-        }
+        },
     )
     assert ui_model == {
         "input": "keyword",
@@ -44,7 +59,7 @@ def test_fulltext_ui_model(test_ui_model):
             "min_length": 1,
             "max_length": 10,
             "pattern": "^[a-zA-Z ]+$",
-        }
+        },
     )
     assert ui_model == {
         "input": "fulltext",
@@ -64,7 +79,7 @@ def test_fulltext_plus_keyword_ui_model(test_ui_model):
             "min_length": 1,
             "max_length": 10,
             "pattern": "^[a-zA-Z ]+$",
-        }
+        },
     )
     assert ui_model == {
         "input": "fulltext+keyword",
@@ -83,7 +98,7 @@ def test_integer_ui_model(test_ui_model):
             "type": "int",
             "min_inclusive": 0,
             "max_inclusive": 100,
-        }
+        },
     )
     assert ui_model == {
         "input": "int",
@@ -101,7 +116,7 @@ def test_float_ui_model(test_ui_model):
             "type": "float",
             "min_inclusive": 0.0,
             "max_inclusive": 100.0,
-        }
+        },
     )
     assert ui_model == {
         "input": "float",
@@ -131,7 +146,7 @@ def test_object_ui_model(test_ui_model):
                 "name": {"type": "keyword", "required": True},
                 "age": {"type": "int", "min_inclusive": 0},
             },
-        }
+        },
     )
     assert ui_model == {
         "input": "object",
@@ -169,9 +184,9 @@ def test_object_inside_object_ui_model(test_ui_model):
                         "age": {"type": "int", "min_inclusive": 0},
                     },
                     "required": True,
-                }
+                },
             },
-        }
+        },
     )
     assert ui_model == {
         "input": "object",
@@ -201,7 +216,7 @@ def test_object_inside_object_ui_model(test_ui_model):
                         "min_inclusive": 0,
                     },
                 },
-            }
+            },
         },
     }
 
@@ -277,7 +292,7 @@ def test_array(test_ui_model):
             "items": {"type": "keyword"},
             "min_items": 1,
             "max_items": 5,
-        }
+        },
     )
     assert ui_model == {
         "input": "array",
@@ -308,7 +323,7 @@ def test_array_of_objects(test_ui_model):
             },
             "min_items": 1,
             "max_items": 3,
-        }
+        },
     )
     assert ui_model == {
         "input": "array",

@@ -6,17 +6,27 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Utilities for OAREPO model."""
+
+from __future__ import annotations
+
 import inspect
+import json
 import keyword
 import re
+from types import MappingProxyType
+from typing import Any, override
 
 import marshmallow
 from invenio_db import db
 
 
 def add_to_class_list_preserve_mro(
-    class_list: list[type], clz: type, prepend: bool = False
+    class_list: list[type],
+    clz: type,
+    prepend: bool = False,  # noqa: FBT001, FBT002  do not use boolean as a switch
 ) -> None:
+    """Add a class to a list of classes while preserving the method resolution order (MRO)."""
     if not inspect.isclass(clz):
         raise TypeError("Only classes can be added to ClassList")
 
@@ -43,12 +53,11 @@ def add_to_class_list_preserve_mro(
             class_list.insert(removed_positions[0], clz)
         else:
             class_list.insert(removed_positions[-1], clz)
+    # If no class was removed, we append the new class
+    elif prepend:
+        class_list.insert(0, clz)
     else:
-        # If no class was removed, we append the new class
-        if prepend:
-            class_list.insert(0, clz)
-        else:
-            class_list.append(clz)
+        class_list.append(clz)
 
     # Ensure the order is consistent with MRO
     if is_mro_consistent(class_list):
@@ -60,21 +69,36 @@ def add_to_class_list_preserve_mro(
 
 
 def is_mro_consistent(class_list: list[type]) -> bool:
+    """Check if the MRO of the class list is consistent."""
     try:
         # Directly attempt to create the MRO
         created_class = type("_", tuple(class_list), {})
         mro = created_class.mro()
         # If the created class is sqlalchemy, remove it from sqlachemy mapping
         if issubclass(created_class, db.Model):
-            db.Model.registry._dispose_cls(created_class)
-        # Check if our classes appear in the same order
-        filtered_mro = [c for c in mro if c in class_list]
-        return filtered_mro == class_list
+            db.Model.registry._dispose_cls(  # noqa: SLF001 private value access
+                created_class,
+            )
     except TypeError:
         return False
 
+    # Check if our classes appear in the same order
+    filtered_mro = [c for c in mro if c in class_list]
+    return filtered_mro == class_list
+
 
 def make_mro_consistent(class_list: list[type]) -> list[type]:
+    """Make the MRO of the class list consistent.
+
+    This function ensures that the classes in the list can be ordered in a way
+    that respects the method resolution order (MRO) of Python classes while
+    minimizing the number of changes to the original order.
+
+    :param class_list: List of classes to be ordered.
+    :return: A new list of classes ordered to be consistent with MRO.
+    :raises TypeError: If the classes cannot be ordered in a way that respects MRO
+        or if the classes are incompatible.
+    """
     if not class_list:
         return []
 
@@ -91,43 +115,50 @@ def make_mro_consistent(class_list: list[type]) -> list[type]:
             for i in range(len(result), -1, -1):
                 try:
                     # Test if inserting at position i would be valid
-                    temp_order = result[:i] + [cls] + result[i:]
+                    temp_order = [*result[:i], cls, *result[i:]]
                     created_class = type("_", tuple(temp_order), {})
                     if issubclass(created_class, db.Model):
-                        db.Model.registry._dispose_cls(created_class)
+                        db.Model.registry._dispose_cls(  # noqa: SLF001 private value access
+                            created_class,
+                        )
                     insert_pos = i
                     break
                 except TypeError:
                     continue
             else:
                 raise TypeError(
-                    f"Cannot insert {cls} into MRO of {result}. "
-                    "It would break the method resolution order."
+                    f"Cannot insert {cls} into MRO of {result}. It would break the method resolution order.",
                 )
 
             # Insert at the found position
             result.insert(insert_pos, cls)
+    except TypeError:
+        raise
     except Exception as e:
         raise TypeError(
-            f"Failed to make MRO consistent for {class_list}. "
-            "Ensure that the classes are compatible."
+            f"Failed to make MRO consistent for {class_list}. Ensure that the classes are compatible.",
         ) from e
     return result
 
 
-def camel_case_split(s):
+def camel_case_split(s: str) -> list[str]:
+    """Split a camel case string into a list of words."""
     return re.findall(r"([A-Z]?[a-z]+)", s)
 
 
-def title_case(s):
+def title_case(s: str) -> str:
+    """Convert a string to title case."""
     parts = camel_case_split(s)
     return "".join(part.capitalize() for part in parts)
 
 
 def convert_to_python_identifier(s: str) -> str:
-    """
-    Convert a string to a valid Python identifier.
+    """Convert a string to a valid Python identifier.
+
     Replaces invalid characters with their transliteration to english words.
+
+    :param s: The string to convert.
+    :return: A valid Python identifier.
     """
     if not s:
         return "_empty_"
@@ -135,7 +166,7 @@ def convert_to_python_identifier(s: str) -> str:
     if not s.isidentifier():
         ret = []
         for c in s:
-            if not (c.isalnum() or c == '_'):
+            if not (c.isalnum() or c == "_"):
                 ret.append(f"_{ord(c)}_")
             else:
                 ret.append(c)
@@ -147,41 +178,70 @@ def convert_to_python_identifier(s: str) -> str:
     return s
 
 
-class PossibleMultiFormatField(marshmallow.fields.Field):
-    """Helper class to wrap around different formatting options of a marshmallow field.
+class MultiFormatField(marshmallow.fields.Field):
+    """A marshmallow field that has multiple internal formatting marshmallow fields.
 
-    Class keeps different formatters (e.g. for boolean or number).
-    Returns only formatted value if there is only 1 formatter or wrapped in a dictionary (see date example in test_ui_schemas).
+    During serialization, it uses all the fields and returns a dictionary with
+    keys as field names and values as the serialized values.
     """
 
     def __init__(
-        self, formatters: dict[str, marshmallow.fields.Field], *args, **kwargs
+        self,
+        subfields: dict[str, marshmallow.fields.Field],
+        *args: Any,
+        **kwargs: Any,
     ):
-        super().__init__(*args, **kwargs)
-        self.formatters = formatters
+        """Initialize the field with multiple subfields.
 
-    def _serialize(self, value, attr, obj, **kwargs) -> dict[str, str] | str:
+        :param subfields: A dictionary of field names and their corresponding marshmallow fields.
+        :param args: Additional positional arguments.
+        :param kwargs: Additional keyword arguments.
+        """
+        super().__init__(*args, **kwargs)
+        if len(subfields) < 2:  # noqa: PLR2004   magic constant
+            raise ValueError("MultiFormatField requires at least two subfields.")
+
+        self.subfields = subfields
+
+    @override
+    def _serialize(
+        self,
+        value: Any,
+        attr: str | None,
+        obj: Any,
+        **kwargs: Any,
+    ) -> dict[str, str] | str | None:
         if value is None:
             return None
 
         # if there is only 1 format, just return its formatted value
-        if len(self.formatters) == 1:
-            formatter = next(iter(self.formatters))
-            return formatter._serialize(value, attr, obj, **kwargs)
+        if len(self.subfields) == 1:
+            formatter = next(iter(self.subfields.values()))
+            return formatter._serialize(  # noqa: SLF001 private value access
+                value,
+                attr,
+                obj,
+                **kwargs,
+            )
 
         # otherwise return key: value dictionary
         return {
-            key: field._serialize(value, attr, obj, **kwargs)
-            for key, field in self.formatters.items()
+            key: field._serialize(  # noqa: SLF001 private value access
+                value,
+                attr,
+                obj,
+                **kwargs,
+            )
+            for key, field in self.subfields.items()
         }
 
-    def as_marshmallow_field(
-        self,
-    ) -> dict[str, marshmallow.fields.Field] | marshmallow.fields.Field:
-        if (
-            len(self.formatters) >= 2
-        ):  # return self if there are multiple formatting (serialization is handled by this class too)
-            return self
-        return next(
-            iter(self.formatters.values())
-        )  # return only formatted value, so there is no key in the output
+
+def dump_to_json(obj: Any) -> str:
+    """Dump an object to a JSON string."""
+
+    def default_serializer(o: Any) -> Any:
+        if isinstance(o, MappingProxyType):
+            return dict(o)
+        raise TypeError(f"Object of type {type(o)} is not JSON serializable")
+
+    return json.dumps(obj, default=default_serializer)
