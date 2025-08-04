@@ -66,7 +66,7 @@ class MediaFilesRecordServiceConfigPreset(Preset):
                 # return process_service_configs(
                 #     self, self.get_model_dependency("record_service_components")  # noqa
                 return [
-                    *super().components,
+                    *super().components,  # type: ignore[misc]
                     *self.get_model_dependency("media_files_record_service_components"),
                 ]
 

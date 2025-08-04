@@ -16,7 +16,7 @@ and position of array items in the relation path.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, override
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_records_resources.records.systemfields import (
     PIDListRelation,
@@ -32,7 +32,13 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
 
-ARRAY_PATH_ITEM = object()
+
+class ARRAY_PATH_ITEM:  # noqa: N801
+    """Marker for array items in the path.
+
+    This class is used to indicate that a part of the path is an array item.
+    It is used to differentiate between simple relations and list relations.
+    """
 
 
 class AddPIDRelation(Customization):
@@ -41,7 +47,7 @@ class AddPIDRelation(Customization):
     def __init__(
         self,
         name: str,
-        path: list[str | Literal[ARRAY_PATH_ITEM]],
+        path: list[str | type[ARRAY_PATH_ITEM]],
         keys: list[str],
         pid_field: PIDField,
         cache_key: str | None = None,
@@ -67,7 +73,7 @@ class AddPIDRelation(Customization):
         match array_count:
             case 0:
                 relations[self.name] = PIDRelation(
-                    ".".join(self.path),
+                    ".".join(x for x in self.path if isinstance(x, str)),
                     keys=self.keys,
                     pid_field=self.pid_field,
                     cache_key=self.cache_key,
@@ -79,11 +85,11 @@ class AddPIDRelation(Customization):
 
                 # If the last element is an array, we create a PIDListRelation
                 relations[self.name] = PIDListRelation(
-                    ".".join(before_array),
+                    ".".join(x for x in before_array if isinstance(x, str)),
                     keys=self.keys,
                     pid_field=self.pid_field,
                     cache_key=self.cache_key,
-                    relation_field=".".join(after_array) if after_array else None,
+                    relation_field=(".".join(x for x in after_array if isinstance(x, str)) if after_array else None),
                     **self.kwargs,
                 )
 
@@ -103,8 +109,10 @@ class AddPIDRelation(Customization):
                     )
 
                 relations[self.name] = PIDNestedListRelation(
-                    ".".join(before_first_array),
-                    relation_field=".".join(between_arrays) if between_arrays else None,
+                    ".".join(x for x in before_first_array if isinstance(x, str)),
+                    relation_field=(
+                        ".".join(x for x in between_arrays if isinstance(x, str)) if between_arrays else None
+                    ),
                     keys=self.keys,
                     pid_field=self.pid_field,
                     cache_key=self.cache_key,

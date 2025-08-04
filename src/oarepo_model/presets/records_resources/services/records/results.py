@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from oarepo_runtime.services.results import RecordItem, RecordList, ResultsComponent
 
@@ -66,11 +66,14 @@ class RecordResultItemPreset(Preset):
             @property
             def components(self) -> list[ResultsComponent]:
                 return [
-                    *super().components,
+                    *super().components,  # type: ignore[misc]
                     *[
-                        component(RecordItemMixin, self)
-                        for component in dependencies.get(
-                            "record_result_item_components",
+                        component()
+                        for component in cast(
+                            "list[type[ResultsComponent]]",
+                            dependencies.get(
+                                "record_result_item_components",
+                            ),
                         )
                     ],
                 ]
@@ -96,11 +99,14 @@ class RecordResultListPreset(Preset):
             @property
             def components(self) -> list[ResultsComponent]:
                 return [
-                    *super().components,
+                    *super().components,  # type: ignore[misc]
                     *[
                         component()
-                        for component in dependencies.get(
-                            "record_result_list_components",
+                        for component in cast(
+                            "list[type[ResultsComponent]]",
+                            dependencies.get(
+                                "record_result_list_components",
+                            ),
                         )
                     ],
                 ]

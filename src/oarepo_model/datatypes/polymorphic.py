@@ -73,7 +73,12 @@ class PolymorphicDataType(DataType):
         Uses OneOf field with different schemas based on discriminator.
         """
         if element.get("marshmallow_field") is not None:
-            return obj_or_import_string(element["marshmallow_field"])
+            mf = obj_or_import_string(element["marshmallow_field"])
+            if mf is None or not isinstance(mf, ma.fields.Field):
+                raise TypeError(
+                    f"marshmallow_field must be an instance of marshmallow.fields.Field, got {mf}",
+                )
+            return mf
 
         # get discriminator field name
         discriminator = element.get("discriminator", "type")
@@ -171,6 +176,7 @@ class PolymorphicDataType(DataType):
                 child_jsonschema = datatype.create_json_schema(oneof_item)
 
                 if "properties" not in child_jsonschema:
+                    child_jsonschema = dict(child_jsonschema)  # make a copy to avoid modifying the original
                     child_jsonschema["properties"] = {}
 
                 # only 1 value is allowed in this field (e.g. person or organization)
@@ -181,6 +187,7 @@ class PolymorphicDataType(DataType):
 
                 # discriminator is a required field
                 if "required" not in child_jsonschema:
+                    child_jsonschema = dict(child_jsonschema)  # make a copy to avoid modifying the original
                     child_jsonschema["required"] = []
                 if discriminator not in child_jsonschema["required"]:
                     child_jsonschema["required"].append(discriminator)
@@ -256,6 +263,11 @@ class PolymorphicField(ma.fields.Field):
 
         if val is missing_:
             error = self.make_error(key="required")
+            error.field_name = self.discriminator
+            raise error
+
+        if not isinstance(val, str):
+            error = ma.ValidationError("Discriminator value must be a string.")
             error.field_name = self.discriminator
             raise error
 

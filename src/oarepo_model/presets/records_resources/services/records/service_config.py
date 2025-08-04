@@ -40,7 +40,7 @@ from oarepo_model.presets import Preset
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from invenio_records_resources.services.records.components import Component
+    from invenio_records_resources.services.records.components import ServiceComponent
 
     from oarepo_model.builder import InvenioModelBuilder
 
@@ -88,14 +88,14 @@ class RecordServiceConfigPreset(Preset):
             search_item_links_template = LinksTemplate
 
             @property
-            def components(self) -> list[Component]:
+            def components(self) -> list[ServiceComponent]:
                 # TODO: needs to be fixed as we have multiple mixins and the sources
                 # in oarepo-runtime do not support this yet
                 # return process_service_configs(
                 #     self, self.get_model_dependency("record_service_components") # noqa: ERA001
                 #
                 return [
-                    *super().components,
+                    *super().components,  # type: ignore[misc]
                     *self.get_model_dependency("record_service_components"),
                 ]
 
@@ -104,7 +104,7 @@ class RecordServiceConfigPreset(Preset):
             @property
             def links_item(self) -> dict[str, Link]:
                 try:
-                    supercls_links = super().links_item
+                    supercls_links = super().links_item  # type: ignore[misc]
                 except AttributeError:  # if they aren't defined in the superclass
                     supercls_links = {}
 
@@ -117,7 +117,7 @@ class RecordServiceConfigPreset(Preset):
             @property
             def links_search_item(self) -> dict[str, Link]:
                 try:
-                    supercls_links = super().links_search_item
+                    supercls_links = super().links_search_item  # type: ignore[misc]
                 except AttributeError:  # if they aren't defined in the superclass
                     supercls_links = {}
                 links = {
@@ -129,7 +129,7 @@ class RecordServiceConfigPreset(Preset):
             @property
             def links_search(self) -> dict[str, Link]:
                 try:
-                    supercls_links = super().links_search
+                    supercls_links = super().links_search  # type: ignore[misc]
                 except AttributeError:  # if they aren't defined in the superclass
                     supercls_links = {}
                 links = {

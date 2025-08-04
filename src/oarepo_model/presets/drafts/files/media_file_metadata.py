@@ -63,7 +63,7 @@ class MediaFileMetadataPreset(Preset):
             __tablename__ = f"{builder.model.base_name}_media_files"
             __record_model_cls__ = dependencies.get("RecordMetadata")
 
-        @declared_attr
+        @declared_attr  # type: ignore[misc]
         def __table_args__(cls):  # noqa declared attr is class method
             """Table args."""
             return (

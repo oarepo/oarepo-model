@@ -208,7 +208,7 @@ class CachedMultilayerEDTFValidator(EDTFValidator):
     """A cached EDTF validator."""
 
     @functools.lru_cache(maxsize=1024)  # noqa memory consumption ok
-    def __call__(self, value: str) -> str:
+    def __call__(self, value: str) -> str:  # type: ignore # noqa
         """Validate the EDTF value and return it."""
         # at first try to parse the value as a date because it is much faster
         # and most of the time it is a date

@@ -14,7 +14,7 @@ API blueprints for handling record operations in Invenio applications.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from oarepo_model.customizations import (
     AddDictionary,
@@ -50,14 +50,16 @@ class ApiBlueprintPreset(Preset):
 
         runtime_dependencies = builder.get_runtime_dependencies()
 
-        @staticmethod  # need to use staticmethod as python's magic always passes self as the first argument
+        # need to use staticmethod as python's magic always passes self as the first argument
+        @staticmethod  # type: ignore[misc]
         def create_api_blueprint(app: Flask) -> Blueprint:
             """Create DocumentsRecord blueprint."""
             with app.app_context():
                 blueprint = app.extensions[model.base_name].records_resource.as_blueprint()
 
-                for initializer_func in runtime_dependencies.get(
-                    "api_application_blueprint_initializers",
+                for initializer_func in cast(
+                    "dict",
+                    runtime_dependencies.get("api_application_blueprint_initializers"),
                 ).values():
                     blueprint.record_once(initializer_func)
 

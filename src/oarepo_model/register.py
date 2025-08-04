@@ -19,7 +19,7 @@ import sys
 from importlib.metadata import Distribution, DistributionFinder
 from pathlib import PurePosixPath
 from types import ModuleType, SimpleNamespace
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -66,7 +66,7 @@ Version: {self.model.version}
     @property
     @override
     def entry_points(self) -> importlib.metadata.EntryPoints:
-        return self.namespace.entry_points
+        return cast("importlib.metadata.EntryPoints", self.namespace.entry_points)
 
     @property
     @override

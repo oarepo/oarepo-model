@@ -21,10 +21,13 @@ from typing import TYPE_CHECKING, Any, cast, override
 from .base import DataType
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     import marshmallow
 
     from oarepo_model.customizations.base import Customization
 
+    from .collections import ObjectDataType
     from .registry import DataTypeRegistry
 
 
@@ -99,7 +102,7 @@ class WrappedDataType(DataType):
 
         This method should be overridden by subclasses to provide specific schema creation logic.
         """
-        return cast("Any", self.impl).create_marshmallow_schema(
+        return cast("ObjectDataType", self.impl).create_marshmallow_schema(
             self._merge_type_dict(element),
         )
 
@@ -111,16 +114,16 @@ class WrappedDataType(DataType):
 
         This method should be overridden by subclasses to provide specific schema creation logic.
         """
-        return cast("Any", self.impl).create_ui_marshmallow_schema(
+        return cast("ObjectDataType", self.impl).create_ui_marshmallow_schema(
             self._merge_type_dict(element),
         )
 
     @override
-    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+    def create_json_schema(self, element: dict[str, Any]) -> Mapping[str, Any]:
         return self.impl.create_json_schema(self._merge_type_dict(element))
 
     @override
-    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+    def create_mapping(self, element: dict[str, Any]) -> Mapping[str, Any]:
         return self.impl.create_mapping(self._merge_type_dict(element))
 
     @override
@@ -140,7 +143,7 @@ class WrappedDataType(DataType):
         return self.impl.create_ui_model(self._merge_type_dict(element), path)
 
 
-def strict_merge(a: Any, b: Any) -> Any:
+def strict_merge[T](a: T, b: T) -> T:
     """Merge two dictionaries, arrays or other types.
 
     In dictionaries, one element can not override another element with the same key.
@@ -153,11 +156,11 @@ def strict_merge(a: Any, b: Any) -> Any:
                 raise ValueError(
                     f"Cannot merge dictionaries with overlapping keys: {a.keys() & b.keys()}",
                 )
-            return {**a, **b}
+            return cast("T", {**a, **b})
         case list():
             if not isinstance(b, list):
                 raise TypeError(f"Cannot merge list with {type(b)}")
-            return a + b
+            return cast("T", a + b)
         case _:
             if a != b:
                 raise TypeError(f"Cannot merge {type(a)} with {type(b)}")

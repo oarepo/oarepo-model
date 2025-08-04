@@ -33,7 +33,7 @@ class RecordRelationsPreset(Preset):
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        _dependencies: dict[str, Any],
+        dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         """Apply the preset to the model and yield customizations."""
         if model.metadata_type is not None:

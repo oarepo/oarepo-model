@@ -21,7 +21,7 @@ from invenio_records_resources.services import (
     FileServiceConfig,
 )
 from invenio_records_resources.services.files.links import FileEndpointLink
-from invenio_records_resources.services.records.links import Link, RecordEndpointLink
+from invenio_records_resources.services.records.links import RecordEndpointLink
 
 from oarepo_model.customizations import AddClass, AddMixins, AddToList, Customization
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
@@ -51,7 +51,7 @@ class DraftFileServiceConfigPreset(Preset):
             permission_policy_cls = Dependency("PermissionPolicy")
             permission_action_prefix = "draft_"
 
-            file_links_list: ClassVar[dict[str, Link]] = {
+            file_links_list: ClassVar[dict[str, RecordEndpointLink]] = {
                 "self": RecordEndpointLink(
                     f"{model.base_name}_draft_files.search",
                     params=["pid_value"],
@@ -62,7 +62,7 @@ class DraftFileServiceConfigPreset(Preset):
                 ),
             }
 
-            file_links_item: ClassVar[dict[str, Link]] = {
+            file_links_item: ClassVar[dict[str, FileEndpointLink]] = {
                 "self": FileEndpointLink(
                     f"{model.base_name}_draft_files.read",
                     params=["pid_value", "key"],

@@ -61,7 +61,7 @@ class FileMetadataPreset(Preset):
             __tablename__ = f"{builder.model.base_name}_files"
             __record_model_cls__ = dependencies.get("RecordMetadata")
 
-        @declared_attr
+        @declared_attr  # type: ignore[misc]
         def __table_args__(cls):  # noqa first argument name must be 'self'
             """Table args."""
             return (

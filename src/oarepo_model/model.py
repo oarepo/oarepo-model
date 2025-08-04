@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import dataclasses
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from .utils import title_case
 
@@ -41,28 +41,28 @@ class InvenioModel:
     def base_name(self) -> str:
         """Return the base name of the model."""
         if "base_name" in self.configuration:
-            return self.configuration["base_name"]
+            return cast("str", self.configuration["base_name"])
         return self.name.lower().replace(" ", "_").replace("-", "_")
 
     @property
     def slug(self) -> str:
         """Return a slugified version of the model name."""
         if "slug" in self.configuration:
-            return self.configuration["slug"]
+            return cast("str", self.configuration["slug"])
         return self.base_name.replace("_", "-")
 
     @property
     def title_name(self) -> str:
         """Return the title case version of the model name."""
         if "title_name" in self.configuration:
-            return self.configuration["title_name"]
+            return cast("str", self.configuration["title_name"])
         return title_case(self.base_name)
 
     @property
     def uppercase_name(self) -> str:
         """Return the uppercase version of the model name."""
         if "uppercase_name" in self.configuration:
-            return self.configuration["uppercase_name"]
+            return cast("str", self.configuration["uppercase_name"])
         return self.name.upper().replace(" ", "_").replace("-", "_")
 
 
@@ -74,10 +74,10 @@ class CachedDescriptor:
     def __set_name__(self, owner: type, name: str) -> None:
         """Set the name of the attribute and initialize the cache."""
         with suppress(AttributeError):
-            super().__set_name__(owner, name)
+            super().__set_name__(owner, name)  # type: ignore[misc]
         self.attr = name
 
-    def __get__(self, instance: InvenioModel, owner: type) -> Any:
+    def __get__(self, instance: ModelMixin | None, owner: type[ModelMixin]) -> Any:
         """Get the cached value or compute it if not cached."""
         if instance and hasattr(instance, f"_cached_{self.attr}"):
             ret = getattr(instance, f"_cached_{self.attr}")[0]
@@ -110,8 +110,8 @@ class CachedDescriptor:
 
     def real_get_value(
         self,
-        instance: InvenioModel,
-        owner: type,
+        instance: ModelMixin | None,
+        owner: type[ModelMixin],
         oarepo_model: InvenioModel,
         target_namespace: SimpleNamespace,
     ) -> Any:
@@ -130,11 +130,11 @@ class FromModelConfiguration[T](CachedDescriptor):
     @override
     def real_get_value(
         self,
-        instance: InvenioModel,
-        owner: type,
+        instance: ModelMixin | None,
+        owner: type[ModelMixin],
         oarepo_model: InvenioModel,
         target_namespace: SimpleNamespace,
-    ) -> T:
+    ) -> Any:
         return oarepo_model.configuration.get(self.key, self.default)
 
 
@@ -148,8 +148,8 @@ class FromModel[T](CachedDescriptor):
     @override
     def real_get_value(
         self,
-        instance: InvenioModel,
-        owner: type,
+        instance: ModelMixin | None,
+        owner: type[ModelMixin],
         oarepo_model: InvenioModel,
         target_namespace: SimpleNamespace,
     ) -> T:
@@ -167,8 +167,8 @@ class AddToList[T](CachedDescriptor):
     @override
     def real_get_value(
         self,
-        instance: InvenioModel,
-        owner: type,
+        instance: ModelMixin | None,
+        owner: type[ModelMixin],
         oarepo_model: InvenioModel,
         target_namespace: SimpleNamespace,
     ) -> list[T]:
@@ -215,8 +215,8 @@ class Dependency(CachedDescriptor):
     @override
     def real_get_value(
         self,
-        instance: InvenioModel,
-        owner: type,
+        instance: ModelMixin | None,
+        owner: type[ModelMixin],
         oarepo_model: InvenioModel,
         target_namespace: SimpleNamespace,
     ) -> Any:
@@ -251,6 +251,7 @@ class ModelMixin:
     """A mixin class for InvenioModel that provides access to the model and its namespace."""
 
     oarepo_model_namespace: Any
+    oarepo_model: InvenioModel
 
     def get_model_dependency(self, key: str) -> Any:
         """Get a dependency by key."""
@@ -276,4 +277,7 @@ class RuntimeDependencies:
         """
         if self.dependencies is None:
             raise ValueError("Dependencies are not bound yet.")
-        return getattr(self.dependencies, key)
+        ret = getattr(self.dependencies, key)
+        if ret is None:
+            raise ValueError(f"Dependency {key} is None, but expected a value.")
+        return ret

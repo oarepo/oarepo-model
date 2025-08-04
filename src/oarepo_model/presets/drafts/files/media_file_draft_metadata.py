@@ -63,7 +63,7 @@ class MediaFileDraftMetadataPreset(Preset):
             __tablename__ = f"{builder.model.base_name}_draft_media_files"
             __record_model_cls__ = dependencies.get("DraftMetadata")
 
-        @declared_attr
+        @declared_attr  # type: ignore[misc]
         def __table_args__(cls):  # noqa declared attr is class method
             """Table args."""
             return (

@@ -30,6 +30,7 @@ from oarepo_model.presets import Preset
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+    from flask import Flask
     from invenio_records_resources.resources.files import FileResource
     from invenio_records_resources.services.files import FileService
 
@@ -50,6 +51,8 @@ class ExtMediaFilesPreset(Preset):
     ) -> Generator[Customization]:
         class ExtMediaFilesMixin(ModelMixin):
             """Mixin for extension class."""
+
+            app: Flask
 
             @cached_property
             def media_files_service(self) -> FileService:

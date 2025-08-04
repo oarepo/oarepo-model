@@ -50,7 +50,7 @@ class RecordMetadataWithFilesPreset(Preset):
         class RecordMetadataWithFilesMixin:
             bucket_id = db.Column(UUIDType, db.ForeignKey(Bucket.id))
 
-            @declared_attr
+            @declared_attr  # type: ignore[misc]
             def bucket(cls):  # noqa
                 return db.relationship(Bucket)
 

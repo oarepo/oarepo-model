@@ -52,6 +52,7 @@ def get_marshmallow_schema(
     schema_type: Any,
 ) -> type[marshmallow.Schema]:
     """Get the marshmallow schema for a given schema type."""
+    base_schema: type[marshmallow.Schema]
     if isinstance(schema_type, (str, dict)):
         datatype = builder.type_registry.get_type(schema_type)
         base_schema = cast("Any", datatype).create_marshmallow_schema(

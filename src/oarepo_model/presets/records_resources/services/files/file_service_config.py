@@ -17,7 +17,6 @@ from invenio_records_resources.services import (
 )
 from invenio_records_resources.services.files.links import FileEndpointLink
 from invenio_records_resources.services.records.links import (
-    Link,
     RecordEndpointLink,
 )
 
@@ -53,7 +52,7 @@ class FileServiceConfigPreset(Preset):
             record_cls = Dependency("Record")
             permission_policy_cls = Dependency("PermissionPolicy")
 
-            file_links_list: ClassVar[dict[str, Link]] = {
+            file_links_list: ClassVar[dict[str, RecordEndpointLink]] = {
                 "self": RecordEndpointLink(
                     f"{model.base_name}_files.search",
                     params=["pid_value"],
@@ -64,7 +63,7 @@ class FileServiceConfigPreset(Preset):
                 ),
             }
 
-            file_links_item: ClassVar[dict[str, Link]] = {
+            file_links_item: ClassVar[dict[str, FileEndpointLink]] = {
                 "self": FileEndpointLink(
                     f"{model.base_name}_files.read",
                     params=["pid_value", "key"],

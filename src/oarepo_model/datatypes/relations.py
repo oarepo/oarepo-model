@@ -17,7 +17,7 @@ customizations for the model builder.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 import marshmallow
 from invenio_base.utils import obj_or_import_string
@@ -30,7 +30,7 @@ from oarepo_model.customizations.high_level.add_pid_relation import (
 from .collections import ObjectDataType
 
 if TYPE_CHECKING:
-    from invenio_records_resources.records.systemfields.pid import ModelPIDField
+    from invenio_records_resources.records.systemfields.pid import PIDField
 
     from oarepo_model.customizations.base import Customization
 
@@ -58,7 +58,11 @@ class PIDRelation(ObjectDataType):
 
     def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
         if "properties" in element:
-            return element["properties"]
+            if not isinstance(element["properties"], dict):
+                raise TypeError(
+                    f"Expected 'properties' to be a dict, got {type(element['properties'])}.",
+                )
+            return cast("dict[str, Any]", element["properties"])
         ret: dict[str, Any] = {}
         for key in element["keys"]:
             if isinstance(key, str):
@@ -115,7 +119,7 @@ class PIDRelation(ObjectDataType):
         path: list[tuple[str, dict[str, Any]]],
     ) -> list:
         """Get the relation path for the PID relation."""
-        relation_path = []
+        relation_path: list[str | type[ARRAY_PATH_ITEM]] = []
         for pth in path:
             if pth[0] == "":
                 relation_path.append(ARRAY_PATH_ITEM)
@@ -135,12 +139,22 @@ class PIDRelation(ObjectDataType):
         self,
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002 for overriding
-    ) -> ModelPIDField:
+    ) -> PIDField:
         """Get the PID field from the element."""
         if "pid_field" in element:
-            return obj_or_import_string(element["pid_field"])(element)
+            pidf = obj_or_import_string(element["pid_field"])
+            if pidf is None or not callable(pidf):
+                raise ValueError(
+                    f"PID field {element['pid_field']} could not be imported.",
+                )
+            return pidf(element)  # type: ignore # noqa
         if "record_cls" in element:
-            return obj_or_import_string(element["record_cls"]).pid
+            rec = obj_or_import_string(element["record_cls"])
+            if rec is None or not hasattr(rec, "pid"):
+                raise ValueError(
+                    f"Record class {element['record_cls']} does not have a 'pid' attribute.",
+                )
+            return rec.pid
         raise ValueError(
             "Either 'pid_field' or 'record_cls' must be provided in the pid-relation element.",
         )

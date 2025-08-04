@@ -100,6 +100,8 @@ class ExtPreset(Preset):
         class ServicesResourcesExtMixin(ModelMixin):
             """Mixin for extension class."""
 
+            app: Flask
+
             @cached_property
             def records_service(self) -> RecordService:
                 return runtime_dependencies.get("RecordService")(
@@ -134,7 +136,7 @@ class ExtPreset(Preset):
                 }
 
             def init_config(self, app: Flask) -> None:
-                super().init_config(app)
+                super().init_config(app)  # type: ignore[misc]
 
         yield AddClass("Ext", clazz=ExtBase)
         yield AddMixins("Ext", ServicesResourcesExtMixin)

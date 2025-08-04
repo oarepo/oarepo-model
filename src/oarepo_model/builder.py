@@ -185,7 +185,6 @@ class BuilderConstant(Partial):
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> None:
         """Build a dictionary from the partial."""
         self.built = True
-        return self.value
 
 
 class BuilderModule(Partial, SimpleNamespace):
@@ -405,16 +404,18 @@ class InvenioModelBuilder:
         self,
         group: str,
         name: str,
-        value: str,
+        value: str | None,
         overwrite: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single method
         separator: str = ":",
     ) -> None:
         """Add an entry point to the builder."""
         if (group, name) in self.entry_points and not overwrite:
             raise AlreadyRegisteredError(f"Entry point {group}:{name} already exists.")
+
         if value is None and (group, name) in self.entry_points:
             del self.entry_points[(group, name)]
             return
+
         self.entry_points[(group, name)] = f"runtime_models_{self.model.base_name}{separator}{value}"
 
     _not_found_messages = MappingProxyType(
@@ -431,7 +432,7 @@ class InvenioModelBuilder:
         """Get a partial by name."""
         if name not in self.partials:
             raise PartialNotFoundError(
-                f"{self._not_found_messages[clz]} {name} not found.",
+                f"{self._not_found_messages[clz]} {name} not found.",  # type: ignore # noqa
             )
         partial = self.partials[name]
         if not isinstance(partial, clz):

@@ -44,7 +44,8 @@ class ApiDraftMediaFilesBlueprintPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        @staticmethod  # need to use staticmethod as python's magic always passes self as the first argument
+        # need to use staticmethod as python's magic always passes self as the first argument
+        @staticmethod  # type: ignore[misc]
         def create_draft_media_files_api_blueprint(app: Flask) -> Blueprint:
             with app.app_context():
                 return app.extensions[model.base_name].draft_media_files_resource.as_blueprint()
