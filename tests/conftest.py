@@ -285,19 +285,17 @@ vocabulary_model_types = {
 multilingual_model_types = {
     "Metadata": {
         "properties": {
-            "abstract": {
-                "type": "i18n",
-                "multilingual": {"lang_name": "jazyk", "value_name": "hodnotka"}
-            },
+            "abstract": {"type": "i18n", "multilingual": {"lang_name": "jazyk", "value_name": "hodnotka"}},
             "title": {
                 "type": "i18n",
             },
             "rights": {
                 "type": "multilingual",
-            }
+            },
         }
     }
 }
+
 
 @pytest.fixture(scope="session")
 def relation_model(empty_model):
@@ -397,6 +395,7 @@ def vocabulary_model(empty_model):
     finally:
         vocabulary_model.unregister()
 
+
 @pytest.fixture(scope="session")
 def multilingual_model(empty_model):
     from oarepo_model.api import model
@@ -415,12 +414,13 @@ def multilingual_model(empty_model):
     multilingual_model.register()
 
     t2 = time.time()
-    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+    log.info("Model created in %.2f seconds", t2 - t1)
 
     try:
         yield multilingual_model
     finally:
         multilingual_model.unregister()
+
 
 @pytest.fixture(scope="module")
 def app_config(
@@ -432,7 +432,7 @@ def app_config(
     drafts_cf_model,
     relation_model,
     vocabulary_model,
-    multilingual_model
+    multilingual_model,
 ):
     """Override pytest-invenio app_config fixture.
 

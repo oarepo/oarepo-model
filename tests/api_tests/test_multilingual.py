@@ -1,4 +1,3 @@
-
 def test_multilingual(
     app,
     identity_simple,
@@ -8,7 +7,6 @@ def test_multilingual(
     search_clear,
     location,
 ):
-
     record_with_vocabulary_service = multilingual_model.proxies.current_service
 
     vocabulary_rec = record_with_vocabulary_service.create(
@@ -18,52 +16,17 @@ def test_multilingual(
                 "enabled": False,
             },
             "metadata": {
-                "title": {
-                    "lang": "en",
-                    "value": "yaay"
-                },
-                "abstract": {
-                    "jazyk": "cs",
-                    "hodnotka": "jeeej"
-                },
-                "rights": [
-                    {
-                        "lang": "cs",
-                        "value": "jeeej"
-                    },
-                    {
-                        "lang": "en",
-                        "value": "yeeey"
-                    }
-                ]
-
+                "title": {"lang": "en", "value": "yaay"},
+                "abstract": {"jazyk": "cs", "hodnotka": "jeeej"},
+                "rights": [{"lang": "cs", "value": "jeeej"}, {"lang": "en", "value": "yeeey"}],
             },
         },
     )
 
     md = vocabulary_rec.data["metadata"]
 
-    import json
-
-    print(json.dumps(md, indent=2))
-
     assert md == {
-        "abstract": {
-            "jazyk": "cs",
-            "hodnotka": "jeeej"
-            },
-        "title": {
-            "lang": "en",
-            "value": "yaay"
-            },
-        "rights": [
-            {
-                "lang": "cs",
-                "value": "jeeej"
-            },
-            {
-                "lang": "en",
-                "value": "yeeey"
-            }
-        ]
+        "abstract": {"jazyk": "cs", "hodnotka": "jeeej"},
+        "title": {"lang": "en", "value": "yaay"},
+        "rights": [{"lang": "cs", "value": "jeeej"}, {"lang": "en", "value": "yeeey"}],
     }

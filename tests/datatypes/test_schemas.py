@@ -190,16 +190,14 @@ def test_object_inside_object_schema(test_schema):
     with pytest.raises(ma.ValidationError):
         schema.load({"a": {}})
 
+
 def test_i18n_schema(test_schema):
     schema = test_schema(
         {
             "type": "i18n",
-
         }
     )
-    assert schema.load({"a": {"lang": "cs", "value": "jeeej"}}) == {
-        "a": {"lang": "cs", "value": "jeeej"}
-    }
+    assert schema.load({"a": {"lang": "cs", "value": "jeeej"}}) == {"a": {"lang": "cs", "value": "jeeej"}}
     with pytest.raises(ma.ValidationError):
         schema.load({"a": {"lang": "", "value": "jeeej"}})
     with pytest.raises(ma.ValidationError):
@@ -208,39 +206,24 @@ def test_i18n_schema(test_schema):
         schema.load({"a": {"lang": "cs", "value": 123}})
     with pytest.raises(ma.ValidationError):
         schema.load({"a": {"lang": "ww", "value": "jeeej"}})
-    schema = test_schema(
-        {
-            "type": "i18n",
-            "multilingual": {"lang_name": "jazyk", "value_name": "hodnotka"}
+    schema = test_schema({"type": "i18n", "multilingual": {"lang_name": "jazyk", "value_name": "hodnotka"}})
+    assert schema.load({"a": {"jazyk": "cs", "hodnotka": "jeeej"}}) == {"a": {"jazyk": "cs", "hodnotka": "jeeej"}}
 
-        }
-    )
-    assert schema.load({"a": {"jazyk": "cs", "hodnotka": "jeeej"}}) == {
-        "a": {"jazyk": "cs", "hodnotka": "jeeej"}
-    }
 
 def test_multilingual_schema(test_schema):
     schema = test_schema(
         {
             "type": "multilingual",
-
         }
     )
-    assert schema.load({"a": [{"lang": "cs", "value": "jeeej"},{"lang": "en", "value": "yeey"}]}) == {
-        "a":[{"lang": "cs", "value": "jeeej"},{"lang": "en", "value": "yeey"}]
+    assert schema.load({"a": [{"lang": "cs", "value": "jeeej"}, {"lang": "en", "value": "yeey"}]}) == {
+        "a": [{"lang": "cs", "value": "jeeej"}, {"lang": "en", "value": "yeey"}]
     }
     with pytest.raises(ma.ValidationError):
         schema.load({"a": [{"lang": "", "value": "jeeej"}]})
-    schema = test_schema(
-        {
-            "type": "multilingual",
-            "multilingual": {"lang_name": "jazyk", "value_name": "hodnotka"}
+    schema = test_schema({"type": "multilingual", "multilingual": {"lang_name": "jazyk", "value_name": "hodnotka"}})
+    assert schema.load({"a": [{"jazyk": "cs", "hodnotka": "jeeej"}]}) == {"a": [{"jazyk": "cs", "hodnotka": "jeeej"}]}
 
-        }
-    )
-    assert schema.load({"a": [{"jazyk": "cs", "hodnotka": "jeeej"}]}) == {
-        "a": [{"jazyk": "cs", "hodnotka": "jeeej"}]
-    }
 
 def test_array(test_schema):
     schema = test_schema(

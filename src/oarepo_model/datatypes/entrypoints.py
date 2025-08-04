@@ -32,7 +32,7 @@ from .date import (
     EDTFTimeDataType,
     TimeDataType,
 )
-from .multilingual import I18nDictDataType, I18nDataType, MultilingualDataType
+from .multilingual import I18nDataType, I18nDictDataType, MultilingualDataType
 from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataType
 from .polymorphic import PolymorphicDataType
 from .relations import PIDRelation
@@ -66,5 +66,5 @@ DATA_TYPES: dict[str, type[DataType]] = {
     DynamicObjectDataType.TYPE: DynamicObjectDataType,
     PolymorphicDataType.TYPE: PolymorphicDataType,
     I18nDataType.TYPE: I18nDataType,
-    MultilingualDataType.TYPE: MultilingualDataType
+    MultilingualDataType.TYPE: MultilingualDataType,
 }
