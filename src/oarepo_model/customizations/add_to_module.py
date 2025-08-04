@@ -6,6 +6,14 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for adding properties to modules.
+
+This module provides the AddToModule customization that allows adding new
+properties with specified values to existing modules in the model. This is
+useful for extending modules with configuration variables, constants, or
+other module-level attributes.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
@@ -25,7 +33,7 @@ class AddToModule(Customization):
         module_name: str,
         property_name: str,
         value: Any,
-        exists_ok: bool = False,
+        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
     ) -> None:
         """Initialize the AddToModule customization.
 
@@ -44,6 +52,6 @@ class AddToModule(Customization):
         ret = builder.get_module(self.name)
         if hasattr(ret, self.property_name) and not self.exists_ok:
             raise ValueError(
-                f"Property '{self.property_name}' already exists in module '{self.name}'."
+                f"Property '{self.property_name}' already exists in module '{self.name}'.",
             )
         setattr(ret, self.property_name, self.value)

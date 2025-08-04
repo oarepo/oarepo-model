@@ -6,6 +6,16 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+
+"""Records and resources presets for OARepo models.
+
+This package provides presets for configuring Invenio records and resources
+components including blueprints, services, API endpoints, and related functionality
+for OARepo models.
+"""
+
+from __future__ import annotations
+
 from .blueprints.blueprint_module import BlueprintModulePreset
 from .blueprints.files.api_blueprint import ApiFilesBlueprintPreset
 from .blueprints.records.api_blueprint import ApiBlueprintPreset

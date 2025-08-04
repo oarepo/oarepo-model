@@ -6,9 +6,15 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""API blueprint preset for file operations.
+
+This module provides the ApiFilesBlueprintPreset that configures
+API blueprints for handling file operations in Invenio applications.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from oarepo_model.customizations import (
     AddEntryPoint,
@@ -16,40 +22,41 @@ from oarepo_model.customizations import (
     AddToModule,
     Customization,
 )
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from flask import Blueprint, Flask
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class ApiFilesBlueprintPreset(Preset):
-    """
-    Preset for api blueprint.
-    """
+    """Preset for api blueprint."""
 
-    modifies = ["blueprints"]
+    modifies = ("blueprints",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         yield AddModule("blueprints", exists_ok=True)
 
         @staticmethod  # need to use staticmethod as python's magic always passes self as the first argument
-        def create_files_api_blueprint(app):
+        def create_files_api_blueprint(app: Flask) -> Blueprint:
             """Create FilesRecord blueprint."""
             with app.app_context():
-                blueprint = app.extensions[
-                    model.base_name
-                ].files_resource.as_blueprint()
-
-            return blueprint
+                return app.extensions[model.base_name].files_resource.as_blueprint()
 
         yield AddToModule(
-            "blueprints", "create_files_api_blueprint", create_files_api_blueprint
+            "blueprints",
+            "create_files_api_blueprint",
+            create_files_api_blueprint,
         )
 
         yield AddEntryPoint(

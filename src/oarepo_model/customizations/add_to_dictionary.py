@@ -6,6 +6,14 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for adding key-value pairs to dictionaries in the model.
+
+This module provides the AddToDictionary customization that allows adding or
+updating key-value pairs in existing dictionaries. It supports both simple
+key-value additions and complex merging operations with patch functionality
+for updating existing values.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
@@ -25,7 +33,7 @@ class AddToDictionary(Customization):
     def __init__(
         self,
         dictionary_name: str,
-        *values,
+        *values: dict[str, Any],
         key: str | None = None,
         value: Any = None,
         exists_ok: bool = False,
@@ -53,9 +61,8 @@ class AddToDictionary(Customization):
             if self.key in d and not self.exists_ok:
                 if not self.patch:
                     raise ValueError(
-                        f"Key '{self.key}' already exists in dictionary '{self.name}'."
+                        f"Key '{self.key}' already exists in dictionary '{self.name}'.",
                     )
-                else:
-                    d[self.key] = always_merger.merge(d[self.key], self.value)
+                d[self.key] = always_merger.merge(d[self.key], self.value)
             else:
                 d[self.key] = self.value

@@ -1,3 +1,13 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
 import marshmallow as ma
 import pytest
 from marshmallow import Schema
@@ -19,7 +29,7 @@ def test_metadata_load_from_dict(
             [
                 RecordSchemaPreset,
                 MetadataSchemaPreset,
-            ]
+            ],
         ],
         types=[
             {
@@ -27,7 +37,7 @@ def test_metadata_load_from_dict(
                 "TitleType": {
                     "type": "fulltext+keyword",
                 },
-            }
+            },
         ],
         metadata_type="RecordMetadata",
     )
@@ -37,8 +47,8 @@ def test_metadata_load_from_dict(
         {
             "metadata": {
                 "title": "Test Title",
-            }
-        }
+            },
+        },
     ) == {
         "metadata": {
             "title": "Test Title",
@@ -46,7 +56,12 @@ def test_metadata_load_from_dict(
     }
 
 
-def test_load_datatypes_from_json(app, model_types_in_json, model_types_in_json_with_origin, search_clear):
+def test_load_datatypes_from_json(
+    app,
+    model_types_in_json,
+    model_types_in_json_with_origin,
+    search_clear,
+):
     m = model(
         name="model_types_load_test_from_json",
         version="1.0.0",
@@ -54,7 +69,7 @@ def test_load_datatypes_from_json(app, model_types_in_json, model_types_in_json_
             [
                 RecordSchemaPreset,
                 MetadataSchemaPreset,
-            ]
+            ],
         ],
         types=[
             {
@@ -64,15 +79,15 @@ def test_load_datatypes_from_json(app, model_types_in_json, model_types_in_json_
                         "comment": {"type": "comment"},
                         "creator": {"type": "creator"},
                         "person": {"type": "person"},
-                    }
+                    },
                 },
-            }
-        ]
-        + model_types_in_json,
+            },
+            *model_types_in_json,
+        ],
         metadata_type="RecordMetadata",
     )
     assert issubclass(m.RecordSchema, Schema)
-    
+
     m2 = model(
         name="model_types_load_test_from_json",
         version="1.0.0",
@@ -80,7 +95,7 @@ def test_load_datatypes_from_json(app, model_types_in_json, model_types_in_json_
             [
                 RecordSchemaPreset,
                 MetadataSchemaPreset,
-            ]
+            ],
         ],
         types=[
             {
@@ -90,26 +105,27 @@ def test_load_datatypes_from_json(app, model_types_in_json, model_types_in_json_
                         "comment": {"type": "comment"},
                         "creator": {"type": "creator"},
                         "person": {"type": "person"},
-                    }
+                    },
                 },
-            }
-        ]
-        + model_types_in_json_with_origin,
+            },
+            *model_types_in_json_with_origin,
+        ],
         metadata_type="RecordMetadata",
     )
     assert issubclass(m.RecordSchema, Schema)
-    
 
     # loaded from json in dictionary format
     valid_metadata = {"metadata": {"person": {"id": 0, "name": "Bob", "age": 123}}}
     assert m.RecordSchema().load(valid_metadata) == valid_metadata
     assert m2.RecordSchema().load(valid_metadata) == valid_metadata
-    
+
     # loaded from json in dictionary format
-    valid_metadata = {"metadata": {"creator": {"id": 0, "handles": ["1", "2","3"], "active": True}}}
+    valid_metadata = {
+        "metadata": {"creator": {"id": 0, "handles": ["1", "2", "3"], "active": True}},
+    }
     assert m.RecordSchema().load(valid_metadata) == valid_metadata
     assert m2.RecordSchema().load(valid_metadata) == valid_metadata
-    
+
     # loaded from json in array format
     valid_metadata = {
         "metadata": {
@@ -120,58 +136,66 @@ def test_load_datatypes_from_json(app, model_types_in_json, model_types_in_json_
                 "content": "Comment",
                 "author": {"name": "Bob", "age": 123},
             },
-        }
+        },
     }
     assert m.RecordSchema().load(valid_metadata) == valid_metadata
     assert m2.RecordSchema().load(valid_metadata) == valid_metadata
-    
+
     invalid_metadata = {
         "metadata": {
             "person": {
                 "id": "1",  # should be int
                 "name": "Bob",
                 "age": 123,
-            }
-        }
+            },
+        },
     }
     with pytest.raises(ma.exceptions.ValidationError):
         m.RecordSchema().load(invalid_metadata)
     with pytest.raises(ma.exceptions.ValidationError):
         m2.RecordSchema().load(invalid_metadata)
-    
-    
-    invalid_metadata = {"metadata": {"creator": {"id": 0, "handles": ["1", "2","3"], "active": "not bool"}}}
+
+    invalid_metadata = {
+        "metadata": {
+            "creator": {"id": 0, "handles": ["1", "2", "3"], "active": "not bool"},
+        },
+    }
     with pytest.raises(ma.exceptions.ValidationError):
         m.RecordSchema().load(invalid_metadata)
     with pytest.raises(ma.exceptions.ValidationError):
         m2.RecordSchema().load(invalid_metadata)
-    
+
     invalid_metadata = {
         "metadata": {
             "article": {
                 "id": "1",  # should be int
-            }
-        }
+            },
+        },
     }
     with pytest.raises(ma.exceptions.ValidationError):
-        m.RecordSchema().load(invalid_metadata)    
+        m.RecordSchema().load(invalid_metadata)
     with pytest.raises(ma.exceptions.ValidationError):
         m2.RecordSchema().load(invalid_metadata)
-        
+
     invalid_metadata = {
         "metadata": {
             "comment": {
                 "id": "1",  # should be int
-            }
-        }
+            },
+        },
     }
     with pytest.raises(ma.exceptions.ValidationError):
-        m.RecordSchema().load(invalid_metadata)     
+        m.RecordSchema().load(invalid_metadata)
     with pytest.raises(ma.exceptions.ValidationError):
-        m2.RecordSchema().load(invalid_metadata)    
+        m2.RecordSchema().load(invalid_metadata)
 
 
-def test_load_datatypes_from_yaml(app, model_types_in_yaml, model_types_in_yaml_with_origin, search_clear):
+def test_load_datatypes_from_yaml(
+    app,
+    model_types_in_yaml,
+    model_types_in_yaml_with_origin,
+    search_clear,
+):
     m = model(
         name="model_types_load_test_from_yaml",
         version="1.0.0",
@@ -179,7 +203,7 @@ def test_load_datatypes_from_yaml(app, model_types_in_yaml, model_types_in_yaml_
             [
                 RecordSchemaPreset,
                 MetadataSchemaPreset,
-            ]
+            ],
         ],
         types=[
             {
@@ -188,12 +212,12 @@ def test_load_datatypes_from_yaml(app, model_types_in_yaml, model_types_in_yaml_
                         "article": {"type": "article"},
                         "comment": {"type": "comment"},
                         "person": {"type": "person"},
-                        "creator": {"type": "creator"}
-                    }
+                        "creator": {"type": "creator"},
+                    },
                 },
-            }
-        ]
-        + model_types_in_yaml,
+            },
+            *model_types_in_yaml,
+        ],
         metadata_type="RecordMetadata",
     )
     assert issubclass(m.RecordSchema, Schema)
@@ -205,7 +229,7 @@ def test_load_datatypes_from_yaml(app, model_types_in_yaml, model_types_in_yaml_
             [
                 RecordSchemaPreset,
                 MetadataSchemaPreset,
-            ]
+            ],
         ],
         types=[
             {
@@ -214,16 +238,16 @@ def test_load_datatypes_from_yaml(app, model_types_in_yaml, model_types_in_yaml_
                         "article": {"type": "article"},
                         "comment": {"type": "comment"},
                         "person": {"type": "person"},
-                        "creator": {"type": "creator"}
-                    }
+                        "creator": {"type": "creator"},
+                    },
                 },
-            }
-        ]
-        + model_types_in_yaml_with_origin,
+            },
+            *model_types_in_yaml_with_origin,
+        ],
         metadata_type="RecordMetadata",
     )
     assert issubclass(m.RecordSchema, Schema)
-    
+
     # loaded from yaml in array format
     valid_metadata = {
         "metadata": {
@@ -234,7 +258,7 @@ def test_load_datatypes_from_yaml(app, model_types_in_yaml, model_types_in_yaml_
                 "content": "Comment",
                 "author": {"name": "Bob", "age": 123},
             },
-        }
+        },
     }
     assert m.RecordSchema().load(valid_metadata) == valid_metadata
     assert m2.RecordSchema().load(valid_metadata) == valid_metadata
@@ -243,50 +267,56 @@ def test_load_datatypes_from_yaml(app, model_types_in_yaml, model_types_in_yaml_
     valid_metadata = {"metadata": {"person": {"id": 0, "name": "Bob", "age": 123}}}
     assert m.RecordSchema().load(valid_metadata) == valid_metadata
     assert m2.RecordSchema().load(valid_metadata) == valid_metadata
-    
-    valid_metadata = {"metadata": {"creator": {"id": 0, "handles": ["1", "2","3"], "active": True}}}
+
+    valid_metadata = {
+        "metadata": {"creator": {"id": 0, "handles": ["1", "2", "3"], "active": True}},
+    }
     assert m.RecordSchema().load(valid_metadata) == valid_metadata
     assert m2.RecordSchema().load(valid_metadata) == valid_metadata
-    
+
     invalid_metadata = {
         "metadata": {
             "person": {
                 "id": "1",
                 "name": "Bob",
                 "age": 123,
-            }
-        }
+            },
+        },
     }
     with pytest.raises(ma.exceptions.ValidationError):
         m.RecordSchema().load(invalid_metadata)
     with pytest.raises(ma.exceptions.ValidationError):
-        m2.RecordSchema().load(invalid_metadata)    
-        
-    invalid_metadata = {"metadata": {"creator": {"id": 0, "handles": ["1", "2","3"], "active": "not bool"}}}
+        m2.RecordSchema().load(invalid_metadata)
+
+    invalid_metadata = {
+        "metadata": {
+            "creator": {"id": 0, "handles": ["1", "2", "3"], "active": "not bool"},
+        },
+    }
     with pytest.raises(ma.exceptions.ValidationError):
-        m.RecordSchema().load(invalid_metadata)   
+        m.RecordSchema().load(invalid_metadata)
     with pytest.raises(ma.exceptions.ValidationError):
-        m2.RecordSchema().load(invalid_metadata)      
-        
+        m2.RecordSchema().load(invalid_metadata)
+
     invalid_metadata = {
         "metadata": {
             "article": {
                 "id": "1",  # should be int
-            }
-        }
+            },
+        },
     }
     with pytest.raises(ma.exceptions.ValidationError):
-        m.RecordSchema().load(invalid_metadata)     
+        m.RecordSchema().load(invalid_metadata)
     with pytest.raises(ma.exceptions.ValidationError):
-        m2.RecordSchema().load(invalid_metadata)       
+        m2.RecordSchema().load(invalid_metadata)
     invalid_metadata = {
         "metadata": {
             "comment": {
                 "id": "1",  # should be int
-            }
-        }
+            },
+        },
     }
     with pytest.raises(ma.exceptions.ValidationError):
-        m.RecordSchema().load(invalid_metadata)           
+        m.RecordSchema().load(invalid_metadata)
     with pytest.raises(ma.exceptions.ValidationError):
-        m2.RecordSchema().load(invalid_metadata)          
+        m2.RecordSchema().load(invalid_metadata)

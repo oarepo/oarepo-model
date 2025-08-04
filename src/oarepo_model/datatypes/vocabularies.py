@@ -1,13 +1,29 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+"""Data type for controlled vocabulary references.
+
+This module provides the VocabularyDataType class for creating references to
+controlled vocabularies in OARepo models. It extends the PIDRelation data type
+to handle vocabulary-specific functionality, including automatic field mapping
+for different vocabulary types (affiliations, funders, awards, subjects) and
+creation of appropriate Marshmallow schemas for validation and serialization.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-from marshmallow.schema import Schema
+from typing import TYPE_CHECKING, Any, override
 
 from .relations import PIDRelation
 
 if TYPE_CHECKING:
-    pass
+    from invenio_records_resources.records.systemfields import ModelPIDField
+    from marshmallow import Schema
 
 
 class VocabularyDataType(PIDRelation):
@@ -35,7 +51,7 @@ class VocabularyDataType(PIDRelation):
             elif isinstance(key, dict):
                 known_keys.update(key.keys())
             else:
-                raise ValueError(f"Invalid key type: {type(key)}")
+                raise TypeError(f"Invalid key type: {type(key)}")
 
         # if 'id' is not in keys, add it as a keyword field
         if "id" not in known_keys:
@@ -53,6 +69,7 @@ class VocabularyDataType(PIDRelation):
 
         return super()._get_properties(element)
 
+    @override
     def create_marshmallow_schema(self, element: dict[str, Any]) -> type[Schema]:
         match element["vocabulary-type"]:
             case "affiliations":
@@ -82,14 +99,20 @@ class VocabularyDataType(PIDRelation):
             case _generic:
                 return super().create_marshmallow_schema(element)
 
+    @override
     def _key_names(
-        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+        self,
+        element: dict[str, Any],
+        path: list[tuple[str, dict[str, Any]]],
     ) -> list[str]:
         return sorted(self._get_properties(element).keys())
 
+    @override
     def _pid_field(
-        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
-    ):
+        self,
+        element: dict[str, Any],
+        path: list[tuple[str, dict[str, Any]]],
+    ) -> ModelPIDField:
         match element["vocabulary-type"]:
             case "affiliations":
                 from invenio_vocabularies.contrib.affiliations.api import Affiliation
@@ -113,7 +136,9 @@ class VocabularyDataType(PIDRelation):
                 return Vocabulary.pid.with_type_ctx(vocab_type)
 
     def _cache_key(
-        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+        self,
+        element: dict[str, Any],
+        path: list[tuple[str, dict[str, Any]]],
     ) -> str | None:
         return super()._cache_key(element, path) or element["vocabulary-type"]
 
@@ -130,7 +155,7 @@ default_vocabulary_fields_in_relations: dict[str, list[dict[str, Any]]] = {
                         "identifier": {"type": "keyword"},
                     },
                 },
-            }
+            },
         },
         {"name": {"type": "keyword"}},
     ],
@@ -145,7 +170,7 @@ default_vocabulary_fields_in_relations: dict[str, list[dict[str, Any]]] = {
                         "identifier": {"type": "keyword"},
                     },
                 },
-            }
+            },
         },
         {"name": {"type": "keyword"}},
     ],
@@ -162,7 +187,7 @@ default_vocabulary_fields_in_relations: dict[str, list[dict[str, Any]]] = {
                         "identifier": {"type": "keyword"},
                     },
                 },
-            }
+            },
         },
         {"acronym": {"type": "keyword"}},
         {"program": {"type": "keyword"}},
@@ -170,7 +195,7 @@ default_vocabulary_fields_in_relations: dict[str, list[dict[str, Any]]] = {
             "subjects": {
                 "type": "array",
                 "items": {"type": "vocabulary", "vocabulary-type": "subjects"},
-            }
+            },
         },
         {
             "organizations": {
@@ -183,7 +208,7 @@ default_vocabulary_fields_in_relations: dict[str, list[dict[str, Any]]] = {
                         "organization": {"type": "keyword"},
                     },
                 },
-            }
+            },
         },
     ],
     "subjects": [

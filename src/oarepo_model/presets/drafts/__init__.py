@@ -1,4 +1,21 @@
-from oarepo_model.presets.base import Preset
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+"""Draft-related presets for Invenio draft/publish workflows.
+
+This module provides presets for implementing draft record functionality,
+including file handling, record management, and API blueprints for
+draft-enabled Invenio repositories.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from .blueprints.files.api_draft_files_blueprint import ApiDraftFilesBlueprintPreset
 from .blueprints.files.api_draft_media_files_blueprint import (
@@ -66,6 +83,10 @@ from .services.records.record_schema import DraftRecordSchemaPreset
 from .services.records.relations import RelationsServiceComponentPreset
 from .services.records.service import DraftServicePreset
 from .services.records.service_config import DraftServiceConfigPreset
+
+if TYPE_CHECKING:
+    from oarepo_model.presets.base import Preset
+
 
 drafts_records_presets: list[type[Preset]] = [
     # records layer

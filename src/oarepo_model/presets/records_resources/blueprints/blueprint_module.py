@@ -6,32 +6,39 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Preset for creating blueprint modules.
+
+This module provides the BlueprintModulePreset that creates
+blueprint module files for organizing Flask blueprints.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from oarepo_model.customizations import (
     AddModule,
     Customization,
 )
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class BlueprintModulePreset(Preset):
-    """
-    Preset for api blueprint.
-    """
+    """Preset for api blueprint."""
 
-    provides = ["blueprints"]
+    provides = ("blueprints",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         yield AddModule("blueprints", exists_ok=True)

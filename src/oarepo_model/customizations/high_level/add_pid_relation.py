@@ -6,20 +6,29 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""High-level customization for adding PID relations to models.
+
+This module provides the AddPIDRelation customization that creates appropriate
+PID relation system fields based on the path structure. It supports simple
+relations, list relations, and nested list relations by analyzing the presence
+and position of array items in the relation path.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, override
 
 from invenio_records_resources.records.systemfields import (
     PIDListRelation,
     PIDNestedListRelation,
     PIDRelation,
 )
-from invenio_records_resources.records.systemfields.pid import PIDField
 
 from ..base import Customization
 
 if TYPE_CHECKING:
+    from invenio_records_resources.records.systemfields.pid import PIDField
+
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
 
@@ -27,6 +36,8 @@ ARRAY_PATH_ITEM = object()
 
 
 class AddPIDRelation(Customization):
+    """Customization to add PID relations to the model."""
+
     def __init__(
         self,
         name: str,
@@ -49,6 +60,7 @@ class AddPIDRelation(Customization):
         self.cache_key = cache_key
         self.kwargs = kwargs
 
+    @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         relations = builder.get_dictionary("relations")
         array_count = self.path.count(ARRAY_PATH_ITEM)
@@ -78,7 +90,8 @@ class AddPIDRelation(Customization):
             case 2:
                 first_array_index = self.path.index(ARRAY_PATH_ITEM)
                 second_array_index = self.path.index(
-                    ARRAY_PATH_ITEM, first_array_index + 1
+                    ARRAY_PATH_ITEM,
+                    first_array_index + 1,
                 )
                 before_first_array = self.path[:first_array_index]
                 between_arrays = self.path[first_array_index + 1 : second_array_index]
@@ -86,7 +99,7 @@ class AddPIDRelation(Customization):
 
                 if after_second_array:
                     raise NotImplementedError(
-                        "Relations within nested arrays of objects are not supported yet."
+                        "Relations within nested arrays of objects are not supported yet.",
                     )
 
                 relations[self.name] = PIDNestedListRelation(
@@ -100,5 +113,5 @@ class AddPIDRelation(Customization):
 
             case _:
                 raise NotImplementedError(
-                    "Only one or two arrays in the path are supported for PID relations."
+                    "Only one or two arrays in the path are supported for PID relations.",
                 )

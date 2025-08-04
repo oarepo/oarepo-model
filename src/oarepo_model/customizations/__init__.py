@@ -6,6 +6,16 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+
+"""Customization classes for OARepo model building.
+
+This module provides various customization classes that can be used to modify
+and extend OARepo models during the building process. These customizations
+allow adding classes, modifying configurations, and extending model functionality.
+"""
+
+from __future__ import annotations
+
 from .add_base_class import AddBaseClasses
 from .add_class import AddClass
 from .add_class_field import AddClassField
@@ -27,7 +37,6 @@ from .high_level import AddPIDRelation
 from .patch_json_file import PatchJSONFile
 
 __all__ = [
-    "Customization",
     "AddBaseClasses",
     "AddClass",
     "AddClassField",
@@ -39,11 +48,12 @@ __all__ = [
     "AddList",
     "AddMixins",
     "AddModule",
+    "AddPIDRelation",
     "AddToDictionary",
     "AddToList",
     "AddToModule",
     "ChangeBase",
     "CopyFile",
+    "Customization",
     "PatchJSONFile",
-    "AddPIDRelation",
 ]

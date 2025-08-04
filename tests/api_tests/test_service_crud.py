@@ -1,3 +1,13 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
 from io import BytesIO
 
 import pytest
@@ -32,12 +42,12 @@ def test_simple_flow(
     # Search it
     res = test_service.search(identity_simple, q=f"id:{id_}", size=25, page=1)
     assert res.total == 1
-    assert list(res.hits)[0] == read_item.data
+    assert next(iter(res.hits)) == read_item.data
 
     # Scan it
     res = test_service.scan(identity_simple, q=f"id:{id_}")
     assert res.total is None
-    assert list(res.hits)[0] == read_item.data
+    assert next(iter(res.hits)) == read_item.data
 
     # Update it
     data = read_item.data
@@ -55,7 +65,7 @@ def test_simple_flow(
             "metadata": {
                 "description": "Published article PDF.",
             },
-        }
+        },
     ]
     # Initialize file saving
     result = file_service.init_files(identity_simple, id_, file_to_initialise)
@@ -73,11 +83,11 @@ def test_simple_flow(
         content,
         content.getbuffer().nbytes,
     )
-    # TODO figure response for succesfully saved file
+    # TODO: figure response for succesfully saved file
     assert result.to_dict()["key"] == file_to_initialise[0]["key"]
 
     result = file_service.commit_file(identity_simple, id_, "article.txt")
-    # TODO currently there is no status in the json between the initialisation
+    # TODO: currently there is no status in the json between the initialisation
     # and the commiting.
     assert result.to_dict()["key"] == file_to_initialise[0]["key"]
 

@@ -6,10 +6,16 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for copying files between locations in the model.
+
+This module provides the CopyFile customization that allows copying content
+from one symbolic file location to another within the model builder. This is
+useful for duplicating configuration files or templates across different
+modules or locations.
+"""
+
 from __future__ import annotations
 
-import shutil
-from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 from .base import Customization
@@ -28,9 +34,9 @@ class CopyFile(Customization):
         target_symbolic_name: str,
         target_module_name: str,
         target_file_path: str,
-        exists_ok: bool = False,
+        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
     ) -> None:
-        """Add a json to the model
+        """Add a json to the model.
 
         :param name: The name of the list to be added.
         :param exists_ok: Whether to ignore if the list already exists.
@@ -43,8 +49,11 @@ class CopyFile(Customization):
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-
         source = builder.get_file(self.name)
         builder.add_file(
-            self.target_symbolic_name, self.target_module_name, self.target_file_path, source.content, self.exists_ok
+            self.target_symbolic_name,
+            self.target_module_name,
+            self.target_file_path,
+            source.content,
+            self.exists_ok,
         )

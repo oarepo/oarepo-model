@@ -6,32 +6,36 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""A module for defining presets for custom fields relations."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_vocabularies.records.systemfields.relations import CustomFieldsRelation
 
 from oarepo_model.customizations import AddToDictionary, Customization
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class CustomFieldsRelationsPreset(Preset):
+    """A preset that adds custom fields to the model's relation system field."""
 
-    modifies = [
-        "relations",
-    ]
+    modifies = ("relations",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         custom_fields_key = model.uppercase_name + "_CUSTOM_FIELDS"
         yield AddToDictionary(
             "relations",

@@ -1,11 +1,28 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+
+"""Base classes and interfaces for OARepo data types.
+
+This module provides the foundational DataType class and related interfaces
+that define how data types are implemented and used within OARepo models.
+"""
+
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from invenio_base.utils import obj_or_import_string
-from marshmallow.fields import Field
 
 if TYPE_CHECKING:
+    from marshmallow.fields import Field
+
     from oarepo_model.customizations.base import Customization
 
     from .registry import DataTypeRegistry
@@ -14,20 +31,20 @@ ARRAY_ITEM_PATH = "[]"
 
 
 class DataType:
-    """
-    Base class for data types in the Oarepo model.
+    """Base class for data types in the Oarepo model.
+
     This class can be extended to create custom data types.
     """
 
     TYPE = "base"
 
     marshmallow_field_class: type[Field] | None = None
-    jsonschema_type: str | None = None
-    mapping_type: str | dict[str, Any] | None = None
+    jsonschema_type: str | Mapping[str, Any] | None = None
+    mapping_type: str | Mapping[str, Any] | None = None
 
     def __init__(self, registry: DataTypeRegistry, name: str | None = None):
-        """
-        Initialize the data type with a registry.
+        """Initialize the data type with a registry.
+
         :param registry: The registry to which this data type belongs.
         """
         self._registry = registry
@@ -35,17 +52,19 @@ class DataType:
 
     @property
     def name(self) -> str:
-        """
-        Get the name of the data type.
+        """Get the name of the data type.
+
         :return: The name of the data type.
         """
         return self._name
 
     def create_marshmallow_field(
-        self, field_name: str, element: dict[str, Any]
+        self,
+        field_name: str,
+        element: dict[str, Any],
     ) -> Field:
-        """
-        Create a Marshmallow field for the data type.
+        """Create a Marshmallow field for the data type.
+
         This method should be overridden by subclasses to provide specific field creation logic.
         """
         if element.get("marshmallow_field") is not None:
@@ -53,24 +72,28 @@ class DataType:
             return obj_or_import_string(element["marshmallow_field"])
 
         return self._get_marshmallow_field_class(field_name, element)(
-            **self._get_marshmallow_field_args(field_name, element)
+            **self._get_marshmallow_field_args(field_name, element),
         )
 
     def create_ui_marshmallow_fields(
-        self, field_name: str, element: dict[str, Any]
+        self,
+        field_name: str,  # noqa: ARG002 for override
+        element: dict[str, Any],  # noqa: ARG002 for override
     ) -> dict[str, Field]:
-        """
-        Create a Marshmallow UI field for the data type.
+        """Create a Marshmallow UI field for the data type.
+
         This method should be overridden by subclasses to provide specific UI field creation logic.
         """
         # if there is no UI transformation, leave it out, therefore there are no copied values in UI
         return {}
 
     def _get_marshmallow_field_class(
-        self, field_name: str, element: dict[str, Any]
+        self,
+        field_name: str,  # noqa: ARG002 for override
+        element: dict[str, Any],
     ) -> type[Field]:
-        """
-        Get the Marshmallow field class for the data type.
+        """Get the Marshmallow field class for the data type.
+
         This method can be overridden by subclasses to provide specific field class logic.
         """
         if element.get("marshmallow_field_class") is not None:
@@ -79,15 +102,17 @@ class DataType:
         if self.marshmallow_field_class is None:
             raise NotImplementedError(
                 "Subclasses must either provide marshmallow_field_class or "
-                "implement this method to provide field class logic."
+                "implement this method to provide field class logic.",
             )
         return self.marshmallow_field_class
 
     def _get_marshmallow_field_args(
-        self, field_name: str, element: dict[str, Any]
+        self,
+        field_name: str,
+        element: dict[str, Any],
     ) -> dict[str, Any]:
-        """
-        Get the arguments for the Marshmallow field.
+        """Get the arguments for the Marshmallow field.
+
         This method can be overridden by subclasses to provide specific field arguments logic.
         """
         return {
@@ -99,49 +124,61 @@ class DataType:
             "data_key": field_name,
         }
 
-    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
-        """
-        Create a JSON schema for the data type.
+    def create_json_schema(
+        self,
+        element: dict[str, Any],  # noqa: ARG002 for override
+    ) -> Mapping[str, Any]:
+        """Create a JSON schema for the data type.
+
         This method should be overridden by subclasses to provide specific JSON schema creation logic.
         """
         if self.jsonschema_type is not None:
+            if isinstance(self.jsonschema_type, Mapping):
+                return self.jsonschema_type
+
             return {"type": self.jsonschema_type}
 
         raise NotImplementedError(
-            f"{self.__class__.__name__} neither implements create_json_schema nor provides self.jsonschema_type"
+            f"{self.__class__.__name__} neither implements create_json_schema nor provides self.jsonschema_type",
         )
 
-    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
-        """
-        Create a mapping for the data type.
+    def create_mapping(
+        self,
+        element: dict[str, Any],  # noqa: ARG002 for override
+    ) -> Mapping[str, Any]:
+        """Create a mapping for the data type.
+
         This method can be overridden by subclasses to provide specific mapping creation logic.
         """
         if self.mapping_type is not None:
-            if isinstance(self.mapping_type, dict):
+            if isinstance(self.mapping_type, Mapping):
                 return self.mapping_type
             return {"type": self.mapping_type}
 
         raise NotImplementedError(
-            f"{self.__class__.__name__} neither implements create_mapping nor provides self.mapping_type"
+            f"{self.__class__.__name__} neither implements create_mapping nor provides self.mapping_type",
         )
 
     def create_relations(
-        self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]
+        self,
+        element: dict[str, Any],  # noqa: ARG002 for override
+        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002 for override
     ) -> list[Customization]:
-        """
-        Create relations for the data type.
+        """Create relations for the data type.
+
         This method can be overridden by subclasses to provide specific relations creation logic.
         """
         return []
 
     def create_ui_model(
-        self, element: dict[str, Any], path: list[str]
+        self,
+        element: dict[str, Any],
+        path: list[str],
     ) -> dict[str, Any]:
-        """
-        Create a UI model for the data type.
+        """Create a UI model for the data type.
+
         This method should be overridden by subclasses to provide specific UI model creation logic.
         """
-
         # replace array items:
         # a,[],b => a,b
         # a, [], b, [] => a, b, item
@@ -155,19 +192,11 @@ class DataType:
         target_path = "/".join(replaced_arrays)
 
         ret: dict[str, Any] = {
-            "help": (
-                element["help.key"] if "help.key" in element else f"{target_path}.help"
-            ),
-            "label": (
-                element["label.key"]
-                if "label.key" in element
-                else f"{target_path}.label"
-            ),
-            "hint": (
-                element["hint.key"] if "hint.key" in element else f"{target_path}.hint"
-            ),
+            "help": (element.get("help.key", f"{target_path}.help")),
+            "label": (element.get("label.key", f"{target_path}.label")),
+            "hint": (element.get("hint.key", f"{target_path}.hint")),
         }
-        if "required" in element and element["required"]:
+        if element.get("required"):
             ret["required"] = True
 
         if "input" in element:

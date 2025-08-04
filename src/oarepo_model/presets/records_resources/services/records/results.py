@@ -6,11 +6,13 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Module to generate record result item and list classes."""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
-from oarepo_runtime.services.results import RecordItem, RecordList
+from oarepo_runtime.services.results import RecordItem, RecordList, ResultsComponent
 
 from oarepo_model.customizations import (
     AddClass,
@@ -18,26 +20,27 @@ from oarepo_model.customizations import (
     AddMixins,
     Customization,
 )
-from oarepo_model.model import InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class RecordResultComponentsPreset(Preset):
-    """
-    Preset for record result item class.
-    """
+    """Preset for record result item class."""
 
-    provides = ["record_result_item_components", "record_result_list_components"]
+    provides = ("record_result_item_components", "record_result_list_components")
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         yield AddList(
             "record_result_item_components",
         )
@@ -47,28 +50,27 @@ class RecordResultComponentsPreset(Preset):
 
 
 class RecordResultItemPreset(Preset):
-    """
-    Preset for record result item class.
-    """
+    """Preset for record result item class."""
 
-    depends_on = ["record_result_item_components"]
-    provides = ["RecordItem"]
+    depends_on = ("record_result_item_components",)
+    provides = ("RecordItem",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         class RecordItemMixin:
             @property
-            def components(self):
+            def components(self) -> list[ResultsComponent]:
                 return [
                     *super().components,
                     *[
                         component(RecordItemMixin, self)
                         for component in dependencies.get(
-                            "record_result_item_components"
+                            "record_result_item_components",
                         )
                     ],
                 ]
@@ -78,28 +80,27 @@ class RecordResultItemPreset(Preset):
 
 
 class RecordResultListPreset(Preset):
-    """
-    Preset for record result list class.
-    """
+    """Preset for record result list class."""
 
-    depends_on = ["record_result_list_components"]
-    provides = ["RecordList"]
+    depends_on = ("record_result_list_components",)
+    provides = ("RecordList",)
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
+    ) -> Generator[Customization]:
         class RecordListMixin:
             @property
-            def components(self):
+            def components(self) -> list[ResultsComponent]:
                 return [
-                    *super(RecordListMixin, self).components,
+                    *super().components,
                     *[
                         component()
                         for component in dependencies.get(
-                            "record_result_list_components"
+                            "record_result_list_components",
                         )
                     ],
                 ]

@@ -1,3 +1,14 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
+
 def test_vocabularies(
     app,
     identity_simple,
@@ -8,8 +19,6 @@ def test_vocabularies(
     search_clear,
     location,
 ):
-
-    Record = vocabulary_model.Record
     record_with_vocabulary_service = vocabulary_model.proxies.current_service
 
     vocabulary_rec = record_with_vocabulary_service.create(
@@ -36,10 +45,6 @@ def test_vocabularies(
 
     md = vocabulary_rec.data["metadata"]
 
-    import json
-
-    print(json.dumps(md, indent=2))
-
     assert md == {
         "language": {"id": "en", "title": {"cs": "Angličtina", "en": "English"}},
         "affiliation": {
@@ -54,11 +59,11 @@ def test_vocabularies(
         "award": {
             "id": "01cwqze88::1R01HL141112-01",
             "title": {
-                "en": "Studies of mRNA translational regulations in erythropoiesis"
+                "en": "Studies of mRNA translational regulations in erythropoiesis",
             },
             "number": "1R01HL141112-01",
             "identifiers": [
-                {"scheme": "doi", "identifier": "10.1234/01cwqze88::1R01HL141112-01"}
+                {"scheme": "doi", "identifier": "10.1234/01cwqze88::1R01HL141112-01"},
             ],
             "acronym": "mRNA",
             "program": "NATIONAL_HEART,_LUNG,_AND_BLOOD_INSTITUTE",

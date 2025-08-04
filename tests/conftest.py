@@ -1,7 +1,18 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
 import json
-import sys
+import logging
 import time
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 from flask_principal import Identity, Need, UserNeed
@@ -14,6 +25,8 @@ from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
 
 from oarepo_model.datatypes.registry import from_json, from_yaml
+
+log = logging.getLogger("tests")
 
 pytest_plugins = ("celery.contrib.pytest",)
 
@@ -34,9 +47,10 @@ def model_types():
         "Metadata": {
             "properties": {
                 "title": {"type": "fulltext+keyword", "required": True},
-            }
-        }
+            },
+        },
     }
+
 
 @pytest.fixture(scope="session")
 def model_types_in_json():
@@ -44,8 +58,9 @@ def model_types_in_json():
     # Define the model types used in the tests
     return [
         from_json("tests/data_types_in_json_dict.json"),
-        from_json("tests/data_types_in_json_list.json")
+        from_json("tests/data_types_in_json_list.json"),
     ]
+
 
 @pytest.fixture(scope="session")
 def model_types_in_yaml():
@@ -53,7 +68,7 @@ def model_types_in_yaml():
     # Define the model types used in the tests
     return [
         from_yaml("tests/data_types_in_yaml_list.yaml"),
-        from_yaml("tests/data_types_in_yaml_dict.yaml")
+        from_yaml("tests/data_types_in_yaml_dict.yaml"),
     ]
 
 
@@ -62,17 +77,30 @@ def model_types_in_json_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_json("data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"),
-        from_json("data_types_in_json_list.json", origin="tests/data_types_in_json_list.json")
+        from_json(
+            "data_types_in_json_dict.json",
+            origin="tests/data_types_in_json_dict.json",
+        ),
+        from_json(
+            "data_types_in_json_list.json",
+            origin="tests/data_types_in_json_list.json",
+        ),
     ]
+
 
 @pytest.fixture(scope="session")
 def model_types_in_yaml_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_yaml("data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"),
-        from_yaml("data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml")
+        from_yaml(
+            "data_types_in_yaml_list.yaml",
+            origin="tests/data_types_in_yaml_list.yaml",
+        ),
+        from_yaml(
+            "data_types_in_yaml_dict.yaml",
+            origin="tests/data_types_in_yaml_dict.yaml",
+        ),
     ]
 
 
@@ -102,7 +130,7 @@ def empty_model(model_types):
     empty_model.register()
 
     t2 = time.time()
-    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+    log.info("Model created in %.2f seconds", t2 - t1)
 
     try:
         yield empty_model
@@ -138,7 +166,7 @@ def draft_model(model_types):
                         "$id": "local://parent-v1.0.0.json",
                         "type": "object",
                         "properties": {"id": {"type": "string"}},
-                    }
+                    },
                 ),
             ),
         ],
@@ -146,7 +174,7 @@ def draft_model(model_types):
     draft_model.register()
 
     t2 = time.time()
-    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+    log.info("Model created in %.2f seconds", t2 - t1)
 
     try:
         yield draft_model
@@ -173,7 +201,7 @@ def draft_model_with_files(model_types):
     draft_model.register()
 
     t2 = time.time()
-    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+    log.info("Model created in %.2f seconds", t2 - t1)
 
     try:
         yield draft_model
@@ -223,8 +251,8 @@ relation_model_types = {
                     },
                 },
             },
-        }
-    }
+        },
+    },
 }
 
 vocabulary_model_types = {
@@ -250,8 +278,8 @@ vocabulary_model_types = {
                 "type": "vocabulary",
                 "vocabulary-type": "subjects",
             },
-        }
-    }
+        },
+    },
 }
 
 
@@ -274,7 +302,7 @@ def relation_model(empty_model):
     relation_model.register()
 
     t2 = time.time()
-    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+    log.info("Model created in %.2f seconds", t2 - t1)
 
     try:
         yield relation_model
@@ -346,7 +374,7 @@ def vocabulary_model(empty_model):
     vocabulary_model.register()
 
     t2 = time.time()
-    print(f"Model created in {t2 - t1:.2f} seconds", file=sys.stderr, flush=True)
+    log.info("Model created in %.2f seconds", t2 - t1)
 
     try:
         yield vocabulary_model
@@ -375,21 +403,15 @@ def app_config(
 
     app_config["FILES_REST_DEFAULT_STORAGE_CLASS"] = "L"
 
-    app_config["RECORDS_REFRESOLVER_CLS"] = (
-        "invenio_records.resolver.InvenioRefResolver"
-    )
-    app_config["RECORDS_REFRESOLVER_STORE"] = (
-        "invenio_jsonschemas.proxies.current_refresolver_store"
-    )
+    app_config["RECORDS_REFRESOLVER_CLS"] = "invenio_records.resolver.InvenioRefResolver"
+    app_config["RECORDS_REFRESOLVER_STORE"] = "invenio_jsonschemas.proxies.current_refresolver_store"
 
     app_config["THEME_FRONTPAGE"] = False
 
-    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = (
-        {  # hack to avoid pool_timeout set in invenio_app_rdm
-            "pool_pre_ping": False,
-            "pool_recycle": 3600,
-        }
-    )
+    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = {  # avoid pool_timeout set in invenio_app_rdm
+        "pool_pre_ping": False,
+        "pool_recycle": 3600,
+    }
 
     app_config["RDM_NAMESPACES"] = {
         "cern": "https://greybook.cern.ch/",
@@ -399,7 +421,7 @@ def app_config(
         TextCF(  # a text input field that will allow HTML tags
             name="cern:experiment",
             field_cls=SanitizedHTML,
-        )
+        ),
     }
 
     app_config["DRAFTS_CF_CUSTOM_FIELDS"] = app_config["RECORDS_CF_CUSTOM_FIELDS"]
@@ -408,30 +430,28 @@ def app_config(
         {
             "section": _("CERN Experiment"),
             "fields": [
-                dict(
-                    field="cern:experiment",
-                    ui_widget="RichInput",
-                    props=dict(
-                        label="Experiment description",
-                        placeholder="This experiment aims to...",
-                        icon="pencil",
-                        description="You should fill this field with the experiment description.",
-                    ),
-                ),
+                {
+                    "field": "cern:experiment",
+                    "ui_widget": "RichInput",
+                    "props": {
+                        "label": "Experiment description",
+                        "placeholder": "This experiment aims to...",
+                        "icon": "pencil",
+                        "description": ("You should fill this field with the experiment description.",),
+                    },
+                },
             ],
-        }
+        },
     ]
 
     app_config["DRAFTS_CF_CUSTOM_FIELDS_UI"] = app_config["RECORDS_CF_CUSTOM_FIELDS_UI"]
-
-    # app_config["SQLALCHEMY_ECHO"] = True
 
     return app_config
 
 
 @pytest.fixture(scope="module")
 def identity_simple():
-    """Simple identity fixture."""
+    """Create simple identity fixture."""
     i = Identity(1)
     i.provides.add(UserNeed(1))
     i.provides.add(Need(method="system_role", value="any_user"))
@@ -450,7 +470,6 @@ def create_app(instance_path, entry_points):
 @pytest.fixture
 def vocabulary_fixtures(app, db, search_clear, search):
     """Import vocabulary fixtures."""
-
     VocabularyType.create(id="languages", pid_type="lng")
     db.session.commit()
 
@@ -471,7 +490,7 @@ def vocabulary_fixtures(app, db, search_clear, search):
             class VC(VocabularyConfig):
                 """Names Vocabulary Config."""
 
-                config = {
+                config: ClassVar[dict] = {
                     "readers": [
                         {
                             "type": "yaml",
@@ -487,7 +506,7 @@ def vocabulary_fixtures(app, db, search_clear, search):
                                 "service_or_name": "vocabularies",
                                 "identity": system_identity,
                             },
-                        }
+                        },
                     ],
                 }
                 vocabulary_name = vocabulary
@@ -495,9 +514,5 @@ def vocabulary_fixtures(app, db, search_clear, search):
             config = VC().get_config(settings, origin=filepath)
 
         success, errored, filtered = _process_vocab(config)
-        print(
-            f"Vocabulary {vocabulary} processed: {success} success, {errored} errored, {filtered} filtered",
-            flush=True,
-        )
         assert errored == 0
         assert filtered == 0

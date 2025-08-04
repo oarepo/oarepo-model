@@ -6,6 +6,14 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for adding fields to model classes.
+
+This module provides the AddClassField customization that adds new fields with
+specified names and values to existing classes in the model. This allows dynamic
+extension of class definitions with attributes, methods, or other class-level
+properties during the model building process.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override

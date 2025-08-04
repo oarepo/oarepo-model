@@ -6,3 +6,6 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Module to generate record classes and related functionality."""
+
+from __future__ import annotations

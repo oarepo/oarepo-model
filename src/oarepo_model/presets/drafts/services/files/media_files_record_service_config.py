@@ -6,9 +6,16 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Preset for configuring media files record service.
+
+This module provides a preset that creates a specialized record service configuration
+for handling media files. It includes service components specific to media file
+management and sets up the necessary configuration for media file operations.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_drafts_resources.services.records.config import (
     RecordServiceConfig,
@@ -24,40 +31,40 @@ from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from invenio_records_resources.services.records.components import ServiceComponent
+
     from oarepo_model.builder import InvenioModelBuilder
 
 
 class MediaFilesRecordServiceConfigPreset(Preset):
-    """
-    Preset for record service config class.
-    """
+    """Preset for record service config class."""
 
-    provides = [
+    provides = (
         "MediaFilesRecordServiceConfig",
         "media_files_record_service_components",
-    ]
+    )
 
+    @override
     def apply(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
         dependencies: dict[str, Any],
-    ) -> Generator[Customization, None, None]:
-
+    ) -> Generator[Customization]:
         class MediaFilesRecordServiceConfigMixin(ModelMixin):
-
             record_cls = Dependency("Record")
             draft_cls = Dependency("Draft")
 
             service_id = f"{builder.model.base_name}_media_files"
 
             @property
-            def components(self):
+            def components(self) -> list[ServiceComponent]:
                 # TODO: needs to be fixed as we have multiple mixins and the sources
                 # in oarepo-runtime do not support this yet
                 # return process_service_configs(
-                #     self, self.get_model_dependency("record_service_components")
-                # )
+                #     self, self.get_model_dependency("record_service_components")  # noqa
                 return [
                     *super().components,
                     *self.get_model_dependency("media_files_record_service_components"),
@@ -69,5 +76,6 @@ class MediaFilesRecordServiceConfigPreset(Preset):
 
         yield AddClass("MediaFilesRecordServiceConfig", clazz=RecordServiceConfig)
         yield AddMixins(
-            "MediaFilesRecordServiceConfig", MediaFilesRecordServiceConfigMixin
+            "MediaFilesRecordServiceConfig",
+            MediaFilesRecordServiceConfigMixin,
         )

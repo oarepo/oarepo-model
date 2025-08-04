@@ -1,3 +1,14 @@
+#
+# Copyright (c) 2025 CESNET z.s.p.o.
+#
+# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
+#
+# oarepo-model is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+#
+from __future__ import annotations
+
+
 def test_relations(
     app,
     identity_simple,
@@ -7,7 +18,6 @@ def test_relations(
     search_clear,
     location,
 ):
-
     TargetRecord = empty_model.Record
     target_service = empty_model.proxies.current_service
 
@@ -29,9 +39,7 @@ def test_relations(
     # Refresh to make changes live
     TargetRecord.index.refresh()
 
-    RelationRecord = relation_model.Record
     relation_service = relation_model.proxies.current_service
-    RelationSchema = relation_model.RecordSchema
 
     relation_rec = relation_service.create(
         identity_simple,

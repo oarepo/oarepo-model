@@ -6,6 +6,13 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
+"""Customization for creating new lists in the model.
+
+This module provides the AddList customization that creates new empty lists
+in the model builder with specified names. The lists can then be populated
+by other customizations or used to collect related items during model building.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -20,7 +27,11 @@ if TYPE_CHECKING:
 class AddList(Customization):
     """Customization to add a list to the model."""
 
-    def __init__(self, name: str, exists_ok: bool = False) -> None:
+    def __init__(
+        self,
+        name: str,
+        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
+    ) -> None:
         """Initialize the AddList customization.
 
         :param name: The name of the list to be added.
