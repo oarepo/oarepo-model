@@ -294,6 +294,7 @@ multilingual_model_types = {
             },
         }
     }
+
 }
 
 

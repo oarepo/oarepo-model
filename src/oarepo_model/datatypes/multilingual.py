@@ -183,6 +183,11 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
             "items": {"type": "object", "properties": {lang: {"type": "string"}, value: {"type": "string"}}},
         }
 
+if TYPE_CHECKING:
+    import marshmallow
+
+    from oarepo_model.customizations import Customization
+
 
 class I18nDictDataType(ObjectDataType):
     """A data type for multilingual dictionaries.
@@ -198,7 +203,11 @@ class I18nDictDataType(ObjectDataType):
     TYPE = "i18ndict"
 
     @override
-    def create_marshmallow_field(self, field_name: str, element: dict[str, Any]) -> marshmallow.fields.Field:
+    def create_marshmallow_field(
+        self,
+        field_name: str,
+        element: dict[str, Any],
+    ) -> marshmallow.fields.Field:
         """Create a Marshmallow field for the data type.
 
         This method should be overridden by subclasses to provide specific field creation logic.
@@ -222,6 +231,10 @@ class I18nDictDataType(ObjectDataType):
         return {"type": "object", "dynamic": "true"}
 
     @override
-    def create_relations(self, element: dict[str, Any], path: list[tuple[str, dict[str, Any]]]) -> list[Customization]:
+    def create_relations(
+        self,
+        element: dict[str, Any],
+        path: list[tuple[str, dict[str, Any]]],
+    ) -> list[Customization]:
         # can not get relations for dynamic objects
         return []
