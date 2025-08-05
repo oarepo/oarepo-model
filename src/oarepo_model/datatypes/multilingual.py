@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from invenio_vocabularies.services.schema import i18n_strings
 from oarepo_runtime.services.schema.i18n import I18nStrField, MultilingualField
-from oarepo_runtime.services.schema.i18n_ui import MultilingualUIField
+from oarepo_runtime.services.schema.i18n_ui import I18nStrUIField, MultilingualUIField
 
 from .base import ARRAY_ITEM_PATH
 from .collections import ArrayDataType, ObjectDataType
@@ -75,6 +75,16 @@ class I18nDataType(ObjectDataType, MultilingualMixin):
         }
 
     @override
+    def create_ui_marshmallow_fields(
+        self,
+        field_name: str,
+        element: dict[str, Any],
+    ) -> dict[str, marshmallow.fields.Field]:
+        lang, value = self.get_multilingual_field(element)
+
+        return {field_name: I18nStrUIField(lang_name=lang, value_name=value)}
+
+    @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
         """Create a JSON schema for the data type.
 
@@ -120,11 +130,18 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
         lang, value = self.get_multilingual_field(element)
         return MultilingualField(lang_name=lang, value_name=value)
 
-    def create_ui_marshmallow_schema(self, element: dict[str, Any]) -> marshmallow.fields.Field:
+    @override
+    def create_ui_marshmallow_fields(
+        self,
+        field_name: str,
+        element: dict[str, Any],
+    ) -> dict[str, marshmallow.fields.Field]:
         """Create a UI Marshmallow field for the data type."""
         lang, value = self.get_multilingual_field(element)
 
-        return MultilingualUIField(lang_name=lang, value_name=value)
+        return {
+            field_name: MultilingualUIField(lang_name=lang, value_name=value),
+        }
 
     @override
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
