@@ -17,12 +17,12 @@ creation of appropriate Marshmallow schemas for validation and serialization.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from .relations import PIDRelation
 
 if TYPE_CHECKING:
-    from invenio_records_resources.records.systemfields import ModelPIDField
+    from invenio_records_resources.records.systemfields.pid import PIDField
     from marshmallow import Schema
 
 
@@ -77,25 +77,25 @@ class VocabularyDataType(PIDRelation):
                     AffiliationRelationSchema,
                 )
 
-                return AffiliationRelationSchema
+                return cast("type[Schema]", AffiliationRelationSchema)
             case "funders":
                 from invenio_vocabularies.contrib.funders.schema import (
                     FunderRelationSchema,
                 )
 
-                return FunderRelationSchema
+                return cast("type[Schema]", FunderRelationSchema)
             case "awards":
                 from invenio_vocabularies.contrib.awards.schema import (
                     AwardRelationSchema,
                 )
 
-                return AwardRelationSchema
+                return cast("type[Schema]", AwardRelationSchema)
             case "subjects":
                 from invenio_vocabularies.contrib.subjects.schema import (
                     SubjectRelationSchema,
                 )
 
-                return SubjectRelationSchema
+                return cast("type[Schema]", SubjectRelationSchema)
             case _generic:
                 return super().create_marshmallow_schema(element)
 
@@ -112,28 +112,28 @@ class VocabularyDataType(PIDRelation):
         self,
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],
-    ) -> ModelPIDField:
+    ) -> PIDField:
         match element["vocabulary-type"]:
             case "affiliations":
                 from invenio_vocabularies.contrib.affiliations.api import Affiliation
 
-                return Affiliation.pid
+                return Affiliation.pid  # type: ignore # noqa
             case "funders":
                 from invenio_vocabularies.contrib.funders.api import Funder
 
-                return Funder.pid
+                return Funder.pid  # type: ignore # noqa
             case "awards":
                 from invenio_vocabularies.contrib.awards.api import Award
 
-                return Award.pid
+                return Award.pid  # type: ignore # noqa
             case "subjects":
                 from invenio_vocabularies.contrib.subjects.api import Subject
 
-                return Subject.pid
+                return Subject.pid  # type: ignore # noqa
             case vocab_type:
                 from invenio_vocabularies.records.api import Vocabulary
 
-                return Vocabulary.pid.with_type_ctx(vocab_type)
+                return Vocabulary.pid.with_type_ctx(vocab_type)  # type: ignore # noqa
 
     def _cache_key(
         self,

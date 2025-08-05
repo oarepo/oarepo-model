@@ -16,15 +16,12 @@ keywords, full text fields, and editable text areas for use in OARepo models.
 from __future__ import annotations
 
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, override
+from typing import Any, override
 
 import marshmallow.fields
 import marshmallow.validate
 
 from .base import DataType
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
 
 
 class KeywordDataType(DataType):
@@ -106,12 +103,14 @@ class FulltextWithKeywordDataType(KeywordDataType):
     """
 
     TYPE = "fulltext+keyword"
-    mapping_type: Mapping[str, Any] = {
-        "type": "text",
-        "fields": {
-            "keyword": {
-                "type": "keyword",
-                "ignore_above": 256,
+    mapping_type = MappingProxyType(
+        {
+            "type": "text",
+            "fields": {
+                "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256,
+                },
             },
-        },
-    }
+        }
+    )

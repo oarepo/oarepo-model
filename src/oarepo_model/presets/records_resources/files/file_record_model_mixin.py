@@ -31,7 +31,7 @@ class FileRecordModelMixin:
     """Base class for a record file, storing its state and metadata."""
 
     __record_model_cls__ = None
-    """Record model to be for the ``record_id`` foreign key."""
+    """Record model to be used for the ``record_id`` foreign key, must be set in subclasses."""
 
     key = db.Column(
         db.Text().with_variant(mysql.VARCHAR(255), "mysql"),
@@ -42,6 +42,10 @@ class FileRecordModelMixin:
     @declared_attr
     def record_id(cls):  # noqa first argument name must be 'self'
         """Record ID foreign key."""
+        if cls.__record_model_cls__ is None:
+            raise NotImplementedError(
+                "FileRecordModelMixin requires __record_model_cls__ to be set in subclasses.",
+            )
         return db.Column(
             UUIDType,
             db.ForeignKey(cls.__record_model_cls__.id, ondelete="RESTRICT"),
@@ -49,12 +53,12 @@ class FileRecordModelMixin:
             # index=True, -- removed from here due to sqlalchemy bug
         )
 
-    @declared_attr
+    @declared_attr  # type: ignore[misc]
     def record(cls):  # noqa first argument name must be 'self'
         """Record the file belongs to."""
         return db.relationship(cls.__record_model_cls__)
 
-    @declared_attr
+    @declared_attr  # type: ignore[misc]
     def object_version_id(cls):  # noqa first argument name must be 'self'
         """Object version ID foreign key."""
         return db.Column(
@@ -64,7 +68,7 @@ class FileRecordModelMixin:
             # index=True, -- removed from here due to sqlalchemy bug
         )
 
-    @declared_attr
+    @declared_attr  # type: ignore[misc]
     def object_version(cls):  # noqa first argument name must be 'self'
         """Object version connected to the record file."""
         return db.relationship(ObjectVersion)

@@ -68,6 +68,7 @@ class RecordJSONSchemaPreset(Preset):
 
 def get_json_schema(builder: InvenioModelBuilder, schema_type: Any) -> dict[str, Any]:
     """Get the JSON schema for a given schema type."""
+    base_schema: dict[str, Any]
     if isinstance(schema_type, (str, dict)):
         datatype = builder.type_registry.get_type(schema_type)
         base_schema = cast("Any", datatype).create_json_schema(

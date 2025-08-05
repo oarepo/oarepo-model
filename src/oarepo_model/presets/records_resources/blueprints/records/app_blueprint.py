@@ -14,7 +14,7 @@ application-level blueprints for handling record views and UI in Invenio applica
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from flask import Blueprint
 
@@ -50,9 +50,10 @@ class AppBlueprintPreset(Preset):
     ) -> Generator[Customization]:
         yield AddDictionary("app_application_blueprint_initializers", exists_ok=True)
 
-        dependencies = builder.get_runtime_dependencies()
+        runtime_dependencies = builder.get_runtime_dependencies()
 
-        @staticmethod  # need to use staticmethod as python's magic always passes self as the first argument
+        # need to use staticmethod as python's magic always passes self as the first argument
+        @staticmethod  # type: ignore[misc]
         def create_app_blueprint(app: Flask) -> Blueprint:
             """Create DocumentsRecord blueprint."""
             with app.app_context():
@@ -62,8 +63,9 @@ class AppBlueprintPreset(Preset):
                     url_prefix="/{model.slug}/",
                 )
 
-                for initializer_func in dependencies.get(
-                    "app_application_blueprint_initializers",
+                for initializer_func in cast(
+                    "dict",
+                    runtime_dependencies.get("app_application_blueprint_initializers"),
                 ).values():
                     blueprint.record_once(initializer_func)
 

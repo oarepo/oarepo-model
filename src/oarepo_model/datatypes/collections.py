@@ -27,6 +27,8 @@ from oarepo_model.utils import MultiFormatField, convert_to_python_identifier
 from .base import ARRAY_ITEM_PATH, DataType
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from oarepo_model.customizations.base import Customization
 
 
@@ -49,6 +51,10 @@ class ObjectDataType(DataType):
         """
         if "properties" not in element:
             raise ValueError("Element must contain 'properties' key.")
+        if not isinstance(element["properties"], dict):
+            raise TypeError(
+                "Element 'properties' must be a dictionary.",
+            )
         return element["properties"]
 
     def create_marshmallow_schema(
@@ -61,7 +67,13 @@ class ObjectDataType(DataType):
         """
         if "marshmallow_schema_class" in element:
             # if marshmallow_schema_class is specified, use it directly
-            return obj_or_import_string(element["marshmallow_schema_class"])
+            imported = obj_or_import_string(element["marshmallow_schema_class"])
+            if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
+                raise ValueError(
+                    f"marshmallow_schema_class {element['marshmallow_schema_class']} "
+                    "must be a subclass of marshmallow.Schema",
+                )
+            return imported
 
         properties = self._get_properties(element)
 
@@ -90,7 +102,13 @@ class ObjectDataType(DataType):
         """
         if "ui_marshmallow_schema_class" in element:
             # if marshmallow_schema_class is specified, use it directly
-            return obj_or_import_string(element["ui_marshmallow_schema_class"])
+            imported = obj_or_import_string(element["ui_marshmallow_schema_class"])
+            if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
+                raise ValueError(
+                    f"ui_marshmallow_schema_class {element['ui_marshmallow_schema_class']} "
+                    "must be a subclass of marshmallow.Schema",
+                )
+            return imported
 
         if "properties" not in element:
             raise ValueError("Element must contain 'properties' key.")
@@ -112,15 +130,20 @@ class ObjectDataType(DataType):
         self,
         field_name: str,
         element: dict[str, Any],
-    ) -> dict[str, ObjectDataType]:
+    ) -> dict[str, marshmallow.fields.Field]:
         """Create a Marshmallow UI fields for the object data type.
 
         This method should be overridden by subclasses to provide specific schema creation logic.
         """
         if element.get("ui_marshmallow_field") is not None:
             # if marshmallow_field is specified, use it directly
+            ui_marshmallow_field = obj_or_import_string(element["ui_marshmallow_field"])
+            if ui_marshmallow_field is None or not isinstance(ui_marshmallow_field, marshmallow.fields.Field):
+                raise TypeError(
+                    f"ui_marshmallow_field must be an instance of marshmallow.fields.Field, got {ui_marshmallow_field}",
+                )
             return {
-                field_name: obj_or_import_string(element.get("ui_marshmallow_field")),
+                field_name: ui_marshmallow_field,
             }
 
         return {
@@ -261,8 +284,13 @@ class ArrayDataType(DataType):
         """
         if element.get("ui_marshmallow_field") is not None:
             # if marshmallow_field is specified, use it directly
+            ui_fld = obj_or_import_string(element["ui_marshmallow_field"])
+            if ui_fld is None or not isinstance(ui_fld, marshmallow.fields.Field):
+                raise TypeError(
+                    f"ui_marshmallow_field must be an instance of marshmallow.fields.Field, got {ui_fld}",
+                )
             return {
-                field_name: obj_or_import_string(element.get("ui_marshmallow_field")),
+                field_name: ui_fld,
             }
 
         # retrieve formatting options (e.g. for the date items type -> long, short etc.)
@@ -289,7 +317,7 @@ class ArrayDataType(DataType):
         }
 
     @override
-    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+    def create_mapping(self, element: dict[str, Any]) -> Mapping[str, Any]:
         # skip the array in mapping
         return self._registry.get_type(element["items"]).create_mapping(
             element["items"],

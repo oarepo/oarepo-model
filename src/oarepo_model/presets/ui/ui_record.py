@@ -33,7 +33,7 @@ class UIRecordPreset(Preset):
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        _dependencies: dict[str, Any],
+        dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         """Apply the preset to the model and yield customizations."""
         record_ui_model = get_ui_model(builder, model.record_type, [])
@@ -45,8 +45,9 @@ def get_ui_model(
     builder: InvenioModelBuilder,
     schema_type: Any,
     initial_path: list[str],
-) -> dict:
+) -> dict[str, Any]:
     """Get the UI model for a given schema type."""
+    base_schema: dict[str, Any] = {}
     if isinstance(schema_type, (str, dict)):
         datatype = builder.type_registry.get_type(schema_type)
         base_schema = cast("Any", datatype).create_ui_model(

@@ -112,7 +112,7 @@ class IntegerDataType(NumberDataType):
 
     TYPE = "int"
 
-    marshmallow_field_class: type[marshmallow.fields.Field] = marshmallow.fields.Integer
+    marshmallow_field_class = marshmallow.fields.Integer
     jsonschema_type = "integer"
     mapping_type = "integer"
 

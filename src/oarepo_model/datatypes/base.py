@@ -19,10 +19,9 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from invenio_base.utils import obj_or_import_string
+from marshmallow.fields import Field
 
 if TYPE_CHECKING:
-    from marshmallow.fields import Field
-
     from oarepo_model.customizations.base import Customization
 
     from .registry import DataTypeRegistry
@@ -69,7 +68,12 @@ class DataType:
         """
         if element.get("marshmallow_field") is not None:
             # if marshmallow_field is specified, use it directly
-            return obj_or_import_string(element["marshmallow_field"])
+            marshmallow_field = obj_or_import_string(element["marshmallow_field"])
+            if marshmallow_field is None or not isinstance(marshmallow_field, Field):
+                raise TypeError(
+                    f"marshmallow_field must be an instance of marshmallow.fields.Field, got {marshmallow_field}",
+                )
+            return marshmallow_field
 
         return self._get_marshmallow_field_class(field_name, element)(
             **self._get_marshmallow_field_args(field_name, element),
@@ -97,7 +101,12 @@ class DataType:
         This method can be overridden by subclasses to provide specific field class logic.
         """
         if element.get("marshmallow_field_class") is not None:
-            return obj_or_import_string(element["marshmallow_field_class"])
+            imported = obj_or_import_string(element["marshmallow_field_class"])
+            if not isinstance(imported, type) or not issubclass(imported, Field):
+                raise TypeError(
+                    f"marshmallow_field_class must be a subclass of marshmallow.fields.Field, got {imported}",
+                )
+            return imported
 
         if self.marshmallow_field_class is None:
             raise NotImplementedError(

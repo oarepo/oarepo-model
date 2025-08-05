@@ -76,7 +76,7 @@ def is_mro_consistent(class_list: list[type]) -> bool:
         mro = created_class.mro()
         # If the created class is sqlalchemy, remove it from sqlachemy mapping
         if issubclass(created_class, db.Model):
-            db.Model.registry._dispose_cls(  # noqa: SLF001 private value access
+            db.Model.registry._dispose_cls(  # type: ignore[attr-defined] # noqa: SLF001 private value access
                 created_class,
             )
     except TypeError:
@@ -118,7 +118,7 @@ def make_mro_consistent(class_list: list[type]) -> list[type]:
                     temp_order = [*result[:i], cls, *result[i:]]
                     created_class = type("_", tuple(temp_order), {})
                     if issubclass(created_class, db.Model):
-                        db.Model.registry._dispose_cls(  # noqa: SLF001 private value access
+                        db.Model.registry._dispose_cls(  # type: ignore[attr-defined] # noqa: SLF001 private value access
                             created_class,
                         )
                     insert_pos = i
@@ -210,7 +210,7 @@ class MultiFormatField(marshmallow.fields.Field):
         attr: str | None,
         obj: Any,
         **kwargs: Any,
-    ) -> dict[str, str] | str | None:
+    ) -> Any:
         if value is None:
             return None
 

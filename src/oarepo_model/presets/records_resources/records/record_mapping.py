@@ -77,6 +77,7 @@ class RecordMappingPreset(Preset):
 
 def get_mapping(builder: InvenioModelBuilder, schema_type: Any) -> dict[str, Any]:
     """Get the mapping for the given schema type."""
+    base_schema: dict[str, Any]
     if isinstance(schema_type, (str, dict)):
         datatype = builder.type_registry.get_type(schema_type)
         base_schema = cast("Any", datatype).create_mapping(
