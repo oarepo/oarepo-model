@@ -257,28 +257,59 @@ def test_multilingual_schema(test_ui_model):
             "type": "multilingual",
         }
     )
-    assert ui_model == {
-        "help": "a.help",
-        "label": "a.label",
-        "hint": "a.hint",
-        "input": "multilingual",
-        "children": {
-            "lang": {
-                "help": "a/lang.help",
-                "label": "a/lang.label",
-                "hint": "a/lang.hint",
-                "required": True,
-                "input": "keyword",
+    assert (
+        ui_model
+        == {
+            "child": {
+                "children": {
+                    "lang": {
+                        "help": "a/lang.help",
+                        "hint": "a/lang.hint",
+                        "input": "keyword",
+                        "label": "a/lang.label",
+                        "required": True,
+                    },
+                    "value": {
+                        "help": "a/value.help",
+                        "hint": "a/value.hint",
+                        "input": "keyword",
+                        "label": "a/value.label",
+                        "required": True,
+                    },
+                },
+                "help": "a/item.help",
+                "hint": "a/item.hint",
+                "input": "object",
+                "label": "a/item.label",
             },
-            "value": {
-                "help": "a/value.help",
-                "label": "a/value.label",
-                "hint": "a/value.hint",
-                "required": True,
-                "input": "keyword",
+            "help": "a.help",
+            "hint": "a.hint",
+            "input": "multilingual",
+            "label": "a.label",
+        }
+        != {
+            "children": {
+                "lang": {
+                    "help": "a/lang.help",
+                    "hint": "a/lang.hint",
+                    "input": "keyword",
+                    "label": "a/lang.label",
+                    "required": True,
+                },
+                "value": {
+                    "help": "a/value.help",
+                    "hint": "a/value.hint",
+                    "input": "keyword",
+                    "label": "a/value.label",
+                    "required": True,
+                },
             },
-        },
-    }
+            "help": "a.help",
+            "hint": "a.hint",
+            "input": "multilingual",
+            "label": "a.label",
+        }
+    )
 
 
 def test_array(test_ui_model):
