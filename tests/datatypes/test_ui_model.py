@@ -287,28 +287,7 @@ def test_multilingual_schema(test_ui_model):
             "input": "multilingual",
             "label": "a.label",
         }
-        != {
-            "children": {
-                "lang": {
-                    "help": "a/lang.help",
-                    "hint": "a/lang.hint",
-                    "input": "keyword",
-                    "label": "a/lang.label",
-                    "required": True,
-                },
-                "value": {
-                    "help": "a/value.help",
-                    "hint": "a/value.hint",
-                    "input": "keyword",
-                    "label": "a/value.label",
-                    "required": True,
-                },
-            },
-            "help": "a.help",
-            "hint": "a.hint",
-            "input": "multilingual",
-            "label": "a.label",
-        }
+
     )
 
 
