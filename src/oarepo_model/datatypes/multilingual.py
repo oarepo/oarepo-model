@@ -183,6 +183,7 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
             "items": {"type": "object", "properties": {lang: {"type": "string"}, value: {"type": "string"}}},
         }
 
+
 if TYPE_CHECKING:
     import marshmallow
 
