@@ -59,6 +59,7 @@ from .resources.files.media_file_resource import MediaFileResourcePreset
 from .resources.files.media_file_resource_config import MediaFileResourceConfigPreset
 from .resources.records.resource import DraftResourcePreset
 from .resources.records.resource_config import DraftResourceConfigPreset
+from .resources.records.ui_record_schema import DraftsRecordUISchemaPreset
 from .services.files.draft_file_record_service_components import (
     DraftFileRecordServiceComponentsPreset,
 )
@@ -108,6 +109,7 @@ drafts_records_presets: list[type[Preset]] = [
     # resource layer
     DraftResourcePreset,
     DraftResourceConfigPreset,
+    DraftsRecordUISchemaPreset,
 ]
 
 drafts_files_presets: list[type[Preset]] = [

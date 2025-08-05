@@ -47,6 +47,8 @@ def model_types():
         "Metadata": {
             "properties": {
                 "title": {"type": "fulltext+keyword", "required": True},
+                "some_bool_val": {"type": "boolean"},
+                "height": {"type": "int"},
             },
         },
     }
@@ -77,14 +79,8 @@ def model_types_in_json_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_json(
-            "data_types_in_json_dict.json",
-            origin="tests/data_types_in_json_dict.json",
-        ),
-        from_json(
-            "data_types_in_json_list.json",
-            origin="tests/data_types_in_json_list.json",
-        ),
+        from_json("data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"),
+        from_json("data_types_in_json_list.json", origin="tests/data_types_in_json_list.json"),
     ]
 
 
@@ -93,14 +89,8 @@ def model_types_in_yaml_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_yaml(
-            "data_types_in_yaml_list.yaml",
-            origin="tests/data_types_in_yaml_list.yaml",
-        ),
-        from_yaml(
-            "data_types_in_yaml_dict.yaml",
-            origin="tests/data_types_in_yaml_dict.yaml",
-        ),
+        from_yaml("data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"),
+        from_yaml("data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml"),
     ]
 
 
@@ -285,7 +275,10 @@ vocabulary_model_types = {
 multilingual_model_types = {
     "Metadata": {
         "properties": {
-            "abstract": {"type": "i18n", "multilingual": {"lang_name": "jazyk", "value_name": "hodnotka"}},
+            "abstract": {
+                "type": "i18n",
+                "multilingual": {"lang_name": "jazyk", "value_name": "hodnotka"},
+            },
             "title": {
                 "type": "i18n",
             },
@@ -486,6 +479,9 @@ def app_config(
     ]
 
     app_config["DRAFTS_CF_CUSTOM_FIELDS_UI"] = app_config["RECORDS_CF_CUSTOM_FIELDS_UI"]
+
+    # disable CSRF protection for tests
+    app_config["REST_CSRF_ENABLED"] = False
 
     return app_config
 

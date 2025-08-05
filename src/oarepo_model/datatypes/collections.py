@@ -110,12 +110,11 @@ class ObjectDataType(DataType):
                 )
             return imported
 
-        if "properties" not in element:
-            raise ValueError("Element must contain 'properties' key.")
+        properties = self._get_properties(element)
 
         properties_fields: dict[str, Any] = {}
 
-        for key, value in element["properties"].items():
+        for key, value in properties.items():
             properties_fields.update(
                 self._registry.get_type(value).create_ui_marshmallow_fields(key, value),
             )
@@ -385,6 +384,10 @@ class DynamicObjectDataType(ObjectDataType):
         element: dict[str, Any],
     ) -> type[marshmallow.Schema]:
         return PermissiveSchema
+
+    @override
+    def create_ui_marshmallow_fields(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
+        return {}
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:

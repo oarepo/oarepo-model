@@ -8,6 +8,8 @@
 #
 from __future__ import annotations
 
+from typing import ClassVar
+
 import pytest
 from invenio_app.factory import create_api as _create_api
 
@@ -60,8 +62,37 @@ def input_data():
 
 
 @pytest.fixture
+def input_data_more_complex():
+    """Input data (as coming from the view layer)."""
+    return {
+        "metadata": {"title": "Test", "some_bool_val": True, "height": 123},
+        "files": {
+            "enabled": True,
+        },
+    }
+
+
+@pytest.fixture
 def input_data_with_files_disabled(input_data):
     """Input data with files disabled."""
     data = input_data.copy()
     data["files"]["enabled"] = False
     return data
+
+
+class DefaultHeaders:
+    """Default headers for requests."""
+
+    json: ClassVar[dict[str, str]] = {
+        "content-type": "application/json",
+        "accept": "application/json",
+    }
+    ui: ClassVar[dict[str, str]] = {
+        "accept": "application/vnd.inveniordm.v1+json",
+    }
+
+
+@pytest.fixture(scope="module")
+def headers():
+    """Return default headers for making requests."""
+    return DefaultHeaders
