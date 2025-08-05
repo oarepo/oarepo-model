@@ -105,7 +105,7 @@ class I18nDataType(ObjectDataType, MultilingualMixin):
         lang, value = self.get_multilingual_field(element)
         element["properties"] = {
             lang: {"required": True, "type": "keyword"},
-            value: {"required": True, "type": "keyword"},
+            value: {"required": True, "type": "fulltext+keyword"},
         }
 
         ret = super().create_ui_model(element, path)
@@ -170,7 +170,7 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
         element["items"] = {
             "properties": {
                 "lang": {"required": True, "type": "keyword"},
-                "value": {"required": True, "type": "keyword"},
+                "value": {"required": True, "type": "fulltext+keyword"},
             },
             "type": "object",
         }
