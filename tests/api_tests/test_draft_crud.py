@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 import json
-from io import BytesIO
 
 import pytest
 from invenio_pidstore.errors import PIDDeletedError, PIDDoesNotExistError
@@ -162,25 +161,6 @@ def test_simple_flow_resource(
     assert res.json["hits"]["total"] == 0
 
 
-def add_file_to_draft(draft_file_service, draft_id, file_id, identity):
-    """Add a file to the record."""
-    result = draft_file_service.init_files(identity, draft_id, data=[{"key": file_id}])
-    file_md = next(iter(result.entries))
-    assert file_md["key"] == "test.txt"
-    assert file_md["status"] == "pending"
-
-    draft_file_service.set_file_content(
-        identity,
-        draft_id,
-        file_id,
-        BytesIO(b"test file content"),
-    )
-    result = draft_file_service.commit_file(identity, draft_id, file_id)
-    file_md = result.data
-    assert file_md["status"] == "completed"
-    return result
-
-
 def test_simple_flow_with_files(
     app,
     draft_service_with_files,
@@ -188,6 +168,7 @@ def test_simple_flow_with_files(
     identity_simple,
     input_data,
     draft_model,
+    add_file_to_draft,
     search,
     search_clear,
     location,
