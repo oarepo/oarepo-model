@@ -74,7 +74,10 @@ class RecordPreset(Preset):
 
             dumper = Dependency(
                 "RecordDumper",
-                transform=lambda RecordDumper: RecordDumper(),  # noqa: N803
+                "record_dumper_extensions",
+                transform=lambda RecordDumper, record_dumper_extensions: RecordDumper(  # noqa: N803
+                    record_dumper_extensions
+                ),
             )
 
         yield AddClass(

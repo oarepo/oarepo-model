@@ -35,7 +35,7 @@ class AddDictionary(Customization):
         self,
         name: str,
         default: dict[str, Any] | None = None,
-        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
+        exists_ok: bool = False,  # noqa: FBT002 - boolean argument to keep a single class
     ) -> None:
         """Initialize the AddDictionary customization.
 
