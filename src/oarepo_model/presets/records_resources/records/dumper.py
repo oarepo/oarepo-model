@@ -44,6 +44,5 @@ class RecordDumperPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-
         yield AddClass("RecordDumper", clazz=InvenioSearchDumper)
         yield AddList("record_dumper_extensions")

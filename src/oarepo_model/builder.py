@@ -266,7 +266,7 @@ class InvenioModelBuilder:
         self,
         name: str,
         clazz: type | None = None,
-        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single method
+        exists_ok: bool = False,  # noqa: FBT002 - boolean argument to keep a single method
     ) -> BuilderClass:
         """Add a class to the builder."""
         if name in self.partials:
@@ -328,7 +328,7 @@ class InvenioModelBuilder:
         self,
         name: str,
         default: dict[str, Any] | None = None,
-        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single method
+        exists_ok: bool = False,  # noqa: FBT002 - boolean argument to keep a single method
     ) -> BuilderDict:
         """Add a dictionary to the builder."""
         if name in self.partials:
@@ -347,7 +347,7 @@ class InvenioModelBuilder:
         self,
         name: str,
         value: Any,
-        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single method
+        exists_ok: bool = False,  # noqa: FBT002 - boolean argument to keep a single method
     ) -> BuilderConstant:
         """Add a constant to the builder."""
         if name in self.partials:
@@ -364,7 +364,7 @@ class InvenioModelBuilder:
     def add_module(
         self,
         name: str,
-        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single method
+        exists_ok: bool = False,  # noqa: FBT002 - boolean argument to keep a single method
     ) -> BuilderModule:
         """Add a module to the builder."""
         if name in self.partials:
@@ -380,7 +380,7 @@ class InvenioModelBuilder:
         module_name: str,
         file_path: str,
         content: str,
-        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single method
+        exists_ok: bool = False,  # noqa: FBT002 - boolean argument to keep a single method
     ) -> BuilderFile:
         """Add a file to the builder."""
         if symbolic_name in self.partials:
@@ -405,7 +405,7 @@ class InvenioModelBuilder:
         group: str,
         name: str,
         value: str | None,
-        overwrite: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single method
+        overwrite: bool = False,  # noqa: FBT002 - boolean argument to keep a single method
         separator: str = ":",
     ) -> None:
         """Add an entry point to the builder."""

@@ -31,7 +31,7 @@ class AddJSONFile(AddFileToModule):
         module_name: str,
         file_path: str,
         payload: dict[str, Any],
-        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
+        exists_ok: bool = False,  # noqa: FBT002 - boolean argument to keep a single class
     ) -> None:
         """Add a json to the model.
 

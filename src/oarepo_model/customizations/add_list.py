@@ -30,7 +30,7 @@ class AddList(Customization):
     def __init__(
         self,
         name: str,
-        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
+        exists_ok: bool = False,  # noqa: FBT002 - boolean argument to keep a single class
     ) -> None:
         """Initialize the AddList customization.
 
