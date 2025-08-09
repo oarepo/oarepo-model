@@ -23,6 +23,7 @@ from invenio_vocabularies.cli import _process_vocab
 from invenio_vocabularies.factories import VocabularyConfig, get_vocabulary_config
 from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
+from oarepo_runtime.services.records.mapping import update_all_record_mappings
 
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
@@ -79,8 +80,12 @@ def model_types_in_json_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_json("data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"),
-        from_json("data_types_in_json_list.json", origin="tests/data_types_in_json_list.json"),
+        from_json(
+            "data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"
+        ),
+        from_json(
+            "data_types_in_json_list.json", origin="tests/data_types_in_json_list.json"
+        ),
     ]
 
 
@@ -89,8 +94,12 @@ def model_types_in_yaml_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_yaml("data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"),
-        from_yaml("data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml"),
+        from_yaml(
+            "data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"
+        ),
+        from_yaml(
+            "data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml"
+        ),
     ]
 
 
@@ -437,15 +446,21 @@ def app_config(
 
     app_config["FILES_REST_DEFAULT_STORAGE_CLASS"] = "L"
 
-    app_config["RECORDS_REFRESOLVER_CLS"] = "invenio_records.resolver.InvenioRefResolver"
-    app_config["RECORDS_REFRESOLVER_STORE"] = "invenio_jsonschemas.proxies.current_refresolver_store"
+    app_config["RECORDS_REFRESOLVER_CLS"] = (
+        "invenio_records.resolver.InvenioRefResolver"
+    )
+    app_config["RECORDS_REFRESOLVER_STORE"] = (
+        "invenio_jsonschemas.proxies.current_refresolver_store"
+    )
 
     app_config["THEME_FRONTPAGE"] = False
 
-    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = {  # avoid pool_timeout set in invenio_app_rdm
-        "pool_pre_ping": False,
-        "pool_recycle": 3600,
-    }
+    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = (
+        {  # avoid pool_timeout set in invenio_app_rdm
+            "pool_pre_ping": False,
+            "pool_recycle": 3600,
+        }
+    )
 
     app_config["RDM_NAMESPACES"] = {
         "cern": "https://greybook.cern.ch/",
@@ -454,7 +469,7 @@ def app_config(
     app_config["RECORDS_CF_CUSTOM_FIELDS"] = {
         TextCF(  # a text input field that will allow HTML tags
             name="cern:experiment",
-            field_cls=SanitizedHTML,
+            field_cls=SanitizedHTML,  # type: ignore[assignment]
         ),
     }
 
@@ -471,7 +486,9 @@ def app_config(
                         "label": "Experiment description",
                         "placeholder": "This experiment aims to...",
                         "icon": "pencil",
-                        "description": ("You should fill this field with the experiment description.",),
+                        "description": (
+                            "You should fill this field with the experiment description.",
+                        ),
                     },
                 },
             ],
@@ -553,3 +570,10 @@ def vocabulary_fixtures(app, db, search_clear, search):
         success, errored, filtered = _process_vocab(config)
         assert errored == 0
         assert filtered == 0
+
+
+@pytest.fixture(scope="module")
+def search(search):
+    """Search fixture."""
+    update_all_record_mappings()
+    return search
