@@ -16,23 +16,20 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from oarepo_runtime.records.dumpers import SearchDumper
-from oarepo_runtime.records.systemfields.mapping import SystemFieldDumperExt
+from invenio_records.dumpers import SearchDumper as InvenioSearchDumper
 
 from oarepo_model.customizations import (
     AddClass,
     AddList,
-    AddMixins,
-    AddToList,
     Customization,
 )
-from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import InvenioModel
 
 
 class RecordDumperPreset(Preset):
@@ -47,18 +44,6 @@ class RecordDumperPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class RecordDumperMixin:
-            extensions = Dependency(
-                "record_dumper_extensions",
-                default=[],
-            )
 
-        yield AddClass("RecordDumper", clazz=SearchDumper)
-        yield AddMixins("RecordDumper", RecordDumperMixin)
+        yield AddClass("RecordDumper", clazz=InvenioSearchDumper)
         yield AddList("record_dumper_extensions")
-
-        # TODO: remove this when we review oarepo-runtime
-        yield AddToList(
-            "record_dumper_extensions",
-            SystemFieldDumperExt(),
-        )
