@@ -16,7 +16,7 @@ and draft workflow of records.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, override
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_db import db
 from invenio_drafts_resources.records import (
@@ -26,7 +26,7 @@ from invenio_drafts_resources.records import (
 from oarepo_model.customizations import (
     AddBaseClasses,
     AddClass,
-    AddMixins,
+    AddClassField,
     Customization,
 )
 from oarepo_model.presets import Preset
@@ -55,17 +55,21 @@ class ParentRecordStatePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class ParentRecordStateMixin:
-            __record_model__ = dependencies["RecordMetadata"]
-            __draft_model__ = dependencies["DraftMetadata"]
-            __parent_record_model__ = dependencies["ParentRecordMetadata"]
-            __tablename__ = f"{builder.model.base_name}_parent_record_state"
-            __table_args__: ClassVar[dict[str, Any]] = {"extend_existing": True}
-
         yield AddClass("ParentRecordState")
         yield AddBaseClasses(
             "ParentRecordState",
             db.Model,
             InvenioParentRecordStateMixin,
         )
-        yield AddMixins("ParentRecordState", ParentRecordStateMixin)
+        yield AddClassField("ParentRecordState", "__record_model__", dependencies["RecordMetadata"])
+        yield AddClassField("ParentRecordState", "__draft_model__", dependencies["DraftMetadata"])
+        yield AddClassField(
+            "ParentRecordState",
+            "__parent_record_model__",
+            dependencies["ParentRecordMetadata"],
+        )
+        yield AddClassField(
+            "ParentRecordState",
+            "__tablename__",
+            f"{builder.model.base_name}_parent_record_state",
+        )

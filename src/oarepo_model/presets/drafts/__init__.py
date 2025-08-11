@@ -27,6 +27,7 @@ from .ext_draft_media_files import ExtDraftMediaFilesPreset
 from .ext_media_files import ExtMediaFilesPreset
 from .files.draft_media_files import DraftMediaFilesPreset
 from .files.draft_with_files import DraftWithFilesPreset
+from .files.draft_with_files_metadata import DraftMetadataWithFilesPreset
 from .files.draft_with_media_files import DraftWithMediaFilesPreset
 from .files.file_draft import FileDraftPreset
 from .files.file_draft_metadata import FileDraftMetadataPreset
@@ -122,6 +123,7 @@ drafts_files_presets: list[type[Preset]] = [
     DraftWithFilesPreset,
     DraftWithMediaFilesPreset,
     DraftMediaFilesPreset,
+    DraftMetadataWithFilesPreset,
     MediaFileMetadataPreset,
     MediaFileDraftMetadataPreset,
     FileDraftMetadataPreset,

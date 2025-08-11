@@ -18,20 +18,15 @@ from typing import TYPE_CHECKING, Any, override
 
 from invenio_db import db
 from invenio_records.models import RecordMetadataBase
-from sqlalchemy.orm import declared_attr
+from invenio_records_resources.records.models import FileRecordModelMixin
 
 from oarepo_model.customizations import (
     AddBaseClasses,
     AddClass,
     AddClassField,
-    AddMixins,
     Customization,
 )
 from oarepo_model.presets import Preset
-
-from ...records_resources.files.file_record_model_mixin import (
-    FileRecordModelMixin,
-)
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -57,37 +52,15 @@ class FileDraftMetadataPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class FileDraftMetadataMixin:
-            __tablename__ = f"{builder.model.base_name}_draft_files"
-            __record_model_cls__ = dependencies.get("DraftMetadata")
-
-        @declared_attr  # type: ignore[misc]
-        def __table_args__(cls):  # noqa declared attr is class method
-            """Table args."""
-            return (
-                db.Index(
-                    f"uidx_{cls.__tablename__}_record_id_key",
-                    "record_id",
-                    "key",
-                    unique=True,
-                ),
-                db.Index(
-                    f"uidx_{cls.__tablename__}_record_id",
-                    "record_id",
-                ),
-                db.Index(
-                    f"uidx_{cls.__tablename__}_object_version_id",
-                    "object_version_id",
-                ),
-                {"extend_existing": True},
-            )
-
         yield AddClass("FileDraftMetadata")
-        yield AddClassField("FileDraftMetadata", "__table_args__", __table_args__)
-        yield AddBaseClasses(
+        yield AddClassField(
             "FileDraftMetadata",
-            db.Model,
-            RecordMetadataBase,
-            FileRecordModelMixin,
+            "__tablename__",
+            f"{builder.model.base_name}_draft_files",
         )
-        yield AddMixins("FileDraftMetadata", FileDraftMetadataMixin)
+        yield AddClassField(
+            "FileDraftMetadata",
+            "__record_model_cls__",
+            dependencies.get("DraftMetadata"),
+        )
+        yield AddBaseClasses("FileDraftMetadata", db.Model, RecordMetadataBase, FileRecordModelMixin)
