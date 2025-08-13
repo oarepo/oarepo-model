@@ -1,5 +1,5 @@
 """Setup of the python module."""
 
-from setuptools import setup
+from setuptools import setup  # pragma: no cover
 
-setup()
+setup()  # pragma: no cover

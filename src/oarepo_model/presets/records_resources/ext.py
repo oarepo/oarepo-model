@@ -91,9 +91,7 @@ class ExtPreset(Preset):
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
                 return {
-                    "records_alias_enabled": model.configuration.get(
-                        "records_alias_enabled", True
-                    ),
+                    "records_alias_enabled": model.configuration.get("records_alias_enabled", True),
                     **runtime_dependencies.get("oarepo_model_arguments"),
                 }
 
@@ -188,8 +186,7 @@ class ExtPreset(Preset):
                 service = service_getter(ext)
                 service_id = service_id_getter(ext)
                 if (
-                    service_id
-                    not in sregistry._services  # noqa: SLF001 private member access
+                    service_id not in sregistry._services  # noqa: SLF001 private member access
                 ):
                     sregistry.register(service, service_id=service_id)
 
@@ -201,15 +198,11 @@ class ExtPreset(Preset):
                 indexer = indexer_getter(ext)
                 service_id = service_id_getter(ext)
                 if (
-                    indexer
-                    and service_id
-                    not in iregistry._indexers  # noqa: SLF001 private member access
+                    indexer and service_id not in iregistry._indexers  # noqa: SLF001 private member access
                 ):
                     iregistry.register(indexer, indexer_id=service_id)
 
-        add_to_service_and_indexer_registry.__name__ = (
-            f"{model.base_name}_add_to_service_and_indexer_registry"
-        )
+        add_to_service_and_indexer_registry.__name__ = f"{model.base_name}_add_to_service_and_indexer_registry"
 
         yield AddToDictionary(
             "app_application_blueprint_initializers",
