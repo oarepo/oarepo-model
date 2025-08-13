@@ -31,6 +31,7 @@ from .files.record_file_mapping import (
     RecordFileMappingPreset,
 )
 from .files.record_metadata import RecordMetadataWithFilesPreset
+from .model_registration import ModelRegistrationPreset
 from .proxy import ProxyPreset
 from .records.dumper import RecordDumperPreset
 from .records.jsonschema import JSONSchemaPreset
@@ -116,6 +117,7 @@ records_presets: list[type[Preset]] = [
     BlueprintModulePreset,
     ApiBlueprintPreset,
     AppBlueprintPreset,
+    ModelRegistrationPreset,
 ]
 
 files_presets: list[type[Preset]] = [

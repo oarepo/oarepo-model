@@ -87,6 +87,14 @@ class ExtDraftFilesPreset(Preset):
                     ),
                 }
 
+            @property
+            def model_arguments(self) -> dict[str, Any]:
+                """Model arguments for the extension."""
+                return {
+                    **super().model_arguments,  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                    "draft_file_service": self.draft_files_service,
+                }
+
         yield AddMixins("Ext", ExtDraftFilesMixin)
 
         yield AddToList(
