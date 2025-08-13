@@ -8,9 +8,10 @@ authors = [
 ]
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "oarepo-runtime",
+    "oarepo-runtime>=2.0.0dev5,<3.0.0",
     "graphlib",
     "oarepo[rdm,tests]>=13.0.0,<14.0.0",
+    "deepmerge>=2.0",
 ]
 
 [project.urls]
