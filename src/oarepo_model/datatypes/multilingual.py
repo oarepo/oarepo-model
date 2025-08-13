@@ -191,7 +191,10 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
 
         return {
             "type": "array",
-            "items": {"type": "object", "properties": {lang: {"type": "string"}, value: {"type": "string"}}},
+            "items": {
+                "type": "object",
+                "properties": {lang: {"type": "string"}, value: {"type": "string"}},
+            },
         }
 
 
