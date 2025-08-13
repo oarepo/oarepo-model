@@ -29,7 +29,10 @@ def test_multilingual(
             "metadata": {
                 "title": {"lang": "en", "value": "yaay"},
                 "abstract": {"jazyk": "cs", "hodnotka": "jeeej"},
-                "rights": [{"lang": "cs", "value": "jeeej"}, {"lang": "en", "value": "yeeey"}],
+                "rights": [
+                    {"lang": "cs", "value": "jeeej"},
+                    {"lang": "en", "value": "yeeey"},
+                ],
             },
         },
     )

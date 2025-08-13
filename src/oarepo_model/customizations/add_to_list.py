@@ -31,7 +31,7 @@ class AddToList(Customization):
         self,
         list_name: str,
         value: Any,
-        exists_ok: bool = False,  # noqa: FBT002 - boolean argument to keep a single class
+        exists_ok: bool = False,
     ) -> None:
         """Initialize the AddToList customization."""
         super().__init__(list_name)

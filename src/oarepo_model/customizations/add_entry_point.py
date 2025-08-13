@@ -37,7 +37,7 @@ class AddEntryPoint(Customization):
         name: str,
         value: str,
         separator: str = ":",
-        overwrite: bool = False,  # noqa: FBT002 - boolean argument to keep a single class
+        overwrite: bool = False,
     ) -> None:
         """Initialize the AddEntryPoint customization.
 

@@ -39,8 +39,8 @@ class ChangeBase(Customization):
         name: str,
         old_base_class: type,
         new_base_class: type,
-        fail: bool = True,  # noqa: FBT002 - boolean argument to keep a single class
-        subclass: bool = False,  # noqa: FBT002 - boolean argument to keep a single class
+        fail: bool = True,
+        subclass: bool = False,
     ) -> None:
         """Initialize the ChangeBase customization.
 

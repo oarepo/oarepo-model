@@ -35,7 +35,7 @@ class AddClass(Customization):
         self,
         name: str,
         clazz: type | None = None,
-        exists_ok: bool = False,  # noqa: FBT002 - boolean argument to keep a single class
+        exists_ok: bool = False,
     ) -> None:
         """Initialize the AddClass customization.
 

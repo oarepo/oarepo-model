@@ -23,7 +23,7 @@ from invenio_vocabularies.cli import _process_vocab
 from invenio_vocabularies.factories import VocabularyConfig, get_vocabulary_config
 from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
-from oarepo_runtime.services.records.mapping import update_all_record_mappings
+from oarepo_runtime.services.records.mapping import update_all_records_mappings
 
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
@@ -559,5 +559,5 @@ def vocabulary_fixtures(app, db, search_clear, search):
 @pytest.fixture(scope="module")
 def search(search):
     """Search fixture."""
-    update_all_record_mappings()
+    update_all_records_mappings()
     return search
