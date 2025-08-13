@@ -34,7 +34,7 @@ class AddFileToModule(Customization):
         module_name: str,
         file_path: str,
         file_content: str,
-        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
+        exists_ok: bool = False,
     ) -> None:
         """Initialize the AddFileToModule customization.
 

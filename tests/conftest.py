@@ -23,6 +23,7 @@ from invenio_vocabularies.cli import _process_vocab
 from invenio_vocabularies.factories import VocabularyConfig, get_vocabulary_config
 from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
+from oarepo_runtime.services.records.mapping import update_all_records_mappings
 
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
@@ -454,7 +455,7 @@ def app_config(
     app_config["RECORDS_CF_CUSTOM_FIELDS"] = {
         TextCF(  # a text input field that will allow HTML tags
             name="cern:experiment",
-            field_cls=SanitizedHTML,
+            field_cls=SanitizedHTML,  # type: ignore[assignment]
         ),
     }
 
@@ -553,3 +554,10 @@ def vocabulary_fixtures(app, db, search_clear, search):
         success, errored, filtered = _process_vocab(config)
         assert errored == 0
         assert filtered == 0
+
+
+@pytest.fixture(scope="module")
+def search(search):
+    """Search fixture."""
+    update_all_records_mappings()
+    return search

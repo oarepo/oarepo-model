@@ -24,7 +24,7 @@ from invenio_db import db
 def add_to_class_list_preserve_mro(
     class_list: list[type],
     clz: type,
-    prepend: bool = False,  # noqa: FBT001, FBT002  do not use boolean as a switch
+    prepend: bool = False,
 ) -> None:
     """Add a class to a list of classes while preserving the method resolution order (MRO)."""
     if not inspect.isclass(clz):

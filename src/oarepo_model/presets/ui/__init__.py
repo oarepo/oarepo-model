@@ -10,10 +10,12 @@
 
 from __future__ import annotations
 
+from .ui_ext import UIExtPreset
 from .ui_metadata import UIMetadataPreset
 from .ui_record import UIRecordPreset
 
 ui_presets = [
     UIRecordPreset,
     UIMetadataPreset,
+    UIExtPreset,
 ]

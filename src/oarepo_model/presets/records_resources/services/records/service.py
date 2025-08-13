@@ -28,6 +28,7 @@ class RecordServicePreset(Preset):
     """Preset for record service class."""
 
     provides = ("RecordService",)
+    modifies = ("oarepo_model_arguments",)
 
     @override
     def apply(

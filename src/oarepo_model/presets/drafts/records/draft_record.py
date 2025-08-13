@@ -20,7 +20,7 @@ from invenio_drafts_resources.records import Draft as InvenioDraft
 from invenio_rdm_records.records.systemfields import HasDraftCheckField
 from invenio_records.systemfields import ConstantField
 from invenio_records_resources.records.systemfields import IndexField
-from oarepo_runtime.records.systemfields.record_status import RecordStatusSystemField
+from oarepo_runtime.records.systemfields import PublicationStatusSystemField
 
 from oarepo_model.customizations import (
     AddClass,
@@ -84,7 +84,10 @@ class DraftPreset(Preset):
 
             dumper = Dependency(
                 "RecordDumper",
-                transform=lambda RecordDumper: RecordDumper(),  # noqa class name
+                "record_dumper_extensions",
+                transform=lambda RecordDumper, record_dumper_extensions: RecordDumper(  # noqa: N803
+                    record_dumper_extensions
+                ),
             )
 
             # note: we need to use the has_draft field from rdm records
@@ -92,9 +95,7 @@ class DraftPreset(Preset):
             # is defined in the invenio-rdm-records package
             has_draft = HasDraftCheckField()
 
-            # TODO: remove this field - note that we need to change the implementation
-            # if the RecordList to use "is_draft" instead of "record_status"
-            record_status = RecordStatusSystemField()
+            publication_status = PublicationStatusSystemField()
 
         yield AddClass(
             "Draft",

@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_drafts_resources.records import Record as DraftBase
 from invenio_rdm_records.records.systemfields import HasDraftCheckField
 from invenio_records_resources.records import Record as RecordBase
-from oarepo_runtime.records.systemfields.record_status import RecordStatusSystemField
+from oarepo_runtime.records.systemfields import PublicationStatusSystemField
 
 from oarepo_model.customizations import AddMixins, ChangeBase, Customization
 from oarepo_model.model import Dependency, InvenioModel
@@ -56,9 +56,7 @@ class RecordWithParentPreset(Preset):
             # is defined in the invenio-rdm-records package
             has_draft = HasDraftCheckField(dependencies["Draft"])
 
-            # TODO: remove this field - note that we need to change the implementation
-            # if the RecordList to use "is_draft" instead of "record_status"
-            record_status = RecordStatusSystemField()
+            publication_status = PublicationStatusSystemField()
 
         yield ChangeBase("Record", RecordBase, DraftBase, subclass=True)
         yield AddMixins("Record", ParentRecordMixin)

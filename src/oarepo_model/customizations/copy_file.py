@@ -34,7 +34,7 @@ class CopyFile(Customization):
         target_symbolic_name: str,
         target_module_name: str,
         target_file_path: str,
-        exists_ok: bool = False,  # noqa: FBT001, FBT002 - boolean argument to keep a single class
+        exists_ok: bool = False,
     ) -> None:
         """Add a json to the model.
 

@@ -17,6 +17,7 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, override
 
+from oarepo_runtime.api import Model
 from oarepo_runtime.config import build_config
 
 from oarepo_model.customizations import (
@@ -82,20 +83,21 @@ class ExtPreset(Preset):
 
             def init_config(self, app: Flask) -> None:
                 """Initialize configuration."""
-                OAREPO_PRIMARY_RECORD_SERVICE = app.config.setdefault(
-                    "OAREPO_PRIMARY_RECORD_SERVICE",
-                    {},
-                )
-                for record_service_getter in runtime_dependencies.get(
-                    "primary_record_service",
-                ):
-                    record_class, record_service_id = record_service_getter(
-                        runtime_dependencies,
-                    )
-                    if record_class not in OAREPO_PRIMARY_RECORD_SERVICE:
-                        # Register the primary record service for the record class
-                        # if it is not already registered.
-                        OAREPO_PRIMARY_RECORD_SERVICE[record_class] = record_service_id
+                registered_models = app.config.setdefault("OAREPO_MODELS", {})
+                if model.base_name not in registered_models:
+                    registered_models[model.base_name] = self.model
+
+            @property
+            def model_arguments(self) -> dict[str, Any]:
+                """Model arguments for the extension."""
+                return {
+                    "records_alias_enabled": model.configuration.get("records_alias_enabled", True),
+                    **runtime_dependencies.get("oarepo_model_arguments"),
+                }
+
+            @cached_property
+            def model(self) -> Model:
+                return Model(**self.model_arguments)
 
         class ServicesResourcesExtMixin(ModelMixin):
             """Mixin for extension class."""
@@ -133,6 +135,17 @@ class ExtPreset(Preset):
                         runtime_dependencies.get("RecordResourceConfig"),
                         self.app,
                     ),
+                }
+
+            @property
+            def model_arguments(self) -> dict[str, Any]:
+                """Model arguments for the extension."""
+                return {
+                    **super().model_arguments,  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                    "service": self.records_service,
+                    "service_config": self.records_service.config,
+                    "resource_config": self.records_resource.config,
+                    "resource": self.records_resource,
                 }
 
             def init_config(self, app: Flask) -> None:
