@@ -38,6 +38,10 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
+def bucket(cls):  # noqa
+    return db.relationship(Bucket, foreign_keys=[cls.bucket_id])
+
+
 class RecordMetadataWithFilesPreset(Preset):
     """Preset for extending RecordMetadata with file support."""
 
