@@ -16,7 +16,7 @@ record relationships.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, override
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_db import db
 from invenio_drafts_resources.records import (
@@ -27,7 +27,7 @@ from invenio_drafts_resources.records import (
 from oarepo_model.customizations import (
     AddBaseClasses,
     AddClass,
-    AddMixins,
+    AddClassField,
     Customization,
 )
 from oarepo_model.presets import Preset
@@ -52,16 +52,20 @@ class DraftMetadataPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class DraftMetadataMixin:
-            __tablename__ = f"{builder.model.base_name}_draft_metadata"
-            __table_args__: ClassVar[dict[str, Any]] = {"extend_existing": True}
-            __parent_record_model__ = dependencies["ParentRecordMetadata"]
-
         yield AddClass("DraftMetadata")
+        yield AddClassField(
+            "DraftMetadata",
+            "__tablename__",
+            f"{builder.model.base_name}_draft_metadata",
+        )
+        yield AddClassField(
+            "DraftMetadata",
+            "__parent_record_model__",
+            dependencies["ParentRecordMetadata"],
+        )
         yield AddBaseClasses(
             "DraftMetadata",
             db.Model,
             DraftMetadataBase,
             ParentRecordMixin,
         )
-        yield AddMixins("DraftMetadata", DraftMetadataMixin)

@@ -15,7 +15,7 @@ a stable container for managing versions and drafts of conceptual records.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, override
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_db import db
 from invenio_records.models import RecordMetadataBase
@@ -23,7 +23,7 @@ from invenio_records.models import RecordMetadataBase
 from oarepo_model.customizations import (
     AddBaseClasses,
     AddClass,
-    AddMixins,
+    AddClassField,
     Customization,
 )
 from oarepo_model.presets import Preset
@@ -47,10 +47,10 @@ class ParentRecordMetadataPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class ParentRecordMetadataMixin:
-            __tablename__ = f"{builder.model.base_name}_parent_metadata"
-            __table_args__: ClassVar[dict[str, Any]] = {"extend_existing": True}
-
         yield AddClass("ParentRecordMetadata")
+        yield AddClassField(
+            "ParentRecordMetadata",
+            "__tablename__",
+            f"{builder.model.base_name}_parent_metadata",
+        )
         yield AddBaseClasses("ParentRecordMetadata", db.Model, RecordMetadataBase)
-        yield AddMixins("ParentRecordMetadata", ParentRecordMetadataMixin)

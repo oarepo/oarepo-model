@@ -18,7 +18,8 @@ from types import MappingProxyType
 from typing import Any, override
 
 import marshmallow
-from invenio_db import db
+
+from oarepo_model.c3linearize import LinearizationError, mro_without_class_construction
 
 
 def add_to_class_list_preserve_mro(
@@ -71,17 +72,9 @@ def add_to_class_list_preserve_mro(
 def is_mro_consistent(class_list: list[type]) -> bool:
     """Check if the MRO of the class list is consistent."""
     try:
-        # Directly attempt to create the MRO
-        created_class = type("_", tuple(class_list), {})
-        mro = created_class.mro()
-        # If the created class is sqlalchemy, remove it from sqlachemy mapping
-        if issubclass(created_class, db.Model):
-            db.Model.registry._dispose_cls(  # type: ignore[attr-defined] # noqa: SLF001 private value access
-                created_class,
-            )
-    except TypeError:
+        mro = mro_without_class_construction(class_list)
+    except LinearizationError:
         return False
-
     # Check if our classes appear in the same order
     filtered_mro = [c for c in mro if c in class_list]
     return filtered_mro == class_list
@@ -116,20 +109,15 @@ def make_mro_consistent(class_list: list[type]) -> list[type]:
                 try:
                     # Test if inserting at position i would be valid
                     temp_order = [*result[:i], cls, *result[i:]]
-                    created_class = type("_", tuple(temp_order), {})
-                    if issubclass(created_class, db.Model):
-                        db.Model.registry._dispose_cls(  # type: ignore[attr-defined] # noqa: SLF001 private value access
-                            created_class,
-                        )
+                    mro_without_class_construction(temp_order)
                     insert_pos = i
                     break
-                except TypeError:
+                except LinearizationError:
                     continue
             else:
                 raise TypeError(
                     f"Cannot insert {cls} into MRO of {result}. It would break the method resolution order.",
                 )
-
             # Insert at the found position
             result.insert(insert_pos, cls)
     except TypeError:
