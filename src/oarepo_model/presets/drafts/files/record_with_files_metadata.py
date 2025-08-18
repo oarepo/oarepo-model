@@ -8,7 +8,7 @@
 #
 """Preset for adding file support to record metadata.
 
-This module provides a preset that extends DraftMetadata with file handling capabilities
+This module provides a preset that extends RecordMetadata with file handling capabilities
 by adding a bucket_id foreign key and bucket relationship to the Bucket model from
 invenio_files_rest. This enables records to have associated file storage.
 """
@@ -27,7 +27,7 @@ from oarepo_model.customizations import (
     Customization,
 )
 from oarepo_model.presets import Preset
-from oarepo_model.presets.sqlalchemy import bucket, media_bucket
+from oarepo_model.presets.sqlalchemy import media_bucket
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -36,10 +36,10 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
-class DraftMetadataWithFilesPreset(Preset):
+class RecordMetadataWithFilesPreset(Preset):
     """Preset for extending RecordMetadata with file support."""
 
-    modifies = ("DraftMetadata",)
+    modifies = ("RecordMetadata",)
 
     @override
     def apply(
@@ -49,10 +49,8 @@ class DraftMetadataWithFilesPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         yield AddClassField(
-            "DraftMetadata",
+            "RecordMetadata",
             "media_bucket_id",
             db.Column(UUIDType, db.ForeignKey(Bucket.id)),
         )
-        yield AddClassField("DraftMetadata", "media_bucket", declared_attr(media_bucket))
-        yield AddClassField("DraftMetadata", "bucket_id", db.Column(UUIDType, db.ForeignKey(Bucket.id)))
-        yield AddClassField("DraftMetadata", "bucket", declared_attr(bucket))
+        yield AddClassField("RecordMetadata", "media_bucket", declared_attr(media_bucket))

@@ -18,8 +18,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, override
 
 from invenio_drafts_resources.services.records.components import (
-    DraftFilesComponent,
-    DraftMediaFilesComponent,
+    DraftFilesComponent as InvenioDraftFilesComponent,
+)
+from invenio_drafts_resources.services.records.components import (
+    DraftMediaFilesComponent as InvenioDraftMediaFilesComponent,
 )
 
 from oarepo_model.customizations import AddToList, Customization
@@ -30,6 +32,20 @@ if TYPE_CHECKING:
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
+
+
+class DraftFilesComponent(InvenioDraftFilesComponent):
+    """Files component for record service.
+
+    This component is given a class name so that it can be overriden in RDM.
+    """
+
+
+class DraftMediaFilesComponent(InvenioDraftMediaFilesComponent):
+    """Media files component for record service.
+
+    This component is given a class name so that it can be overriden in RDM.
+    """
 
 
 class DraftFileRecordServiceComponentsPreset(Preset):

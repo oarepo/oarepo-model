@@ -24,6 +24,13 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
+class RecordFilesComponent(FilesComponent):
+    """Files component for record service.
+
+    This component is given a class name so that it can be overriden in RDM.
+    """
+
+
 class FileRecordServiceComponentsPreset(Preset):
     """Preset for file record service components."""
 
@@ -36,4 +43,4 @@ class FileRecordServiceComponentsPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield AddToList("record_service_components", FilesComponent)
+        yield AddToList("record_service_components", RecordFilesComponent)

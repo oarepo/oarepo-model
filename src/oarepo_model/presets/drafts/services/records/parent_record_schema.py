@@ -6,16 +6,15 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
-"""Module to generate record service."""
+"""Preset providing parent record schema for records and drafts."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from invenio_records_resources.services.records.service import RecordService
-from oarepo_runtime.services.config.components import ComponentsOrderingMixin
+from invenio_drafts_resources.services.records.schema import ParentSchema
 
-from oarepo_model.customizations import AddClass, AddMixins, Customization
+from oarepo_model.customizations import AddClass, Customization
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -25,11 +24,10 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
-class RecordServicePreset(Preset):
+class ParentRecordSchemaPreset(Preset):
     """Preset for record service class."""
 
-    provides = ("RecordService",)
-    modifies = ("oarepo_model_arguments",)
+    provides = ("ParentRecordSchema",)
 
     @override
     def apply(
@@ -38,5 +36,4 @@ class RecordServicePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield AddClass("RecordService", clazz=RecordService)
-        yield AddMixins("RecordService", ComponentsOrderingMixin)
+        yield AddClass("ParentRecordSchema", clazz=ParentSchema)

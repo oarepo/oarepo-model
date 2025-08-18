@@ -37,6 +37,8 @@ from .files.media_file_metadata import MediaFileMetadataPreset
 from .files.media_file_record import MediaFileRecordPreset
 from .files.record_file_mapping import RecordFileMappingPreset
 from .files.record_media_files import RecordMediaFilesPreset
+from .files.record_with_files import RecordWithFilesPreset
+from .files.record_with_files_metadata import RecordMetadataWithFilesPreset
 from .files.record_with_media_files import RecordWithMediaFilesPreset
 from .records.draft_mapping import DraftMappingPreset
 from .records.draft_record import DraftPreset
@@ -81,6 +83,7 @@ from .services.files.media_files_record_service_config import (
 from .services.files.no_upload_file_service_config import (
     NoUploadFileServiceConfigPreset,
 )
+from .services.records.parent_record_schema import ParentRecordSchemaPreset
 from .services.records.record_schema import DraftRecordSchemaPreset
 from .services.records.relations import RelationsServiceComponentPreset
 from .services.records.service import DraftServicePreset
@@ -107,6 +110,7 @@ drafts_records_presets: list[type[Preset]] = [
     DraftServicePreset,
     DraftRecordSchemaPreset,
     RelationsServiceComponentPreset,
+    ParentRecordSchemaPreset,
     # resource layer
     DraftResourcePreset,
     DraftResourceConfigPreset,
@@ -120,6 +124,8 @@ drafts_files_presets: list[type[Preset]] = [
     FileDraftPreset,
     RecordWithMediaFilesPreset,
     RecordMediaFilesPreset,
+    RecordWithFilesPreset,
+    RecordMetadataWithFilesPreset,
     DraftWithFilesPreset,
     DraftWithMediaFilesPreset,
     DraftMediaFilesPreset,

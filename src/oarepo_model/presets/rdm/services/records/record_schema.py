@@ -6,11 +6,9 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
-"""Preset for enabling draft support in record schema.
+"""Preset for creating RDM record marshmallow schema.
 
-This module provides a preset that changes the base record schema from
-BaseRecordSchema to the draft-enabled RecordSchema. This allows the schema
-to handle draft-specific validation and serialization requirements.
+This module provides a preset that modifies record marshmallow schema to RDM compatibility.
 """
 
 from __future__ import annotations
@@ -18,10 +16,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, override
 
 from invenio_drafts_resources.services.records.schema import RecordSchema
-from invenio_records_resources.services.records.schema import BaseRecordSchema
-from marshmallow_utils.fields import NestedAttribute
 
-from oarepo_model.customizations import AddMixins, ChangeBase, Customization
+# TODO: from oarepo_runtime.services.schema.marshmallow import RDMBaseRecordSchema
+from invenio_rdm_records.services.schemas.record import RDMRecordSchema as RDMBaseRecordSchema
+
+from oarepo_model.customizations import ChangeBase, Customization
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -31,10 +30,9 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
-class DraftRecordSchemaPreset(Preset):
+class RDMRecordSchemaPreset(Preset):
     """Preset for record service class."""
 
-    depends_on = ("ParentRecordSchema",)
     modifies = ("RecordSchema",)
 
     @override
@@ -46,8 +44,4 @@ class DraftRecordSchemaPreset(Preset):
     ) -> Generator[Customization]:
         # change the base schema from BaseRecordSchema to draft enabled RecordSchema
         # do not fail, for example if user provided their own RecordSchema
-        class ParentRecordSchemaMixin:
-            parent = NestedAttribute(dependencies["ParentRecordSchema"])
-
-        yield ChangeBase("RecordSchema", BaseRecordSchema, RecordSchema)
-        yield AddMixins("RecordSchema", ParentRecordSchemaMixin)
+        yield ChangeBase("RecordSchema", RecordSchema, RDMBaseRecordSchema)

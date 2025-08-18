@@ -8,7 +8,8 @@
 #
 from __future__ import annotations
 
-from typing import ClassVar
+from io import BytesIO
+from typing import Any, ClassVar
 
 import pytest
 from invenio_app.factory import create_api as _create_api
@@ -48,6 +49,18 @@ def draft_file_service(app):
 def file_service(app):
     """Service instance."""
     return app.extensions["test"].files_service
+
+
+@pytest.fixture(scope="module")
+def test_rdm_service(app):
+    """Service instance."""
+    return app.extensions["rdm_test"].records_service
+
+
+@pytest.fixture(scope="module")
+def test_rdm_draft_files_service(app):
+    """Service instance."""
+    return app.extensions["rdm_test"].draft_files_service
 
 
 @pytest.fixture
@@ -96,3 +109,27 @@ class DefaultHeaders:
 def headers():
     """Return default headers for making requests."""
     return DefaultHeaders
+
+
+@pytest.fixture
+def add_file_to_draft():
+    """Add a file to the record."""
+
+    def _add_file_to_draft(draft_file_service, draft_id, file_id, identity) -> dict[str, Any]:
+        result = draft_file_service.init_files(identity, draft_id, data=[{"key": file_id}])
+        file_md = next(iter(result.entries))
+        assert file_md["key"] == "test.txt"
+        assert file_md["status"] == "pending"
+
+        draft_file_service.set_file_content(
+            identity,
+            draft_id,
+            file_id,
+            BytesIO(b"test file content"),
+        )
+        result = draft_file_service.commit_file(identity, draft_id, file_id)
+        file_md = result.data
+        assert file_md["status"] == "completed"
+        return result
+
+    return _add_file_to_draft

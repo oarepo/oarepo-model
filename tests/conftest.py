@@ -200,6 +200,36 @@ def draft_model_with_files(model_types):
         draft_model.unregister()
 
 
+@pytest.fixture(scope="session")
+def rdm_model(model_types):
+    from oarepo_model.api import model
+    from oarepo_model.presets.drafts import drafts_presets
+    from oarepo_model.presets.rdm import rdm_presets
+    from oarepo_model.presets.records_resources import records_resources_presets
+
+    t1 = time.time()
+
+    rdm_model = model(
+        name="rdm_test",
+        version="1.0.0",
+        presets=[records_resources_presets, drafts_presets, rdm_presets],
+        types=[model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    rdm_model.register()
+
+    t2 = time.time()
+    log.info("Model created in %.2f seconds", t2 - t1)
+
+    try:
+        yield rdm_model
+    finally:
+        rdm_model.unregister()
+
+    return rdm_model
+
+
 relation_model_types = {
     "Metadata": {
         "properties": {
@@ -427,6 +457,7 @@ def app_config(
     relation_model,
     vocabulary_model,
     multilingual_model,
+    rdm_model,
 ):
     """Override pytest-invenio app_config fixture.
 
@@ -483,6 +514,13 @@ def app_config(
 
     # disable CSRF protection for tests
     app_config["REST_CSRF_ENABLED"] = False
+
+    app_config["RDM_PERSISTENT_IDENTIFIERS"] = {}
+
+    app_config["RDM_OPTIONAL_DOI_VALIDATOR"] = lambda _draft, _previous_published, **_kwargs: True
+
+    app_config["DATACITE_TEST_MODE"] = True
+    app_config["RDM_RECORDS_ALLOW_RESTRICTION_AFTER_GRACE_PERIOD"] = True
 
     return app_config
 
