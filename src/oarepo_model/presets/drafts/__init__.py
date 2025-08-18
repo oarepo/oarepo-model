@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ..records_resources import RecordWithFilesPreset
 from .blueprints.files.api_draft_files_blueprint import ApiDraftFilesBlueprintPreset
 from .blueprints.files.api_draft_media_files_blueprint import (
     ApiDraftMediaFilesBlueprintPreset,
@@ -81,6 +82,7 @@ from .services.files.media_files_record_service_config import (
 from .services.files.no_upload_file_service_config import (
     NoUploadFileServiceConfigPreset,
 )
+from .services.records.parent_record_schema import ParentRecordSchemaPreset
 from .services.records.record_schema import DraftRecordSchemaPreset
 from .services.records.relations import RelationsServiceComponentPreset
 from .services.records.service import DraftServicePreset
@@ -107,6 +109,7 @@ drafts_records_presets: list[type[Preset]] = [
     DraftServicePreset,
     DraftRecordSchemaPreset,
     RelationsServiceComponentPreset,
+    ParentRecordSchemaPreset,
     # resource layer
     DraftResourcePreset,
     DraftResourceConfigPreset,
@@ -120,6 +123,7 @@ drafts_files_presets: list[type[Preset]] = [
     FileDraftPreset,
     RecordWithMediaFilesPreset,
     RecordMediaFilesPreset,
+    RecordWithFilesPreset,
     DraftWithFilesPreset,
     DraftWithMediaFilesPreset,
     DraftMediaFilesPreset,
