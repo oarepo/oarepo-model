@@ -17,8 +17,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .files.record_with_files import RecordWithFilesPreset
-from .files.record_with_files_metadata import RecordMetadataWithFilesPreset
 from .blueprints.files.api_draft_files_blueprint import ApiDraftFilesBlueprintPreset
 from .blueprints.files.api_draft_media_files_blueprint import (
     ApiDraftMediaFilesBlueprintPreset,
@@ -39,6 +37,8 @@ from .files.media_file_metadata import MediaFileMetadataPreset
 from .files.media_file_record import MediaFileRecordPreset
 from .files.record_file_mapping import RecordFileMappingPreset
 from .files.record_media_files import RecordMediaFilesPreset
+from .files.record_with_files import RecordWithFilesPreset
+from .files.record_with_files_metadata import RecordMetadataWithFilesPreset
 from .files.record_with_media_files import RecordWithMediaFilesPreset
 from .records.draft_mapping import DraftMappingPreset
 from .records.draft_record import DraftPreset
