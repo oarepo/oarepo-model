@@ -44,4 +44,4 @@ class RDMRecordSchemaPreset(Preset):
     ) -> Generator[Customization]:
         # change the base schema from BaseRecordSchema to draft enabled RecordSchema
         # do not fail, for example if user provided their own RecordSchema
-        yield ChangeBase("RecordSchema", RecordSchema, RDMBaseRecordSchema, fail=False)
+        yield ChangeBase("RecordSchema", RecordSchema, RDMBaseRecordSchema)

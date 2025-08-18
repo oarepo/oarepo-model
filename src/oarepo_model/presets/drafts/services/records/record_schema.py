@@ -49,5 +49,5 @@ class DraftRecordSchemaPreset(Preset):
         class ParentRecordSchemaMixin:
             parent = NestedAttribute(dependencies["ParentRecordSchema"])
 
-        yield ChangeBase("RecordSchema", BaseRecordSchema, RecordSchema, fail=False)
+        yield ChangeBase("RecordSchema", BaseRecordSchema, RecordSchema)
         yield AddMixins("RecordSchema", ParentRecordSchemaMixin)

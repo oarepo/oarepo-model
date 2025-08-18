@@ -27,7 +27,7 @@ from oarepo_model.customizations import (
     Customization,
 )
 from oarepo_model.presets import Preset
-from oarepo_model.presets.sqlalchemy import bucket
+from oarepo_model.presets.sqlalchemy import media_bucket
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -48,5 +48,9 @@ class RecordMetadataWithFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield AddClassField("RecordMetadata", "bucket_id", db.Column(UUIDType, db.ForeignKey(Bucket.id)))
-        yield AddClassField("RecordMetadata", "bucket", declared_attr(bucket))
+        yield AddClassField(
+            "RecordMetadata",
+            "media_bucket_id",
+            db.Column(UUIDType, db.ForeignKey(Bucket.id)),
+        )
+        yield AddClassField("RecordMetadata", "media_bucket", declared_attr(media_bucket))
