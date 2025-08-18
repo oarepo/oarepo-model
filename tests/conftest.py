@@ -515,6 +515,13 @@ def app_config(
     # disable CSRF protection for tests
     app_config["REST_CSRF_ENABLED"] = False
 
+    app_config["RDM_PERSISTENT_IDENTIFIERS"] = {}
+
+    app_config["RDM_OPTIONAL_DOI_VALIDATOR"] = lambda _draft, _previous_published, **_kwargs: True
+
+    app_config["DATACITE_TEST_MODE"] = True
+    app_config["RDM_RECORDS_ALLOW_RESTRICTION_AFTER_GRACE_PERIOD"] = True
+
     return app_config
 
 

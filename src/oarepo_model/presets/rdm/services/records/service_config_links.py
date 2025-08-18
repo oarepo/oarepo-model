@@ -6,16 +6,16 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
-"""Module to generate record service."""
+"""Preset for configuring rdf service config links."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from invenio_records_resources.services.records.service import RecordService
-from oarepo_runtime.services.config.components import ComponentsOrderingMixin
-
-from oarepo_model.customizations import AddClass, AddMixins, Customization
+from oarepo_model.customizations import (
+    AddToDictionary,
+    Customization,
+)
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -25,11 +25,13 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
-class RecordServicePreset(Preset):
-    """Preset for record service class."""
+class RDMServiceConfigLinks(Preset):
+    """Preset for extra RDM service config links."""
 
-    provides = ("RecordService",)
-    modifies = ("oarepo_model_arguments",)
+    modifies = (
+        "record_links_item",
+        "record_search_item",
+    )
 
     @override
     def apply(
@@ -38,5 +40,9 @@ class RecordServicePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield AddClass("RecordService", clazz=RecordService)
-        yield AddMixins("RecordService", ComponentsOrderingMixin)
+        yield AddToDictionary(
+            "record_links_item",
+            {
+                # TODO: extra RDM links here
+            },
+        )

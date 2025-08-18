@@ -28,16 +28,13 @@ from oarepo_model.customizations import (
     Customization,
 )
 from oarepo_model.presets import Preset
+from oarepo_model.presets.sqlalchemy import media_bucket
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
-
-
-def media_bucket(cls):  # noqa
-    return db.relationship(Bucket, foreign_keys=[cls.media_bucket_id])
 
 
 class RDMDraftRecordMetadataWithFilesPreset(Preset):
@@ -52,7 +49,11 @@ class RDMDraftRecordMetadataWithFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield AddClassField("RecordMetadata", "media_bucket_id", db.Column(UUIDType, db.ForeignKey(Bucket.id)))
+        yield AddClassField(
+            "RecordMetadata",
+            "media_bucket_id",
+            db.Column(UUIDType, db.ForeignKey(Bucket.id)),
+        )
         yield AddClassField("RecordMetadata", "media_bucket", declared_attr(media_bucket))
         yield AddClassField(
             "RecordMetadata",

@@ -47,7 +47,7 @@ class RDMExtPreset(Preset):
             @property
             def records_service_params(self) -> dict[str, Any]:
                 """Parameters for the record service."""
-                params = super().records_service_params # type: ignore[misc]
+                params = super().records_service_params  # type: ignore[misc]
                 return {
                     **params,
                     "pids_service": PIDsService(params["config"], PIDManager),
