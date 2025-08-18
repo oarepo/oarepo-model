@@ -16,19 +16,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, override
 
 from invenio_db import db
-from invenio_files_rest.models import Bucket
 from invenio_rdm_records.records.systemfields.deletion_status import (
     RecordDeletionStatusEnum,
 )
-from sqlalchemy.orm import declared_attr
-from sqlalchemy_utils.types import ChoiceType, UUIDType
+from sqlalchemy_utils.types import ChoiceType
 
 from oarepo_model.customizations import (
     AddClassField,
     Customization,
 )
 from oarepo_model.presets import Preset
-from oarepo_model.presets.sqlalchemy import media_bucket
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -49,12 +46,6 @@ class RDMDraftRecordMetadataWithFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield AddClassField(
-            "RecordMetadata",
-            "media_bucket_id",
-            db.Column(UUIDType, db.ForeignKey(Bucket.id)),
-        )
-        yield AddClassField("RecordMetadata", "media_bucket", declared_attr(media_bucket))
         yield AddClassField(
             "RecordMetadata",
             "deletion_status",

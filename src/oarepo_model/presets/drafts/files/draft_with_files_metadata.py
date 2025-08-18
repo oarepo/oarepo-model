@@ -15,7 +15,7 @@ invenio_files_rest. This enables records to have associated file storage.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_db import db
 from invenio_files_rest.models import Bucket
@@ -27,12 +27,10 @@ from oarepo_model.customizations import (
     Customization,
 )
 from oarepo_model.presets import Preset
-from oarepo_model.presets.sqlalchemy import bucket
+from oarepo_model.presets.sqlalchemy import bucket, media_bucket
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-
-    from sqlalchemy.orm.decl_api import _DeclaredAttrDecorated
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
@@ -50,5 +48,11 @@ class DraftMetadataWithFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
+        yield AddClassField(
+            "DraftMetadata",
+            "media_bucket_id",
+            db.Column(UUIDType, db.ForeignKey(Bucket.id)),
+        )
+        yield AddClassField("DraftMetadata", "media_bucket", declared_attr(media_bucket))
         yield AddClassField("DraftMetadata", "bucket_id", db.Column(UUIDType, db.ForeignKey(Bucket.id)))
-        yield AddClassField("DraftMetadata", "bucket", declared_attr(cast("_DeclaredAttrDecorated", bucket)))
+        yield AddClassField("DraftMetadata", "bucket", declared_attr(bucket))
