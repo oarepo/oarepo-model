@@ -23,26 +23,8 @@ from invenio_rdm_records.services.components.files import (
 )
 from invenio_rdm_records.services.config import RDMRecordServiceConfig
 
-# TODO: from oarepo_runtime.services.config.service import SearchAllConfigMixin
 from oarepo_model.customizations import AddToList, ChangeBase, Customization
 from oarepo_model.presets import Preset
-
-"""
-PLAIN_RECORD_SERVICE = (
-    "invenio_records_resources.services.RecordService{InvenioRecordService}"
-)
-DRAFT_RECORD_SERVICE = (
-    "invenio_drafts_resources.services.RecordService{InvenioRecordService}"
-)
-RDM_RECORD_SERVICE = "oarepo_runtime.services.service.SearchAllRecordsService"
-
-PLAIN_SERVICE_CONFIG = (
-    "invenio_records_resources.services.RecordServiceConfig{InvenioRecordServiceConfig}"
-)
-DRAFT_SERVICE_CONFIG = "invenio_drafts_resources.services.RecordServiceConfig{InvenioRecordDraftsServiceConfig}"
-RDM_SERVICE_CONFIG = "invenio_rdm_records.services.config.RDMRecordServiceConfig"
-"""
-
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -93,4 +75,3 @@ class RDMRecordServiceConfigPreset(Preset):
             DraftRecordServiceConfig,
             RDMRecordServiceConfigWithoutLinks,
         )
-        # TODO: yield AddMixins("RecordServiceConfig", SearchAllConfigMixin)

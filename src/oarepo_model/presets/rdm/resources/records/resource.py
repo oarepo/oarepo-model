@@ -9,22 +9,6 @@
 """Preset for creating RDM record resource.
 
 This module provides a preset that modifies record resource to RDM compatibility.
-
-
-
-PLAIN_RECORD_RESOURCE = (
-    "invenio_records_resources.resources.RecordResource"
-)
-DRAFT_RECORD_RESOURCE = (
-    "invenio_drafts_resources.resources.RecordResource"
-)
-RDM_RECORD_RESOURCE = "oarepo_runtime.resources.resource.BaseRecordResource"
-
-PLAIN_RESOURCE_CONFIG = (
-    "invenio_records_resources.resources.RecordResourceConfig"
-)
-DRAFT_RESOURCE_CONFIG = "invenio_drafts_resources.resources.RecordResourceConfig"
-RDM_RESOURCE_CONFIG = "oarepo_runtime.resources.config.BaseRecordResourceConfig"
 """
 
 from __future__ import annotations
@@ -34,7 +18,6 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_drafts_resources.resources import RecordResource as DraftRecordResource
 from invenio_rdm_records.resources.resources import RDMRecordResource as RDMBaseRecordResource
 
-# TODO: from oarepo_runtime.resources.resource import BaseRecordResource as RDMBaseRecordResource
 from oarepo_model.customizations import ChangeBase, Customization
 from oarepo_model.presets import Preset
 
@@ -57,6 +40,4 @@ class RDMRecordResourcePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield ChangeBase(
-            "RecordResource", DraftRecordResource, RDMBaseRecordResource
-        )  # use [RecordResource, DraftRecordResource]?
+        yield ChangeBase("RecordResource", DraftRecordResource, RDMBaseRecordResource)
