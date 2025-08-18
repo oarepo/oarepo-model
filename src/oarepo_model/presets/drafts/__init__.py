@@ -17,7 +17,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..records_resources import RecordWithFilesPreset
+from .files.record_with_files import RecordWithFilesPreset
+from .files.record_with_files_metadata import RecordMetadataWithFilesPreset
 from .blueprints.files.api_draft_files_blueprint import ApiDraftFilesBlueprintPreset
 from .blueprints.files.api_draft_media_files_blueprint import (
     ApiDraftMediaFilesBlueprintPreset,
@@ -124,6 +125,7 @@ drafts_files_presets: list[type[Preset]] = [
     RecordWithMediaFilesPreset,
     RecordMediaFilesPreset,
     RecordWithFilesPreset,
+    RecordMetadataWithFilesPreset,
     DraftWithFilesPreset,
     DraftWithMediaFilesPreset,
     DraftMediaFilesPreset,
