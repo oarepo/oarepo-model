@@ -15,8 +15,9 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_records_resources.services import (
     Link,
     LinksTemplate,
+    RecordEndpointLink,
     RecordLink,
-    pagination_links,
+    pagination_endpoint_links,
 )
 from invenio_records_resources.services.records.config import (
     RecordServiceConfig,
@@ -134,7 +135,12 @@ class RecordServiceConfigPreset(Preset):
                     supercls_links = {}
                 links = {
                     **supercls_links,
-                    **pagination_links(api_base + "{?args*}"),
+                    # request_search_args FromConfig(
+                    #    "RDM_SEARCH_ARGS_SCHEMA", default=RDMSearchRequestArgsSchema
+                    # )
+                    **pagination_endpoint_links(
+                        f"{model.blueprint_base}.search", params=["pid_value", "scheme", "revision_id"]
+                    ),
                     **pagination_links_html(ui_base + "{?args*}"),
                 }
                 return {k: v for k, v in links.items() if v is not None}
@@ -147,7 +153,9 @@ class RecordServiceConfigPreset(Preset):
         yield AddDictionary(
             "record_search_item",
             {
-                "self": RecordLink(api_url, when=has_permission("read")),
+                "self": RecordEndpointLink(
+                    f"{model.blueprint_base}.read", when=has_permission("read"), params=["pid_value"]
+                ),
                 "self_html": RecordLink(ui_url, when=has_permission("read")),
             },
         )
@@ -155,7 +163,9 @@ class RecordServiceConfigPreset(Preset):
         yield AddDictionary(
             "record_links_item",
             {
-                "self": RecordLink(api_url, when=has_permission("read")),
+                "self": RecordEndpointLink(
+                    f"{model.blueprint_base}.read", when=has_permission("read"), params=["pid_value"]
+                ),
                 "self_html": RecordLink(ui_url, when=has_permission("read")),
             },
         )
