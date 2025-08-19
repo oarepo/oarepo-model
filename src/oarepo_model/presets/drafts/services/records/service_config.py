@@ -21,9 +21,15 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_drafts_resources.services import (
     RecordServiceConfig as DraftServiceConfig,
 )
+from invenio_rdm_records.services.config import (
+    is_record,
+)
 from invenio_records_resources.services import (
     ConditionalLink,
-    RecordLink,
+    EndpointLink,
+    Link,
+    RecordEndpointLink,
+    pagination_endpoint_links,
 )
 from invenio_records_resources.services.records.config import (
     RecordServiceConfig,
@@ -37,6 +43,7 @@ from oarepo_runtime.services.config import (
 )
 
 from oarepo_model.customizations import (
+    AddDictionary,
     AddMixins,
     AddToDictionary,
     AddToList,
@@ -58,7 +65,12 @@ class DraftServiceConfigPreset(Preset):
     modifies = (
         "RecordServiceConfig",
         "record_links_item",
-        "record_search_item",
+        "record_search_item_links",
+    )
+
+    provides = (
+        "draft_search_links",
+        "record_version_search_links",
     )
 
     @override
@@ -71,26 +83,42 @@ class DraftServiceConfigPreset(Preset):
         class DraftServiceConfigMixin(ModelMixin):
             draft_cls = Dependency("Draft")
 
+            @property
+            def links_search_drafts(self) -> dict[str, Link]:
+                try:
+                    supercls_links = super().links_search_drafts  # type: ignore[misc]
+                except AttributeError:  # if they aren't defined in the superclass
+                    supercls_links = {}
+                links = {
+                    **supercls_links,
+                    **self.get_model_dependency("draft_search_links"),
+                }
+                return {k: v for k, v in links.items() if v is not None}
+
+            @property
+            def links_search_versions(self) -> dict[str, Link]:
+                try:
+                    supercls_links = super().links_search_versions  # type: ignore[misc]
+                except AttributeError:  # if they aren't defined in the superclass
+                    supercls_links = {}
+                links = {
+                    **supercls_links,
+                    **self.get_model_dependency("record_version_search_links"),
+                }
+                return {k: v for k, v in links.items() if v is not None}
+
         yield ChangeBase("RecordServiceConfig", RecordServiceConfig, DraftServiceConfig)
         yield AddMixins("RecordServiceConfig", DraftServiceConfigMixin)
-
-        api_base = "{+api}/" + builder.model.slug + "/"
-        ui_base = "{+ui}/" + builder.model.slug + "/"
-
-        api_url = api_base + "{id}"
-        ui_url = ui_base + "{id}"
 
         self_links = {
             "self": ConditionalLink(
                 cond=is_published_record(),
-                if_=RecordLink(api_url, when=has_permission("read")),
-                else_=RecordLink(api_url + "/draft", when=has_permission("read_draft")),
-            ),
-            "self_html": ConditionalLink(
-                cond=is_published_record(),
-                if_=RecordLink(ui_url, when=has_permission("read")),
-                else_=RecordLink(
-                    ui_url + "/preview",
+                if_=RecordEndpointLink(
+                    f"{model.blueprint_base}.read",
+                    when=has_permission("read"),
+                ),
+                else_=RecordEndpointLink(
+                    f"{model.blueprint_base}.read_draft",
                     when=has_permission("read_draft"),
                 ),
             ),
@@ -100,37 +128,39 @@ class DraftServiceConfigPreset(Preset):
             "record_links_item",
             {
                 **self_links,
-                "latest": RecordLink(
-                    api_url + "/versions/latest",
-                    when=has_permission("read"),
+                "parent": EndpointLink(
+                    f"{model.blueprint_base}.read",
+                    params=["pid_value"],
+                    when=is_record,
+                    vars=lambda record, variables: variables.update({"pid_value": record.parent.pid.pid_value}),
                 ),
-                "latest_html": RecordLink(
-                    ui_url + "/latest",
+                "latest": RecordEndpointLink(
+                    f"{model.blueprint_base}.read_latest",
                     when=has_permission("read"),
                 ),
                 # Note: semantics change from oarepo v12: this link is only on a
                 # published record if the record has a draft record
-                "draft": RecordLink(
-                    api_url + "/draft",
+                "draft": RecordEndpointLink(
+                    f"{model.blueprint_base}.read_draft",
                     when=is_published_record() & has_draft() & has_draft_permission("read_draft"),
                 ),
-                "record": RecordLink(
-                    api_url,
+                "record": RecordEndpointLink(
+                    f"{model.blueprint_base}.read",
                     when=has_published_record() & has_permission("read"),
                 ),
-                "publish": RecordLink(
-                    api_url + "/draft/actions/publish",
-                    when=has_permission("publish"),
+                "publish": RecordEndpointLink(
+                    f"{model.blueprint_base}.publish",
+                    when=has_permission("publish") & has_draft(),
                 ),
-                "versions": RecordLink(
-                    api_url + "/versions",
+                "versions": RecordEndpointLink(
+                    f"{model.blueprint_base}.search_versions",
                     when=has_permission("search_versions"),
                 ),
             },
         )
 
         yield AddToDictionary(
-            "record_search_item",
+            "record_search_item_links",
             {
                 **self_links,
             },
@@ -142,4 +172,14 @@ class DraftServiceConfigPreset(Preset):
                 runtime_dependencies.get("Draft"),
                 runtime_dependencies.get("RecordServiceConfig").service_id,
             ),
+        )
+
+        yield AddDictionary(
+            "draft_search_links",
+            pagination_endpoint_links(f"{model.blueprint_base}.search_user_records"),
+        )
+
+        yield AddDictionary(
+            "record_version_search_links",
+            pagination_endpoint_links(f"{model.blueprint_base}.search_versions"),
         )

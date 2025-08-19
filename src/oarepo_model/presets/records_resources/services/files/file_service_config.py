@@ -72,10 +72,6 @@ class FileServiceConfigPreset(Preset):
                     f"{model.base_name}_files.read_content",
                     params=["pid_value", "key"],
                 ),
-                "commit": FileEndpointLink(
-                    f"{model.base_name}_files.create_commit",
-                    params=["pid_value", "key"],
-                ),
             }
 
         yield AddClass("FileServiceConfig", clazz=FileServiceConfig)

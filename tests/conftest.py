@@ -98,13 +98,14 @@ def model_types_in_yaml_with_origin():
 def empty_model(model_types):
     from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.ui_links import ui_links_preset
 
     t1 = time.time()
 
     empty_model = model(
         name="test",
         version="1.0.0",
-        presets=[records_resources_preset],
+        presets=[records_resources_preset, ui_links_preset],
         types=[model_types],
         metadata_type="Metadata",
         customizations=[],
@@ -125,13 +126,14 @@ def draft_model(model_types):
     from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_records_preset
     from oarepo_model.presets.records_resources import records_preset
+    from oarepo_model.presets.ui_links import ui_links_preset
 
     t1 = time.time()
 
     draft_model = model(
         name="draft_test",
         version="1.0.0",
-        presets=[records_preset, drafts_records_preset],
+        presets=[records_preset, drafts_records_preset, ui_links_preset],
         types=[model_types],
         metadata_type="Metadata",
         customizations=[],
@@ -390,6 +392,40 @@ def multilingual_model(empty_model):
         multilingual_model.unregister()
 
 
+@pytest.fixture(scope="session")
+def ui_links_model(model_types):
+    from oarepo_model.api import model
+    from oarepo_model.presets.drafts import drafts_records_preset
+    from oarepo_model.presets.records_resources import records_preset
+    from oarepo_model.presets.ui_links import ui_links_preset
+
+    t1 = time.time()
+
+    ui_links_model = model(
+        name="test_ui_links",
+        version="1.0.0",
+        presets=[
+            records_preset,
+            drafts_records_preset,
+            ui_links_preset,
+            ui_links_preset,
+        ],
+        types=[model_types],
+        metadata_type="Metadata",
+        customizations=[],
+        configuration={"ui_blueprint_name": "test_ui_links_ui"},
+    )
+    ui_links_model.register()
+
+    t2 = time.time()
+    log.info("Model created in %.2f seconds", t2 - t1)
+
+    try:
+        yield ui_links_model
+    finally:
+        ui_links_model.unregister()
+
+
 @pytest.fixture(scope="module")
 def app_config(
     app_config,
@@ -401,6 +437,7 @@ def app_config(
     relation_model,
     vocabulary_model,
     multilingual_model,
+    ui_links_model,
 ):
     """Override pytest-invenio app_config fixture.
 
@@ -465,6 +502,11 @@ def app_config(
     app_config["DATACITE_TEST_MODE"] = True
     app_config["RDM_RECORDS_ALLOW_RESTRICTION_AFTER_GRACE_PERIOD"] = True
 
+    # for RDM links
+    app_config["IIIF_FORMATS"] = ["jpg", "png"]
+    app_config["APP_RDM_RECORD_THUMBNAIL_SIZES"] = [500]
+    app_config["RDM_ARCHIVE_DOWNLOAD_ENABLED"] = True
+
     return app_config
 
 
@@ -484,6 +526,20 @@ def create_app(instance_path, entry_points):
     from invenio_app.factory import create_api as _create_api
 
     return _create_api
+
+
+@pytest.fixture(scope="module")
+def extra_entry_points():
+    return {
+        "invenio_base.blueprints": [
+            "invenio_app_rdm_records = tests.mock_module:create_invenio_app_rdm_records_blueprint",
+            "iiif = tests.mock_module:create_invenio_app_rdm_iiif_blueprint",
+            "rdm_test_links = tests.mock_module:create_invenio_app_rdm_access_links_blueprint",
+            "rdm_test_grants = tests.mock_module:create_invenio_app_rdm_access_grants_blueprint",
+            "rdm_test_users = tests.mock_module:create_invenio_app_rdm_user_access_blueprint",
+            "rdm_test_groups = tests.mock_module:create_invenio_app_rdm_group_access_blueprint",
+        ],
+    }
 
 
 @pytest.fixture
