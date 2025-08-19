@@ -121,7 +121,18 @@ def model(  # noqa: PLR0913 too many arguments
     run_checks(ret)
     ret.register = partial(register_model, model=model, namespace=ret)
     ret.unregister = partial(unregister_model, model=model)
+    ret.get_resources = partial(get_model_resources, model=model, namespace=ret)
     return ret
+
+
+def get_model_resources(model: InvenioModel, namespace: SimpleNamespace) -> dict[str, str]:
+    """Get the model resources from the namespace.
+
+    Return dictionary where key is file path which starts with
+    in_memory_package_name (e.g. runtime_model_test/mappings/...) and value is the file content.
+    """
+    files = namespace.__files__
+    return {f"{model.in_memory_package_name}/{file_name}": file_content for file_name, file_content in files.items()}
 
 
 def populate_type_registry(

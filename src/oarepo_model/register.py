@@ -17,12 +17,13 @@ import importlib.resources.abc
 import importlib.util
 import sys
 from importlib.metadata import Distribution, DistributionFinder
-from pathlib import PurePosixPath
 from types import ModuleType, SimpleNamespace
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, Literal, cast, override
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    import io
+    import os
+    from collections.abc import Iterator, Sequence
     from importlib.metadata._meta import SimplePath
 
     from .model import InvenioModel
@@ -72,39 +73,208 @@ Version: {self.model.version}
     @override
     def files(self) -> list:
         ret = []
+
+        # Collect all files
+        files_dict = {}
         for file_name, file_content in self.namespace.__files__.items():
+            full_path = f"{self.model.in_memory_package_name}/{file_name}"
+            files_dict[full_path] = file_content
+
+        # Create InMemoryTraversable for each file
+        for file_name in self.namespace.__files__:
+            full_path = f"{self.model.in_memory_package_name}/{file_name}"
             ret.append(
-                InMemoryPath(
-                    f"runtime_models_{self.model.name}/{file_name}",
-                    file_content,
-                ),
+                InMemoryTraversable(full_path, files_dict, is_dir=False),
             )
 
         return ret
 
 
-class InMemoryPath(PurePosixPath):
-    """A PurePosixPath that can read text content from an in-memory string."""
+class InMemoryTraversable(importlib.resources.abc.Traversable):
+    """In-memory implementation of a traversable resource."""
 
-    def __init__(self, path: str, file_content: str | None = None) -> None:
-        """Initialize the InMemoryPath with a path and optional file content."""
-        super().__init__(path)
-        self.file_content = file_content
+    def __init__(self, name: str, files_dict: dict[str, str], is_dir: bool = False):
+        """Initialize the traversable with name, files dictionary, and directory flag."""
+        self._name = name
+        self._files = files_dict
+        self._is_dir = is_dir
 
-    def read_text(
+    @property
+    @override
+    def name(self) -> str:
+        """Return the name of this traversable."""
+        return self._name
+
+    @override
+    def __str__(self) -> str:
+        return self._name
+
+    @override
+    def is_dir(self) -> bool:
+        """Check if this traversable represents a directory."""
+        return self._is_dir
+
+    @override
+    def is_file(self) -> bool:
+        """Check if this traversable represents a file."""
+        return not self._is_dir and self._name in self._files
+
+    @override
+    def iterdir(self) -> Iterator[InMemoryTraversable]:
+        """Iterate over the contents of this directory."""
+        if not self.is_dir():
+            raise NotADirectoryError(f"{self._name} is not a directory")
+
+        # Get all files and subdirectories
+        prefix = f"{self._name}/" if self._name else ""
+        items = set()
+
+        for file_path in self._files:
+            if file_path.startswith(prefix):
+                relative_path = file_path[len(prefix) :]
+                if "/" in relative_path:
+                    # This is in a subdirectory
+                    subdir = relative_path.split("/")[0]
+                    items.add((f"{prefix}{subdir}", True))  # subdirectory
+                else:
+                    # This is a direct file
+                    items.add((file_path, False))  # file
+
+        for item_path, is_dir in items:
+            yield InMemoryTraversable(item_path, self._files, is_dir)
+
+    @override
+    def read_bytes(self) -> bytes:
+        """Read the content of this file as bytes."""
+        if self._name not in self._files:
+            raise FileNotFoundError(f"{self._name} does not exist")
+
+        content = self._files[self._name]
+        return content.encode("utf-8")
+
+    @override
+    def read_text(self, encoding: str | None = "utf-8") -> str:
+        """Read the content of this file as text."""
+        if self._name not in self._files:
+            raise FileNotFoundError(f"{self._name} does not exist")
+        return self._files[self._name]
+
+    @override
+    def __truediv__(self, child: str) -> InMemoryTraversable:
+        """Navigate to a child path using the / operator."""
+        if self.is_file():
+            raise NotADirectoryError(f"{self._name} is not a directory")
+
+        child_path = f"{self._name}/{child}" if self._name else child
+        is_child_dir = any(path.startswith(f"{child_path}/") for path in self._files)
+
+        return InMemoryTraversable(child_path, self._files, is_child_dir)
+
+    @override
+    def open(  # type: ignore[override]  # note: how to correctly type the io.IOBase here?
         self,
-        encoding: str | None = "utf-8",  # noqa: ARG002 unused argument
-    ) -> str:
-        """Read the text content of the in-memory file."""
-        if self.file_content is None:
-            raise ValueError("Can not read file without content")
-        return self.file_content
+        mode: Literal["r", "rb"] = "r",
+        *,
+        encoding: str | None = None,
+        errors: str | None = None,
+    ) -> io.IOBase:
+        raise NotImplementedError("open is not implemented")
 
-    def read_binary(self) -> bytes:
-        """Read the binary content of the in-memory file."""
-        if self.file_content is None:
-            raise ValueError("Can not read file without content")
-        return self.file_content.encode("utf-8")
+    # note: this is not on the Traversable API, only on posix path, so maybe reconsider
+    def relative_to(self, other_path: str | InMemoryTraversable) -> InMemoryTraversable:
+        """Return an InMemoryTraversable that is relative to the given other_path."""
+        if isinstance(other_path, InMemoryTraversable):
+            other_path = other_path.name
+
+        # Normalize paths by removing trailing slashes
+        self_path = self._name.rstrip("/")
+        other_path = other_path.rstrip("/")
+
+        if not other_path:
+            relative_path_str = self_path
+        elif self_path == other_path:
+            relative_path_str = ""
+        elif self_path.startswith(other_path + "/"):
+            relative_path_str = self_path[len(other_path) + 1 :]
+        else:
+            raise ValueError(f"'{self_path}' is not relative to '{other_path}'")
+
+        # If relative_path_str is empty, it's the same as the base, so it's a directory
+        if not relative_path_str:
+            is_relative_dir = True
+        else:
+            # Check if there are any files that start with this relative path + "/"
+            # If yes, it's a directory; if not, check if it's a file
+            is_relative_dir = (
+                any(file_path.startswith(self_path + "/") for file_path in self._files)
+                if self_path in self._files
+                else self._is_dir
+            )
+
+        files = {
+            file_path[len(other_path) + 1 :]: content
+            for file_path, content in self._files.items()
+            if file_path.startswith(other_path + "/")
+        }
+
+        return InMemoryTraversable(relative_path_str, files, is_relative_dir)
+
+    # note: this is not on the Traversable API, only on posix path, so maybe reconsider
+    @property
+    def parts(self) -> tuple[str, ...]:
+        """Return the individual components of the path as a tuple."""
+        return tuple(self._name.split("/"))
+
+    # note: this is not on the Traversable API, only on posix path, so maybe reconsider
+    @property
+    def parent(self) -> InMemoryTraversable:
+        """Return parent traversable of this one."""
+        # should not happen
+        if not self._name:
+            return self
+
+        parent_name = self._name.rsplit("/", 1)[0] if "/" in self._name else ""
+        is_parent_dir = True
+
+        return InMemoryTraversable(parent_name, self._files, is_parent_dir)
+
+    @override
+    def joinpath(self, *descendants: str) -> importlib.abc.Traversable:
+        """Join the descendants into a single path, beginning with this traversable."""
+        pth = self
+        for descendant in descendants:
+            pth = pth / descendant
+        return pth
+
+
+class InMemoryResourceReader(importlib.resources.abc.TraversableResources):
+    """ResourceReader that works with in-memory files."""
+
+    def __init__(self, files_dict: dict[str, str], package_name: str):
+        """Initialize the resource reader with files dictionary and package name."""
+        self._files = files_dict
+        self._package_name = package_name
+
+    @override
+    def open_resource(self, resource: str) -> io.BufferedReader:
+        raise NotImplementedError("open_resource is not implemented")
+
+    @override
+    def resource_path(self, resource: Any) -> str:
+        raise NotImplementedError("resource_path is not implemented")
+
+    @override
+    def is_resource(self, path: str | os.PathLike[str]) -> bool:
+        raise NotImplementedError("is_resource is not implemented")
+
+    @override
+    def contents(self) -> Iterator[str]:
+        raise NotImplementedError("contents is not implemented")
+
+    @override
+    def files(self) -> InMemoryTraversable:
+        """Return a Traversable for the package."""
+        return InMemoryTraversable(self._package_name, self._files, is_dir=True)
 
 
 class ModelImporter(importlib.abc.MetaPathFinder):
@@ -132,38 +302,20 @@ class ModelImporter(importlib.abc.MetaPathFinder):
 
     def _is_root_module_name(self, fullname: str) -> bool:
         """Check if the module name is the root module of the model."""
-        return fullname == f"runtime_models_{self.model.base_name}"
+        return fullname == self.model.in_memory_package_name
 
     def _is_submodule_name(self, fullname: str) -> bool:
         """Check if the module name is a submodule of the model."""
-        return fullname.startswith(f"runtime_models_{self.model.base_name}.")
+        return fullname.startswith(f"{self.model.in_memory_package_name}.")
 
     def _make_root_module_spec(
         self,
         fullname: str,
         namespace: SimpleNamespace,
     ) -> importlib.machinery.ModuleSpec | None:
-        class Loader(importlib.abc.Loader):
-            def create_module(
-                self,
-                spec: importlib.machinery.ModuleSpec,  # noqa: ARG002
-            ) -> None:
-                return None
-
-            def exec_module(self, module: ModuleType) -> None:
-                module.__dict__.update(namespace.__dict__)
-
-            def get_resource_reader(
-                self,
-                name: str,
-            ) -> importlib.resources.abc.ResourceReader:
-                raise NotImplementedError(
-                    "ModelImporter does not support resource reading for the root of the generated model",
-                )
-
         return importlib.util.spec_from_loader(
             fullname,
-            loader=Loader(),
+            loader=InMemoryLoader(namespace, fullname, None),
             is_package=True,
         )
 
@@ -172,7 +324,7 @@ class ModelImporter(importlib.abc.MetaPathFinder):
         fullname: str,
         namespace: SimpleNamespace,
     ) -> importlib.machinery.ModuleSpec | None:
-        submodule = fullname[len(f"runtime_models_{self.model.base_name}.") :]
+        submodule = fullname[len(f"{self.model.in_memory_package_name}.") :]
         submodule_root = submodule.split(".")[0]
 
         if hasattr(namespace, submodule_root):
@@ -181,35 +333,14 @@ class ModelImporter(importlib.abc.MetaPathFinder):
                     f"Expected a SimpleNamespace for {submodule_root}, "
                     f"but got {type(getattr(namespace, submodule_root))}",
                 )
-
-            class Loader(importlib.abc.Loader):
-                def create_module(
-                    self,
-                    spec: importlib.machinery.ModuleSpec,  # noqa: ARG002
-                ) -> None:
-                    return None
-
-                def exec_module(self, module: ModuleType) -> None:
-                    module.__dict__.update(
-                        getattr(namespace, submodule_root).__dict__,
-                    )
-
-                def get_resource_reader(
-                    self,
-                    name: str,
-                ) -> importlib.resources.abc.ResourceReader:
-                    raise NotImplementedError(
-                        "ModelImporter does not support resource reading for the root of the generated model",
-                    )
-
         else:
             raise ImportError(
-                f"Namespace 'runtime_models_{self.model.base_name}' does not contain '{submodule_root}'",
+                f"Namespace '{self.model.in_memory_package_name}' does not contain '{submodule_root}'",
             )
 
         return importlib.util.spec_from_loader(
             fullname,
-            loader=Loader(),
+            loader=InMemoryLoader(namespace, fullname, submodule_root),
             is_package=True,
         )
 
@@ -226,9 +357,44 @@ class ModelImporter(importlib.abc.MetaPathFinder):
         if not context.name or context.name.lower().replace(
             "-",
             "_",
-        ) == f"runtime_models_{self.model.name}".replace("-", "_"):
+        ) == self.model.in_memory_package_name.replace("-", "_"):
             return [ModelDistribution(self.model, self.namespace)]
         return []
+
+
+class InMemoryLoader(importlib.abc.Loader):
+    """A loader for in-memory modules."""
+
+    def __init__(self, namespace: SimpleNamespace, fullname: str, submodule_root: str | None):
+        """Initialize the in-memory loader."""
+        self.namespace = namespace
+        self.fullname = fullname
+        self.submodule_root = submodule_root
+
+    @override
+    def create_module(
+        self,
+        spec: importlib.machinery.ModuleSpec,
+    ) -> None:
+        return None
+
+    @override
+    def exec_module(self, module: ModuleType) -> None:
+        sub_namespace = getattr(self.namespace, self.submodule_root) if self.submodule_root else self.namespace
+
+        module.__dict__.update(
+            sub_namespace.__dict__,
+        )
+
+    def get_resource_reader(
+        self,
+        name: str,
+    ) -> importlib.resources.abc.ResourceReader:
+        """Get a resource reader for the specified name."""
+        files_dict: dict[str, str] = self.namespace.get_resources()
+        package_path = "/".join(name.split("."))
+
+        return InMemoryResourceReader(files_dict, package_path)
 
 
 def register_model(model: InvenioModel, namespace: SimpleNamespace) -> None:

@@ -65,6 +65,11 @@ class InvenioModel:
             return cast("str", self.configuration["uppercase_name"])
         return self.name.upper().replace(" ", "_").replace("-", "_")
 
+    @property
+    def in_memory_package_name(self) -> str:
+        """Return the in-memory package name for the model."""
+        return f"runtime_models_{self.base_name}"
+
 
 class CachedDescriptor:
     """A descriptor that caches the value in the instance or class."""
