@@ -21,10 +21,7 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_drafts_resources.services import (
     RecordServiceConfig as DraftServiceConfig,
 )
-from invenio_records_resources.services import (
-    ConditionalLink,
-    RecordLink,
-)
+from invenio_records_resources.services import ConditionalLink, RecordEndpointLink, RecordLink
 from invenio_records_resources.services.records.config import (
     RecordServiceConfig,
 )
@@ -83,8 +80,16 @@ class DraftServiceConfigPreset(Preset):
         self_links = {
             "self": ConditionalLink(
                 cond=is_published_record(),
-                if_=RecordLink(api_url, when=has_permission("read")),
-                else_=RecordLink(api_url + "/draft", when=has_permission("read_draft")),
+                if_=RecordEndpointLink(
+                    f"{model.blueprint_base}.read",
+                    when=has_permission("read"),
+                    params=["expand", "refresh", "pid_value"],
+                ),
+                else_=RecordEndpointLink(
+                    f"{model.blueprint_base}.read_draft",
+                    when=has_permission("read_draft"),
+                    params=["expand", "refresh", "pid_value"],
+                ),
             ),
             "self_html": ConditionalLink(
                 cond=is_published_record(),
@@ -100,9 +105,10 @@ class DraftServiceConfigPreset(Preset):
             "record_links_item",
             {
                 **self_links,
-                "latest": RecordLink(
-                    api_url + "/versions/latest",
+                "latest": RecordEndpointLink(
+                    f"{model.blueprint_base}.read_latest",
                     when=has_permission("read"),
+                    params=["expand", "refresh", "pid_value"],
                 ),
                 "latest_html": RecordLink(
                     ui_url + "/latest",
@@ -110,21 +116,25 @@ class DraftServiceConfigPreset(Preset):
                 ),
                 # Note: semantics change from oarepo v12: this link is only on a
                 # published record if the record has a draft record
-                "draft": RecordLink(
-                    api_url + "/draft",
+                "draft": RecordEndpointLink(
+                    f"{model.blueprint_base}.read_draft",
                     when=is_published_record() & has_draft() & has_draft_permission("read_draft"),
+                    params=["expand", "refresh", "pid_value"],
                 ),
-                "record": RecordLink(
-                    api_url,
+                "record": RecordEndpointLink(
+                    f"{model.blueprint_base}.read",
                     when=has_published_record() & has_permission("read"),
+                    params=["expand", "refresh", "pid_value"],
                 ),
-                "publish": RecordLink(
-                    api_url + "/draft/actions/publish",
+                "publish": RecordEndpointLink(
+                    f"{model.blueprint_base}.publish",
                     when=has_permission("publish"),
+                    params=["expand", "refresh", "pid_value"],
                 ),
-                "versions": RecordLink(
-                    api_url + "/versions",
+                "versions": RecordEndpointLink(
+                    f"{model.blueprint_base}.search_versions",
                     when=has_permission("search_versions"),
+                    params=["expand", "refresh", "pid_value"],
                 ),
             },
         )
