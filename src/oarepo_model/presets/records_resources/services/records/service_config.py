@@ -63,10 +63,8 @@ class RecordServiceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        api_base = "{+api}/" + builder.model.slug + "/"
         ui_base = "{+ui}/" + builder.model.slug + "/"
 
-        api_url = api_base + "{id}"
         ui_url = ui_base + "{id}"
 
         class ServiceConfigMixin(ModelMixin):
@@ -135,11 +133,9 @@ class RecordServiceConfigPreset(Preset):
                     supercls_links = {}
                 links = {
                     **supercls_links,
-                    # request_search_args FromConfig(
-                    #    "RDM_SEARCH_ARGS_SCHEMA", default=RDMSearchRequestArgsSchema
-                    # )
                     **pagination_endpoint_links(
-                        f"{model.blueprint_base}.search", params=["pid_value", "scheme", "revision_id"]
+                        f"{model.blueprint_base}.search",
+                        params=["expand", "refresh", "q", "suggest", "sort", "page", "size"],
                     ),
                     **pagination_links_html(ui_base + "{?args*}"),
                 }

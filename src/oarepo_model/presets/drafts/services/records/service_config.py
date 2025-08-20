@@ -71,10 +71,8 @@ class DraftServiceConfigPreset(Preset):
         yield ChangeBase("RecordServiceConfig", RecordServiceConfig, DraftServiceConfig)
         yield AddMixins("RecordServiceConfig", DraftServiceConfigMixin)
 
-        api_base = "{+api}/" + builder.model.slug + "/"
         ui_base = "{+ui}/" + builder.model.slug + "/"
 
-        api_url = api_base + "{id}"
         ui_url = ui_base + "{id}"
 
         self_links = {
