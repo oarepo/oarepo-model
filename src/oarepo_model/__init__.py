@@ -16,4 +16,4 @@ to the model while ensuring that the model remains consistent, functional and up
 
 from __future__ import annotations
 
-__version__ = "0.1.0dev0"
+__version__ = "0.1.0dev1"
