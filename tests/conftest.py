@@ -8,7 +8,6 @@
 #
 from __future__ import annotations
 
-import json
 import logging
 import time
 from pathlib import Path
@@ -30,14 +29,6 @@ from oarepo_model.datatypes.registry import from_json, from_yaml
 log = logging.getLogger("tests")
 
 pytest_plugins = ("celery.contrib.pytest",)
-
-
-parent_json_schema = {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "local://parent-v1.0.0.json",
-    "type": "object",
-    "properties": {"id": {"type": "string"}},
-}
 
 
 @pytest.fixture(scope="session")
@@ -132,7 +123,6 @@ def empty_model(model_types):
 @pytest.fixture(scope="session")
 def draft_model(model_types):
     from oarepo_model.api import model
-    from oarepo_model.customizations import AddFileToModule
     from oarepo_model.presets.drafts import drafts_records_presets
     from oarepo_model.presets.records_resources import records_presets
 
@@ -144,23 +134,7 @@ def draft_model(model_types):
         presets=[records_presets, drafts_records_presets],
         types=[model_types],
         metadata_type="Metadata",
-        customizations=[
-            # needs https://github.com/inveniosoftware/invenio-search/pull/238/files
-            # add parent JSON schema
-            AddFileToModule(
-                "parent-jsonschema",
-                "jsonschemas",
-                "parent-v1.0.0.json",
-                json.dumps(
-                    {
-                        "$schema": "http://json-schema.org/draft-07/schema#",
-                        "$id": "local://parent-v1.0.0.json",
-                        "type": "object",
-                        "properties": {"id": {"type": "string"}},
-                    },
-                ),
-            ),
-        ],
+        customizations=[],
     )
     draft_model.register()
 
