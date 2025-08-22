@@ -60,7 +60,7 @@ class ParentRecordPreset(Preset):
 
             schema = ConstantField(
                 "$schema",
-                "local://parent-v1.0.0.json",
+                "local://records/parent-v3.0.0.json",
             )
 
             pid = dependencies["PIDField"](
