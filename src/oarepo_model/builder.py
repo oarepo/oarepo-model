@@ -151,13 +151,13 @@ class BuilderList(Partial, list[Any]):
         return list(self)
 
     @override
-    def append(self, object: type) -> None:
+    def append(self, object: Any) -> None:
         if self.built:
             raise RuntimeError("Cannot append to class list after it is built.")
         return super().append(object)
 
     @override
-    def extend(self, iterable: Iterable[type]) -> None:
+    def extend(self, iterable: Iterable[Any]) -> None:
         if self.built:
             raise RuntimeError("Cannot append to class list after it is built.")
         return super().extend(iterable)

@@ -48,6 +48,7 @@ from .records.relations import RelationsPreset
 from .records.relations_dumper_ext import RelationsDumperExtPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
+from .resources.records.exports import ExportsPreset
 from .resources.records.register_ui_json_serializer import (
     RegisterJSONUISerializerPreset,
 )
@@ -107,6 +108,7 @@ records_presets: list[type[Preset]] = [
     RecordUISchemaPreset,
     MetadataUISchemaPreset,
     # resource layer
+    ExportsPreset,
     RecordResourcePreset,
     RecordResourceConfigPreset,
     JSONUISerializerPreset,

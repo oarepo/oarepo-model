@@ -59,6 +59,7 @@ def model(  # noqa: PLR0913 too many arguments
     :param customizations: Customizations for the model.
     :return: An instance of InvenioModel.
     """
+    # TODO: preset needs a way of modifying the record_type if it is not passed.
     model = InvenioModel(
         name=name,
         version=version,

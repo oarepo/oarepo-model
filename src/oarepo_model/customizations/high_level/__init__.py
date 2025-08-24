@@ -16,6 +16,7 @@ with simple, declarative interfaces.
 
 from __future__ import annotations
 
+from .add_export import AddMetadataExport
 from .add_pid_relation import AddPIDRelation
 
-__all__ = ("AddPIDRelation",)
+__all__ = ("AddMetadataExport", "AddPIDRelation")

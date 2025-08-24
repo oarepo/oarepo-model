@@ -21,12 +21,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from flask_resources import ResponseHandler
-from invenio_records_resources.resources.records.headers import etag_headers
+from invenio_i18n import lazy_gettext as _
+from oarepo_runtime.api import Export
 from werkzeug.local import LocalProxy
 
 from oarepo_model.customizations import (
-    AddToDictionary,
+    AddMetadataExport,
     Customization,
 )
 from oarepo_model.presets import Preset
@@ -42,7 +42,7 @@ class RegisterJSONUISerializerPreset(Preset):
     """Preset for registering JSON UI Serializer."""
 
     depends_on = ("JSONUISerializer",)
-    modifies = ("record_response_handlers",)
+    modifies = ("exports",)
 
     @override
     def apply(
@@ -52,9 +52,12 @@ class RegisterJSONUISerializerPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         runtime_deps = builder.get_runtime_dependencies()
-        proxy = LocalProxy(lambda: ResponseHandler(runtime_deps.get("JSONUISerializer")(), headers=etag_headers))
 
-        yield AddToDictionary(
-            "record_response_handlers",
-            {"application/vnd.inveniordm.v1+json": proxy},
+        yield AddMetadataExport(
+            Export(
+                code="ui_json",
+                name=_("UI JSON"),
+                mimetype="application/vnd.inveniordm.v1+json",
+                serializer=LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),  # type: ignore[arg-type]
+            ),
         )

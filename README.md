@@ -1,7 +1,7 @@
 # OARepo model customizations and builders
 
 This package provides a way of building an Invenio model with user customizations.
-It allows you to add mixins, classes to components, routes and other customizations
+It allows you to add mixins, classes to components, routes, and other customizations
 to the model while ensuring that the model remains consistent, functional and upgradable.
 
 ## High-level API
@@ -13,16 +13,16 @@ include the necessary presets.
 # mymodel.py
 
 from oarepo_model.api import model
-from oarepo_model.presets.records_resources import records_resources_preset
-from oarepo_model.presets.drafts import drafts_preset
+from oarepo_model.presets.records_resources import records_resources_presets
+from oarepo_model.presets.drafts import drafts_presets
 
 
 my_model = model(
     "my_model",
     version="1.0.0",
     presets=[
-        records_resources_preset,
-        drafts_preset,
+    records_resources_presets,
+    drafts_presets,
     ],
     customizations=[
     ],
@@ -42,7 +42,7 @@ my_model.register()
 
 ## Adding customizations
 
-You can add customizations to the model by using the `customizations` parameter 
+You can add customizations to the model by using the `customizations` parameter
 of the `model` function. The following customizations are available, importable from
 `oarepo_model.customizations`:
 
@@ -54,45 +54,46 @@ of the `model` function. The following customizations are available, importable 
 | `AddMixins(name, *mixins)` | Adds mixins to the model. |
 | `ChangeBase(name, old_base, new_base)` | Changes the base class of the model. |
 | **modules** |      |
-| `AddModule(name)` | Adds a module to the model. |
-| `AddToModule(name, key, value)` | Adds an entry to a module in the model. |
+| `AddModule(name, exists_ok=False)` | Adds a module to the model. |
+| `AddToModule(module_name, property_name, value, exists_ok=False)` | Adds a property to a module in the model. |
 | `AddFileToModule` | Adds a file to the module. |
 | **lists** |      |
-| `AddList(name, initial=[])` | Adds a list to the model. |
-| `AddClassList(name, initial=[])` | Adds a class list to the model. A class list is a list of classes intended to hold those classes in a mro order, so that they can later on be used as a base of a new class. If this ordering functionality is not required, use `AddList`. |
-| `AddToList(name, *values)` | Adds a list to the model. |
+| `AddList(name, exists_ok=False)` | Adds a new list to the model. |
+| `AddClassList(name, exists_ok=False)` | Adds a new class list to the model. A class list keeps an MRO-consistent order of classes and can be used later as bases for a generated class. If this ordering functionality is not required, use `AddList`. |
+| `AddToList(list_name, value, exists_ok=False)` | Appends a value to an existing list in the model. Set `exists_ok=True` to allow duplicates. |
 | **dicts** |      |
-| `AddDictionary(name, initial={})` | Adds a dictionary to the model. |
-| `AddToDictionary(name, key, value)` | Adds an entry to a dictionary in the model. |
+| `AddDictionary(name, default=None, exists_ok=False)` | Adds a dictionary to the model. |
+| `AddToDictionary(name, {..}...)` or `AddToDictionary(name, key=..., value=..., patch=False)` | Adds entries to a dictionary in the model (optionally merge with `patch=True`). |
 | **entry points** |      |
 | `AddEntryPoint` | Adds an entry point to the model. |
+| **high-level** |       |
+| `AddMetadataExport(Export)` | Adds a serializer for metadata exports. |
+| `AddPIDRelation(name, path, keys, pid_field, ...)` | Declares a PID relation system field based on a path (supports list and nested-list relations). |
 
 ### Extending class with a mixin
 
 To add a mixin to a class in the model, you can use the `AddMixins` customization.
-This will always prepend the mixin to the class, so it will be the first in the MRO.
-If the mixin extends any class already in the mixins, that class will be replaced with
-the mixin class, keeping the order of the mixins intact.
+Mixins are prepended to the class, so they take precedence in the MRO. If the resulting
+MRO would be inconsistent, it is automatically reordered to a consistent order.
 
 ```python
 from oarepo_model.customizations import AddMixins
+from my_mixins import BaseMixin
 
 my_model = model(
     "my_model",
     version="1.0.0",
     presets=[
-        records_resources_preset,
-        drafts_preset,
+    records_resources_presets,
+    drafts_presets,
     ],
     customizations=[
-        AddMixins("Record", "BaseMixin"),
+    AddMixins("Record", BaseMixin),
     ],
 )
 ```
 
 ### Adding a new service component
-
-To add a new service component to the model, you can use the `AddToList` customization.
 
 ```python
 from oarepo_model.customizations import AddToList
@@ -104,14 +105,41 @@ my_model = model(
     "my_model",
     version="1.0.0",
     presets=[
-        records_resources_preset,
-        drafts_preset,
+        records_resources_presets,
+        drafts_presets,
     ],
     customizations=[
         AddToList("record_service_components", MyComponent),
     ],
 )
 ```
+
+### Generating metadata schema via data types
+
+To generate `RecordSchema`/`MetadataSchema` from a type definition, pass `types` and set `metadata_type` to the name of the root type:
+
+```python
+from oarepo_model.api import model
+from oarepo_model.presets.records_resources import records_resources_presets
+
+my_model = model(
+    "my_model",
+    version="1.0.0",
+    presets=[records_resources_presets],
+    types=[
+        {
+            "RecordMetadata": {
+                "properties": {
+                    "title": {"type": "fulltext+keyword", "required": True},
+                },
+            }
+        }
+    ],
+    metadata_type="RecordMetadata",
+)
+```
+
+
 
 ## Behind the scenes
 
@@ -140,6 +168,9 @@ When the model is created, the following steps are performed:
 
 7. The result of the model building process is transformed into a SimpleNamespace
    and returned to the caller.
+    The returned object also provides helpers:
+    - `register()` / `unregister()` — to register the in-memory model for import/entry points
+    - `get_resources()` — to retrieve the in-memory files as a `{path: content}` mapping
 
 ## Registering the model
 
@@ -156,15 +187,16 @@ to do it is in the `invenio.cfg` file.
 
 ### Late binding
 
+
 The classes within the model should be as loosely coupled as possible. This is implemented
 by using dependency injection, wherever possible.
 
 #### Dependency descriptor
 
 A dependency descriptor makes sure that the class is loaded from the model during runtime.
-This allows to add for example circular dependencies between classes. 
+This allows to add for example circular dependencies between classes.
 
-**Note:** This does not work with Invenio's system fields, as these are handled in 
+**Note:** This does not work with Invenio's system fields, as these are handled in
 a special way by Invenio and are skipped. For example, `pid` field on a record might
 not be created in this way.
 
@@ -193,7 +225,9 @@ class MyPreset:
 
 #### Injected properties
 
-`oarepo_model` and `oarepo_model_namespace` are injected into every built class and module.
+`oarepo_model` and `oarepo_model_namespace` are injected into every generated class. Imported
+modules created by the model expose whatever attributes you added via customizations, but do not
+receive special injections automatically.
 
 ### Early binding (for system fields and similar)
 
@@ -204,7 +238,7 @@ the presets and customizations so that the system fields' classes are built befo
 that use them.
 
 Each preset has two properties: `provides` and `depends_on`. The `provides` property
-is a list of classes that the preset provides or modifies, while the `depends_on` 
+is a list of classes that the preset provides or modifies, while the `depends_on`
 property is a list of classes that the preset depends on. The presets are sorted
 by their dependencies, so that the dependencies are built before the preset itself.
 

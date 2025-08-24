@@ -180,13 +180,14 @@ def rdm_model(model_types):
     from oarepo_model.presets.drafts import drafts_presets
     from oarepo_model.presets.rdm import rdm_presets
     from oarepo_model.presets.records_resources import records_resources_presets
+    from oarepo_model.presets.ui import ui_presets
 
     t1 = time.time()
 
     rdm_model = model(
         name="rdm_test",
         version="1.0.0",
-        presets=[records_resources_presets, drafts_presets, rdm_presets],
+        presets=[records_resources_presets, drafts_presets, rdm_presets, ui_presets],
         types=[model_types],
         metadata_type="Metadata",
         customizations=[],
