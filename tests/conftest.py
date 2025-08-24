@@ -12,6 +12,7 @@ import logging
 import time
 from pathlib import Path
 from typing import ClassVar
+from unittest.mock import MagicMock
 
 import pytest
 from flask_principal import Identity, Need, UserNeed
@@ -24,6 +25,7 @@ from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
 from oarepo_runtime.services.records.mapping import update_all_records_mappings
 
+from oarepo_model.customizations import AddToList
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
 log = logging.getLogger("tests")
@@ -175,7 +177,12 @@ def draft_model_with_files(model_types):
 
 
 @pytest.fixture(scope="session")
-def rdm_model(model_types):
+def finalization_called():
+    return MagicMock()
+
+
+@pytest.fixture(scope="session")
+def rdm_model(model_types, finalization_called):
     from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_presets
     from oarepo_model.presets.rdm import rdm_presets
@@ -190,7 +197,9 @@ def rdm_model(model_types):
         presets=[records_resources_presets, drafts_presets, rdm_presets, ui_presets],
         types=[model_types],
         metadata_type="Metadata",
-        customizations=[],
+        customizations=[
+            AddToList("api_finalizers", finalization_called),
+        ],
     )
     rdm_model.register()
 

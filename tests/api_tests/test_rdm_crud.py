@@ -14,6 +14,10 @@ import pytest
 from invenio_pidstore.errors import PIDDeletedError, PIDDoesNotExistError
 
 
+def test_finalization_called(app, rdm_model, finalization_called):
+    assert finalization_called.called
+
+
 def test_simple_flow(
     app,
     test_rdm_service,
