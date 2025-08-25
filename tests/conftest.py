@@ -522,6 +522,11 @@ def app_config(
     app_config["DATACITE_TEST_MODE"] = True
     app_config["RDM_RECORDS_ALLOW_RESTRICTION_AFTER_GRACE_PERIOD"] = True
 
+    # for RDM links
+    app_config["IIIF_FORMATS"] = ["jpg", "png"]
+    app_config["APP_RDM_RECORD_THUMBNAIL_SIZES"] = [500]
+    app_config["RDM_ARCHIVE_DOWNLOAD_ENABLED"] = True
+
     return app_config
 
 
@@ -541,6 +546,20 @@ def create_app(instance_path, entry_points):
     from invenio_app.factory import create_api as _create_api
 
     return _create_api
+
+
+@pytest.fixture(scope="module")
+def extra_entry_points():
+    return {
+        "invenio_base.blueprints": [
+            "invenio_app_rdm_records = tests.mock_module:create_invenio_app_rdm_records_blueprint",
+            "iiif = tests.mock_module:create_invenio_app_rdm_iiif_blueprint",
+            "rdm_test_links = tests.mock_module:create_invenio_app_rdm_access_links_blueprint",
+            "rdm_test_grants = tests.mock_module:create_invenio_app_rdm_access_grants_blueprint",
+            "rdm_test_users = tests.mock_module:create_invenio_app_rdm_user_access_blueprint",
+            "rdm_test_groups = tests.mock_module:create_invenio_app_rdm_group_access_blueprint",
+        ],
+    }
 
 
 @pytest.fixture

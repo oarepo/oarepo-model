@@ -121,7 +121,7 @@ class DraftServiceConfigPreset(Preset):
                 ),
                 "publish": RecordEndpointLink(
                     f"{model.blueprint_base}.publish",
-                    when=has_permission("publish"),
+                    when=has_permission("publish") & has_draft(),
                 ),
                 "versions": RecordEndpointLink(
                     f"{model.blueprint_base}.search_versions",
