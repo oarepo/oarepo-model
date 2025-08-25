@@ -103,7 +103,7 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
     @override
     def name(self) -> str:
         """Return the name of this traversable."""
-        return self._name
+        return self._name.split("/")[-1] if self._name else ""
 
     @override
     def __str__(self) -> str:
@@ -184,7 +184,7 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
     def relative_to(self, other_path: str | InMemoryTraversable) -> InMemoryTraversable:
         """Return an InMemoryTraversable that is relative to the given other_path."""
         if isinstance(other_path, InMemoryTraversable):
-            other_path = other_path.name
+            other_path = str(other_path)  # need full path here
 
         # Normalize paths by removing trailing slashes
         self_path = self._name.rstrip("/")
