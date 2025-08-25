@@ -133,10 +133,7 @@ class RecordServiceConfigPreset(Preset):
                     supercls_links = {}
                 links = {
                     **supercls_links,
-                    **pagination_endpoint_links(
-                        f"{model.blueprint_base}.search",
-                        params=["expand", "refresh", "q", "suggest", "sort", "page", "size"],
-                    ),
+                    **pagination_endpoint_links(f"{model.blueprint_base}.search"),
                     **pagination_links_html(ui_base + "{?args*}"),
                 }
                 return {k: v for k, v in links.items() if v is not None}
@@ -150,7 +147,8 @@ class RecordServiceConfigPreset(Preset):
             "record_search_item",
             {
                 "self": RecordEndpointLink(
-                    f"{model.blueprint_base}.read", when=has_permission("read"), params=["pid_value"]
+                    f"{model.blueprint_base}.read",
+                    when=has_permission("read"),
                 ),
                 "self_html": RecordLink(ui_url, when=has_permission("read")),
             },
@@ -160,7 +158,8 @@ class RecordServiceConfigPreset(Preset):
             "record_links_item",
             {
                 "self": RecordEndpointLink(
-                    f"{model.blueprint_base}.read", when=has_permission("read"), params=["pid_value"]
+                    f"{model.blueprint_base}.read",
+                    when=has_permission("read"),
                 ),
                 "self_html": RecordLink(ui_url, when=has_permission("read")),
             },

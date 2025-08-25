@@ -81,12 +81,10 @@ class DraftServiceConfigPreset(Preset):
                 if_=RecordEndpointLink(
                     f"{model.blueprint_base}.read",
                     when=has_permission("read"),
-                    params=["expand", "refresh", "pid_value"],
                 ),
                 else_=RecordEndpointLink(
                     f"{model.blueprint_base}.read_draft",
                     when=has_permission("read_draft"),
-                    params=["expand", "refresh", "pid_value"],
                 ),
             ),
             "self_html": ConditionalLink(
@@ -106,7 +104,6 @@ class DraftServiceConfigPreset(Preset):
                 "latest": RecordEndpointLink(
                     f"{model.blueprint_base}.read_latest",
                     when=has_permission("read"),
-                    params=["expand", "refresh", "pid_value"],
                 ),
                 "latest_html": RecordLink(
                     ui_url + "/latest",
@@ -117,22 +114,18 @@ class DraftServiceConfigPreset(Preset):
                 "draft": RecordEndpointLink(
                     f"{model.blueprint_base}.read_draft",
                     when=is_published_record() & has_draft() & has_draft_permission("read_draft"),
-                    params=["expand", "refresh", "pid_value"],
                 ),
                 "record": RecordEndpointLink(
                     f"{model.blueprint_base}.read",
                     when=has_published_record() & has_permission("read"),
-                    params=["expand", "refresh", "pid_value"],
                 ),
                 "publish": RecordEndpointLink(
                     f"{model.blueprint_base}.publish",
                     when=has_permission("publish"),
-                    params=["expand", "refresh", "pid_value"],
                 ),
                 "versions": RecordEndpointLink(
                     f"{model.blueprint_base}.search_versions",
                     when=has_permission("search_versions"),
-                    params=["expand", "refresh", "pid_value"],
                 ),
             },
         )
