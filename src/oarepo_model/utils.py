@@ -10,7 +10,6 @@
 
 from __future__ import annotations
 
-import inspect
 import json
 import keyword
 import re
@@ -20,53 +19,6 @@ from typing import Any, override
 import marshmallow
 
 from oarepo_model.c3linearize import LinearizationError, mro_without_class_construction
-
-
-def add_to_class_list_preserve_mro(
-    class_list: list[type],
-    clz: type,
-    prepend: bool = False,
-) -> None:
-    """Add a class to a list of classes while preserving the method resolution order (MRO)."""
-    if not inspect.isclass(clz):
-        raise TypeError("Only classes can be added to ClassList")
-
-    # Remove existing base class if it is a subclass of the new class
-    for item in class_list:
-        if issubclass(item, clz):
-            # already an inherited class from this class is present, do nothing
-            return
-
-    # Choose enumeration direction based on insert_func
-    idx = 0
-    removed_positions = []
-    while idx < len(class_list):
-        item = class_list[idx]
-        if issubclass(clz, item):
-            removed_positions.append(idx)
-            del class_list[idx]
-        else:
-            idx += 1
-
-    if removed_positions:
-        if prepend:
-            # If we are prepending, we need to insert at the start
-            class_list.insert(removed_positions[0], clz)
-        else:
-            class_list.insert(removed_positions[-1], clz)
-    # If no class was removed, we append the new class
-    elif prepend:
-        class_list.insert(0, clz)
-    else:
-        class_list.append(clz)
-
-    # Ensure the order is consistent with MRO
-    if is_mro_consistent(class_list):
-        return
-
-    values = list(class_list)
-    class_list.clear()
-    class_list.extend(make_mro_consistent(values))
 
 
 def is_mro_consistent(class_list: list[type]) -> bool:
