@@ -103,7 +103,7 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
     @override
     def name(self) -> str:
         """Return the name of this traversable."""
-        return self._name
+        return self._name.split("/")[-1] if self._name else ""
 
     @override
     def __str__(self) -> str:
@@ -179,45 +179,6 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
         errors: str | None = None,
     ) -> io.IOBase:
         raise NotImplementedError("open is not implemented")
-
-    # note: this is not on the Traversable API, only on posix path, so maybe reconsider
-    def relative_to(self, other_path: str | InMemoryTraversable) -> InMemoryTraversable:
-        """Return an InMemoryTraversable that is relative to the given other_path."""
-        if isinstance(other_path, InMemoryTraversable):
-            other_path = other_path.name
-
-        # Normalize paths by removing trailing slashes
-        self_path = self._name.rstrip("/")
-        other_path = other_path.rstrip("/")
-
-        if not other_path:
-            relative_path_str = self_path
-        elif self_path == other_path:
-            relative_path_str = ""
-        elif self_path.startswith(other_path + "/"):
-            relative_path_str = self_path[len(other_path) + 1 :]
-        else:
-            raise ValueError(f"'{self_path}' is not relative to '{other_path}'")
-
-        # If relative_path_str is empty, it's the same as the base, so it's a directory
-        if not relative_path_str:
-            is_relative_dir = True
-        else:
-            # Check if there are any files that start with this relative path + "/"
-            # If yes, it's a directory; if not, check if it's a file
-            is_relative_dir = (
-                any(file_path.startswith(self_path + "/") for file_path in self._files)
-                if self_path in self._files
-                else self._is_dir
-            )
-
-        files = {
-            file_path[len(other_path) + 1 :]: content
-            for file_path, content in self._files.items()
-            if file_path.startswith(other_path + "/")
-        }
-
-        return InMemoryTraversable(relative_path_str, files, is_relative_dir)
 
     # note: this is not on the Traversable API, only on posix path, so maybe reconsider
     @property
