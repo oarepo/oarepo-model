@@ -26,6 +26,12 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
+class SchemaMixin(marshmallow.Schema):
+    """Mixin for record schemas."""
+
+    schema = marshmallow.fields.Str(attribute="$schema", data_key="$schema")
+
+
 class RecordSchemaPreset(Preset):
     """Preset for record service class."""
 
@@ -39,6 +45,11 @@ class RecordSchemaPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         yield AddClass("RecordSchema", clazz=BaseRecordSchema)
+
+        yield AddMixins(
+            "RecordSchema",
+            SchemaMixin,
+        )
 
         if model.record_type is not None:
             yield AddMixins(

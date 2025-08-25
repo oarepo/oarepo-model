@@ -31,6 +31,7 @@ from .files.record_file_mapping import (
     RecordFileMappingPreset,
 )
 from .files.record_metadata import RecordMetadataWithFilesPreset
+from .finalizers import FinalizationPreset
 from .model_registration import ModelRegistrationPreset
 from .proxy import ProxyPreset
 from .records.dumper import RecordDumperPreset
@@ -48,6 +49,7 @@ from .records.relations import RelationsPreset
 from .records.relations_dumper_ext import RelationsDumperExtPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
+from .resources.records.exports import ExportsPreset
 from .resources.records.register_ui_json_serializer import (
     RegisterJSONUISerializerPreset,
 )
@@ -107,6 +109,7 @@ records_presets: list[type[Preset]] = [
     RecordUISchemaPreset,
     MetadataUISchemaPreset,
     # resource layer
+    ExportsPreset,
     RecordResourcePreset,
     RecordResourceConfigPreset,
     JSONUISerializerPreset,
@@ -118,6 +121,7 @@ records_presets: list[type[Preset]] = [
     ApiBlueprintPreset,
     AppBlueprintPreset,
     ModelRegistrationPreset,
+    FinalizationPreset,
 ]
 
 files_presets: list[type[Preset]] = [

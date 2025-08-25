@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
+from babel.support import LazyProxy
 from flask_resources import (
-    JSONSerializer,
     ResponseHandler,
 )
 from invenio_records_resources.resources.records.config import RecordResourceConfig
@@ -30,6 +30,8 @@ from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+
+    from oarepo_runtime.api import Export
 
     from oarepo_model.builder import InvenioModelBuilder
 
@@ -52,17 +54,41 @@ class RecordResourceConfigPreset(Preset):
             url_prefix = f"/{builder.model.slug}"
 
             # Response handling
-            response_handlers = Dependency("record_response_handlers")
+            response_handlers = Dependency("record_response_handlers", "exports", transform=_merge_with_exports)
 
         yield AddClass("RecordResourceConfig", clazz=RecordResourceConfig)
         yield AddMixins("RecordResourceConfig", RecordResourceConfigMixin)
 
         yield AddDictionary(
             "record_response_handlers",
-            {
-                "application/json": ResponseHandler(
-                    JSONSerializer(),
-                    headers=etag_headers,
-                ),
-            },
+            {},
         )
+
+
+def _merge_with_exports(record_response_handlers: dict, exports: list[Export]) -> dict:
+    """Merge exports into the record_response_handlers."""
+    # we need to return lazy response handlers as well as do not recreate then with
+    # every call. To do this we need to cache the created handlers.
+    handler_cache: dict[str, ResponseHandler] = {}
+
+    for export in exports:
+        record_response_handlers[export.mimetype] = _register_export(handler_cache, export)
+    return record_response_handlers
+
+
+def _register_export(cache: dict[str, ResponseHandler], export: Export) -> ResponseHandler:
+    """Register a new export and return its response handler.
+
+    The handler is created when it is accessed first time and cached for future use.
+    """
+
+    def lookup_or_create() -> ResponseHandler:
+        """Lookup or create a new response handler."""
+        if export.code not in cache:
+            cache[export.code] = ResponseHandler(
+                export.serializer,
+                headers=etag_headers,
+            )
+        return cache[export.code]
+
+    return LazyProxy(lookup_or_create)  # type: ignore[return-value]

@@ -17,7 +17,7 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, override
 
-from oarepo_runtime.api import Model
+from oarepo_runtime.api import Export, Model
 from oarepo_runtime.config import build_config
 
 from oarepo_model.customizations import (
@@ -138,6 +138,10 @@ class ExtPreset(Preset):
                 }
 
             @property
+            def metadata_exports(self) -> list[Export]:
+                return runtime_dependencies.get("exports")  # type: ignore[no-any-return]
+
+            @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
                 return {
@@ -146,6 +150,7 @@ class ExtPreset(Preset):
                     "service_config": self.records_service.config,
                     "resource_config": self.records_resource.config,
                     "resource": self.records_resource,
+                    "exports": self.metadata_exports,
                 }
 
             def init_config(self, app: Flask) -> None:

@@ -211,6 +211,6 @@ class DataType:
         if "input" in element:
             ret["input"] = element["input"]
         else:
-            ret["input"] = element["type"]
+            ret["input"] = self._registry.get_type(element).TYPE
 
         return ret
