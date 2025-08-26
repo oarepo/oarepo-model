@@ -22,7 +22,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, override
 
 from invenio_i18n import lazy_gettext as _
-from oarepo_runtime.api import Export
 from werkzeug.local import LocalProxy
 
 from oarepo_model.customizations import (
@@ -54,10 +53,8 @@ class RegisterJSONUISerializerPreset(Preset):
         runtime_deps = builder.get_runtime_dependencies()
 
         yield AddMetadataExport(
-            Export(
-                code="ui_json",
-                name=_("UI JSON"),
-                mimetype="application/vnd.inveniordm.v1+json",
-                serializer=LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),  # type: ignore[arg-type]
-            ),
+            code="ui_json",
+            name=_("UI JSON"),
+            mimetype="application/vnd.inveniordm.v1+json",
+            serializer=LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),  # type: ignore[arg-type]
         )
