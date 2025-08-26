@@ -16,7 +16,6 @@ from flask_resources import (
     JSONSerializer,
 )
 from invenio_i18n import lazy_gettext as _
-from oarepo_runtime.api import Export
 
 from oarepo_model.customizations import AddList, AddMetadataExport, Customization
 from oarepo_model.presets import Preset
@@ -44,14 +43,12 @@ class ExportsPreset(Preset):
             "exports",
         )
         yield AddMetadataExport(
-            Export(
-                code="json",
-                name=_("JSON"),
-                mimetype="application/json",
-                serializer=JSONSerializer(),
-                display=True,
-                oai_metadata_prefix=None,
-                oai_schema=None,
-                oai_namespace=None,
-            ),
+            code="json",
+            name=_("JSON"),
+            mimetype="application/json",
+            serializer=JSONSerializer(),
+            display=True,
+            oai_metadata_prefix=None,
+            oai_schema=None,
+            oai_namespace=None,
         )

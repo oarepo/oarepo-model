@@ -14,12 +14,15 @@ serializer.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
+
+from oarepo_runtime.api import Export
 
 from ..base import Customization
 
 if TYPE_CHECKING:
-    from oarepo_runtime.api import Export
+    from flask_babel.speaklater import LazyString
+    from flask_resources.serializers import BaseSerializer
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
@@ -30,12 +33,56 @@ class AddMetadataExport(Customization):
 
     modifies = ("exports",)
 
-    def __init__(self, export: Export):
-        """Initialize the AddMetadataExport customization."""
+    def __init__(  # noqa PLR0913 too many arguments
+        self,
+        code: str,
+        name: LazyString,
+        mimetype: str,
+        serializer: BaseSerializer,
+        display: bool = True,
+        oai_metadata_prefix: str | None = None,
+        oai_schema: str | None = None,
+        oai_namespace: str | None = None,
+        **kwargs: Any,
+    ):
+        """Initialize the AddMetadataExport customization.
+
+        :param code: Code of the export format, used to identify the export format in the URL.
+        :param name: Name of the export format, human readable.
+        :param mimetype: MIME type of the export format.
+        :param serializer: Serializer used to serialize the record into the export format.
+        :param display: Whether the export format is displayed in the UI.
+        :param oai_metadata_prefix: OAI metadata prefix, if applicable.
+                    If not set, the export can not be used in OAI-PMH responses.
+        :param oai_schema: OAI schema, if applicable.
+                    If not set, the export can not be used in OAI-PMH responses.
+        :param oai_namespace: OAI namespace, if applicable.
+                    If not set, the export can not be used in OAI-PMH responses.
+        """
         super().__init__("AddMetadataExport")
-        self._export = export
+        self._code = code
+        self._name = name
+        self._mimetype = mimetype
+        self._serializer = serializer
+        self._display = display
+        self._oai_metadata_prefix = oai_metadata_prefix
+        self._oai_schema = oai_schema
+        self._oai_namespace = oai_namespace
+        self._kwargs = kwargs
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         exports = builder.get_list("exports")
-        exports.append(self._export)
+        exports.append(
+            Export(
+                code=self._code,
+                name=self._name,
+                mimetype=self._mimetype,
+                serializer=self._serializer,
+                display=self._display,
+                oai_metadata_prefix=self._oai_metadata_prefix,
+                oai_schema=self._oai_schema,
+                oai_namespace=self._oai_namespace,
+                **self._kwargs,
+            )
+        )

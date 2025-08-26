@@ -67,8 +67,9 @@ of the `model` function. The following customizations are available, importable 
 | **entry points** |      |
 | `AddEntryPoint` | Adds an entry point to the model. |
 | **high-level** |       |
-| `AddMetadataExport(Export)` | Adds a serializer for metadata exports. |
+| `AddMetadataExport(**export)` | Adds a serializer for metadata exports. |
 | `AddPIDRelation(name, path, keys, pid_field, ...)` | Declares a PID relation system field based on a path (supports list and nested-list relations). |
+| `SetPermissionPolicy(policy_class)` | Sets the permission policy for the model. |
 
 ### Extending class with a mixin
 
