@@ -94,6 +94,15 @@ class DraftServiceConfigPreset(Preset):
                     when=has_permission("read_draft"),
                 ),
             ),
+            "edit_html": RecordLink(ui_url + "/edit", when=has_draft_permission("update_draft")),
+            "files": ConditionalLink(
+                cond=is_published_record(),
+                if_=RecordLink("{+api}/docs/{id}/files", when=has_permission("read_files")),
+                else_=RecordLink(
+                    "{+api}/docs/{id}/draft/files",
+                    when=has_permission("read_files"),
+                ),
+            ),
         }
 
         yield AddToDictionary(
