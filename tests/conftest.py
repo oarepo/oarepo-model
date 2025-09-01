@@ -12,7 +12,6 @@ import logging
 import time
 from pathlib import Path
 from typing import ClassVar
-from unittest.mock import MagicMock
 
 import pytest
 from flask_principal import Identity, Need, UserNeed
@@ -25,7 +24,6 @@ from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
 from oarepo_runtime.services.records.mapping import update_all_records_mappings
 
-from oarepo_model.customizations import AddToList
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
 log = logging.getLogger("tests")
@@ -174,44 +172,6 @@ def draft_model_with_files(model_types):
         yield draft_model
     finally:
         draft_model.unregister()
-
-
-@pytest.fixture(scope="session")
-def finalization_called():
-    return MagicMock()
-
-
-@pytest.fixture(scope="session")
-def rdm_model(model_types, finalization_called):
-    from oarepo_model.api import model
-    from oarepo_model.presets.drafts import drafts_presets
-    from oarepo_model.presets.rdm import rdm_presets
-    from oarepo_model.presets.records_resources import records_resources_presets
-    from oarepo_model.presets.ui import ui_presets
-
-    t1 = time.time()
-
-    rdm_model = model(
-        name="rdm_test",
-        version="1.0.0",
-        presets=[records_resources_presets, drafts_presets, rdm_presets, ui_presets],
-        types=[model_types],
-        metadata_type="Metadata",
-        customizations=[
-            AddToList("api_finalizers", finalization_called),
-        ],
-    )
-    rdm_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    try:
-        yield rdm_model
-    finally:
-        rdm_model.unregister()
-
-    return rdm_model
 
 
 relation_model_types = {
@@ -441,7 +401,6 @@ def app_config(
     relation_model,
     vocabulary_model,
     multilingual_model,
-    rdm_model,
 ):
     """Override pytest-invenio app_config fixture.
 

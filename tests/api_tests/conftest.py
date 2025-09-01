@@ -51,18 +51,6 @@ def file_service(app):
     return app.extensions["test"].files_service
 
 
-@pytest.fixture(scope="module")
-def test_rdm_service(app):
-    """Service instance."""
-    return app.extensions["rdm_test"].records_service
-
-
-@pytest.fixture(scope="module")
-def test_rdm_draft_files_service(app):
-    """Service instance."""
-    return app.extensions["rdm_test"].draft_files_service
-
-
 @pytest.fixture
 def input_data():
     """Input data (as coming from the view layer)."""

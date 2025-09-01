@@ -34,7 +34,6 @@ class AddModule(Customization):
         self,
         name: str,
         exists_ok: bool = False,
-        file_path: str | None = None,
     ) -> None:
         """Initialize the AddModule customization.
 
@@ -43,11 +42,7 @@ class AddModule(Customization):
         """
         super().__init__(name)
         self.exists_ok = exists_ok
-        self.file_path = file_path
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-        ret = builder.add_module(self.name, exists_ok=self.exists_ok)
-        if self.file_path:
-            # always a package so that we can add files to it
-            ret.__file__ = self.file_path + "/" + "__init__.py"
+        builder.add_module(self.name, exists_ok=self.exists_ok)

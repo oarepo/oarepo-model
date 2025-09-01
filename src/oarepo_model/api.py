@@ -37,9 +37,104 @@ from .register import register_model, unregister_model
 from .sorter import sort_presets
 
 
+class FunctionalPreset:
+    """A functional preset that can be applied to a model."""
+
+    @staticmethod
+    def call(functional_presets: list[FunctionalPreset], method_name: str, **kwargs: Any) -> None:
+        """Call a method on a functional preset."""
+        for preset in functional_presets:
+            getattr(preset, method_name)(**kwargs)
+
+    def before_invenio_model(self, params: dict[str, Any]) -> None:
+        """Perform extra action before the Invenio model is created."""
+
+    def before_populate_type_registry(
+        self,
+        model: InvenioModel,
+        types: list[dict[str, Any] | Callable[[], dict]],
+        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
+        customizations: list[Customization],
+    ) -> None:
+        """Perform extra action before populating the type registry."""
+
+    def after_populate_type_registry(
+        self,
+        model: InvenioModel,
+        types: list[dict[str, Any] | Callable[[], dict]],
+        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
+        customizations: list[Customization],
+    ) -> None:
+        """Perform extra action after populating the type registry."""
+
+    def after_builder_created(
+        self,
+        model: InvenioModel,
+        types: list[dict[str, Any] | Callable[[], dict]],
+        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
+        builder: InvenioModelBuilder,
+        customizations: list[Customization],
+    ) -> None:
+        """Perform extra action after the model builder is created."""
+
+    def after_presets_sorted(
+        self,
+        model: InvenioModel,
+        types: list[dict[str, Any] | Callable[[], dict]],
+        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
+        builder: InvenioModelBuilder,
+        customizations: list[Customization],
+    ) -> None:
+        """Perform extra action after the presets are sorted."""
+
+    def after_user_customizations_applied(
+        self,
+        model: InvenioModel,
+        types: list[dict[str, Any] | Callable[[], dict]],
+        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
+        builder: InvenioModelBuilder,
+        customizations: list[Customization],
+    ) -> None:
+        """Perform extra action after user customizations are applied."""
+
+    def after_model_built(  # noqa PLR0913
+        self,
+        model: InvenioModel,
+        types: list[dict[str, Any] | Callable[[], dict]],
+        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
+        builder: InvenioModelBuilder,
+        customizations: list[Customization],
+        model_namespace: SimpleNamespace,
+    ) -> None:
+        """Perform extra action after the model is built."""
+
+
+type PresetList = (
+    list[
+        type[Preset | FunctionalPreset]
+        | list[type[Preset | FunctionalPreset]]
+        | list[type[Preset]]
+        | list[type[FunctionalPreset]]
+        | tuple[type[Preset | FunctionalPreset], ...]
+        | tuple[type[Preset], ...]
+        | tuple[type[FunctionalPreset], ...]
+    ]
+    | tuple[
+        type[Preset | FunctionalPreset]
+        | list[type[Preset | FunctionalPreset]]
+        | list[type[Preset]]
+        | list[type[FunctionalPreset]]
+        | tuple[type[Preset | FunctionalPreset], ...]
+        | tuple[type[Preset], ...]
+        | tuple[type[FunctionalPreset], ...],
+        ...,
+    ]
+)
+
+
 def model(  # noqa: PLR0913 too many arguments
     name: str,
-    presets: (list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]] | None) = None,
+    presets: PresetList | None = None,
     *,
     description: str = "",
     version: str = "0.1.0",
@@ -59,7 +154,14 @@ def model(  # noqa: PLR0913 too many arguments
     :param customizations: Customizations for the model.
     :return: An instance of InvenioModel.
     """
-    # TODO: preset needs a way of modifying the record_type if it is not passed.
+    presets = presets or []
+    types = types or []
+    customizations = customizations or []
+
+    flattened_presets, functional_presets = flatten_presets(presets)
+
+    FunctionalPreset.call(functional_presets, "before_invenio_model", params=locals())
+
     model = InvenioModel(
         name=name,
         version=version,
@@ -69,19 +171,54 @@ def model(  # noqa: PLR0913 too many arguments
         record_type=record_type,
     )
 
+    FunctionalPreset.call(
+        functional_presets,
+        "before_populate_type_registry",
+        model=model,
+        types=types,
+        presets=presets,
+        customizations=customizations,
+    )
+
     type_registry = populate_type_registry(types)
+
+    FunctionalPreset.call(
+        functional_presets,
+        "after_populate_type_registry",
+        model=model,
+        types=types,
+        presets=presets,
+        customizations=customizations,
+    )
 
     builder = InvenioModelBuilder(model, type_registry)
 
-    # flatten and instantiate all presets
-    sorted_presets = flatten_presets(presets)
+    FunctionalPreset.call(
+        functional_presets,
+        "after_builder_created",
+        model=model,
+        types=types,
+        presets=presets,
+        builder=builder,
+        customizations=customizations,
+    )
 
     # filter out presets that do not have only_if condition satisfied
-    sorted_presets = filter_only_if(sorted_presets)
+    sorted_presets = filter_only_if(flattened_presets)
 
     sorted_presets = sort_presets(sorted_presets)
 
-    user_customizations = [*(customizations or [])]
+    FunctionalPreset.call(
+        functional_presets,
+        "after_presets_sorted",
+        model=model,
+        types=types,
+        presets=presets,
+        builder=builder,
+        customizations=customizations,
+    )
+
+    user_customizations = [*(customizations)]
 
     preset_idx = 0
     while preset_idx < len(sorted_presets):
@@ -117,12 +254,34 @@ def model(  # noqa: PLR0913 too many arguments
         # apply user customizations that were not handled by presets
         customization.apply(builder, model)
 
+    FunctionalPreset.call(
+        functional_presets,
+        "after_user_customizations_applied",
+        model=model,
+        types=types,
+        presets=presets,
+        builder=builder,
+        customizations=customizations,
+    )
+
     # maybe replace this with a LazyNamespace if there are dependency issues
     ret = builder.build()
     run_checks(ret)
+
     ret.register = partial(register_model, model=model, namespace=ret)
     ret.unregister = partial(unregister_model, model=model)
     ret.get_resources = partial(get_model_resources, model=model, namespace=ret)
+
+    FunctionalPreset.call(
+        functional_presets,
+        "after_model_built",
+        model=model,
+        types=types,
+        presets=presets,
+        builder=builder,
+        customizations=customizations,
+        model_namespace=ret,
+    )
     return ret
 
 
@@ -157,19 +316,20 @@ def populate_type_registry(
     return type_registry
 
 
-def flatten_presets(
-    presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]] | None,
-) -> list[Preset]:
+def flatten_presets(presets: PresetList) -> tuple[list[Preset], list[FunctionalPreset]]:
     """Flatten a list of presets into a single list of Preset instances."""
+    functional_presets: list[FunctionalPreset] = []
     flattened_presets: list[Preset] = []
-    for p in presets or []:
-        preset_list_or_preset = p
-        if not isinstance(preset_list_or_preset, (list, tuple)):
-            preset_list_or_preset = [preset_list_or_preset]
+    for p in presets:
+        preset_list_or_preset = p if isinstance(p, (list, tuple)) else [p]
+
         for preset_cls in preset_list_or_preset:
+            if issubclass(preset_cls, FunctionalPreset):
+                functional_presets.append(preset_cls())
+                continue
             preset = preset_cls()
             flattened_presets.append(preset)
-    return flattened_presets
+    return flattened_presets, functional_presets
 
 
 def run_checks(model: SimpleNamespace) -> None:

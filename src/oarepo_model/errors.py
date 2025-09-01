@@ -39,3 +39,7 @@ class ApplyCustomizationError(ModelBuildError):
 
 class ClassBuildError(ApplyCustomizationError):
     """Exception raised when building a class fails."""
+
+
+class ClassListBuildError(ApplyCustomizationError):
+    """Exception raised when building a class list fails."""

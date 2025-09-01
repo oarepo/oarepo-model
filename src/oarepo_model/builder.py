@@ -25,6 +25,7 @@ from werkzeug.local import LocalProxy
 from oarepo_model.errors import (
     AlreadyRegisteredError,
     ClassBuildError,
+    ClassListBuildError,
     PartialNotFoundError,
 )
 
@@ -51,7 +52,7 @@ class Partial:
 
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
         """Build the class from the partial."""
-        raise NotImplementedError("Subclasses must implement this method.")
+        raise NotImplementedError("Subclasses must implement this method.")  # pragma: no cover
 
     @override
     def __repr__(self) -> str:
@@ -124,10 +125,12 @@ class BuilderClassList(Partial, list[type]):
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> list[type]:
         """Build a class list from the partial."""
         self.built = True
-        if not is_mro_consistent(self):
-            # If the MRO is not consistent, we need to make it consistent
+        try:
             return make_mro_consistent(self)
-        return list(self)
+        except Exception as e:
+            raise ClassListBuildError(
+                f"Error while building class list {self}: {e}",
+            ) from e
 
     @override
     def append(self, object: type) -> None:
@@ -171,6 +174,18 @@ class BuilderDict(Partial, dict[str, Any]):
         """Build a dictionary from the partial."""
         self.built = True
         return {k: v for k, v in self.items() if v is not None}
+
+    @override
+    def update(self, *args: Any, **kwargs: Any) -> None:
+        if self.built:
+            raise RuntimeError("Cannot update class list after it is built.")
+        return super().update(*args, **kwargs)
+
+    @override
+    def __setitem__(self, key: str, value: Any) -> None:
+        if self.built:
+            raise RuntimeError("Cannot set item after the dictionary is built.")
+        return super().__setitem__(key, value)
 
 
 class BuilderConstant(Partial):
