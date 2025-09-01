@@ -93,7 +93,7 @@ if TYPE_CHECKING:
     from oarepo_model.presets.base import Preset
 
 
-drafts_records_presets: list[type[Preset]] = [
+drafts_records_preset: list[type[Preset]] = [
     # records layer
     ParentRecordMetadataPreset,
     DraftMetadataPreset,
@@ -117,7 +117,7 @@ drafts_records_presets: list[type[Preset]] = [
     DraftsRecordUISchemaPreset,
 ]
 
-drafts_files_presets: list[type[Preset]] = [
+drafts_files_preset: list[type[Preset]] = [
     # records layer
     MediaFileRecordPreset,
     MediaFileDraftPreset,
@@ -163,4 +163,4 @@ drafts_files_presets: list[type[Preset]] = [
     ApiDraftMediaFilesBlueprintPreset,
 ]
 
-drafts_presets = drafts_records_presets + drafts_files_presets
+drafts_preset = drafts_records_preset + drafts_files_preset

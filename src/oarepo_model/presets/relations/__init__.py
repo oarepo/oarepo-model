@@ -12,4 +12,4 @@ from __future__ import annotations
 
 from .record_relations import RecordRelationsPreset
 
-relations_presets = [RecordRelationsPreset]
+relations_preset = [RecordRelationsPreset]

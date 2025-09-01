@@ -97,14 +97,14 @@ def model_types_in_yaml_with_origin():
 @pytest.fixture(scope="session")
 def empty_model(model_types):
     from oarepo_model.api import model
-    from oarepo_model.presets.records_resources import records_resources_presets
+    from oarepo_model.presets.records_resources import records_resources_preset
 
     t1 = time.time()
 
     empty_model = model(
         name="test",
         version="1.0.0",
-        presets=[records_resources_presets],
+        presets=[records_resources_preset],
         types=[model_types],
         metadata_type="Metadata",
         customizations=[],
@@ -123,15 +123,15 @@ def empty_model(model_types):
 @pytest.fixture(scope="session")
 def draft_model(model_types):
     from oarepo_model.api import model
-    from oarepo_model.presets.drafts import drafts_records_presets
-    from oarepo_model.presets.records_resources import records_presets
+    from oarepo_model.presets.drafts import drafts_records_preset
+    from oarepo_model.presets.records_resources import records_preset
 
     t1 = time.time()
 
     draft_model = model(
         name="draft_test",
         version="1.0.0",
-        presets=[records_presets, drafts_records_presets],
+        presets=[records_preset, drafts_records_preset],
         types=[model_types],
         metadata_type="Metadata",
         customizations=[],
@@ -150,15 +150,15 @@ def draft_model(model_types):
 @pytest.fixture(scope="session")
 def draft_model_with_files(model_types):
     from oarepo_model.api import model
-    from oarepo_model.presets.drafts import drafts_presets
-    from oarepo_model.presets.records_resources import records_resources_presets
+    from oarepo_model.presets.drafts import drafts_preset
+    from oarepo_model.presets.records_resources import records_resources_preset
 
     t1 = time.time()
 
     draft_model = model(
         name="draft_with_files",
         version="1.0.0",
-        presets=[records_resources_presets, drafts_presets],
+        presets=[records_resources_preset, drafts_preset],
         types=[model_types],
         metadata_type="Metadata",
         customizations=[],
@@ -268,15 +268,15 @@ multilingual_model_types = {
 @pytest.fixture(scope="session")
 def relation_model(empty_model):
     from oarepo_model.api import model
-    from oarepo_model.presets.records_resources import records_resources_presets
-    from oarepo_model.presets.relations import relations_presets
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
 
     t1 = time.time()
 
     relation_model = model(
         name="relation_test",
         version="1.0.0",
-        presets=[records_resources_presets, relations_presets],
+        presets=[records_resources_preset, relations_preset],
         types=[relation_model_types],
         metadata_type="Metadata",
         customizations=[],
@@ -295,13 +295,13 @@ def relation_model(empty_model):
 @pytest.fixture(scope="session")
 def records_cf_model(model_types):
     from oarepo_model.api import model
-    from oarepo_model.presets.custom_fields import custom_fields_presets
-    from oarepo_model.presets.records_resources import records_resources_presets
+    from oarepo_model.presets.custom_fields import custom_fields_preset
+    from oarepo_model.presets.records_resources import records_resources_preset
 
     m = model(
         name="records_cf",
         version="1.0.0",
-        presets=[records_resources_presets, custom_fields_presets],
+        presets=[records_resources_preset, custom_fields_preset],
         types=[model_types],
         metadata_type="Metadata",
         customizations=[],
@@ -317,14 +317,14 @@ def records_cf_model(model_types):
 @pytest.fixture(scope="session")
 def drafts_cf_model(model_types):
     from oarepo_model.api import model
-    from oarepo_model.presets.custom_fields import custom_fields_presets
-    from oarepo_model.presets.drafts import drafts_presets
-    from oarepo_model.presets.records_resources import records_resources_presets
+    from oarepo_model.presets.custom_fields import custom_fields_preset
+    from oarepo_model.presets.drafts import drafts_preset
+    from oarepo_model.presets.records_resources import records_resources_preset
 
     m = model(
         name="drafts_cf",
         version="1.0.0",
-        presets=[records_resources_presets, drafts_presets, custom_fields_presets],
+        presets=[records_resources_preset, drafts_preset, custom_fields_preset],
         types=[model_types],
         metadata_type="Metadata",
         customizations=[],
@@ -340,15 +340,15 @@ def drafts_cf_model(model_types):
 @pytest.fixture(scope="session")
 def vocabulary_model(empty_model):
     from oarepo_model.api import model
-    from oarepo_model.presets.records_resources import records_resources_presets
-    from oarepo_model.presets.relations import relations_presets
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
 
     t1 = time.time()
 
     vocabulary_model = model(
         name="vocabulary_test",
         version="1.0.0",
-        presets=[records_resources_presets, relations_presets],
+        presets=[records_resources_preset, relations_preset],
         types=[vocabulary_model_types],
         metadata_type="Metadata",
         customizations=[],
@@ -367,14 +367,14 @@ def vocabulary_model(empty_model):
 @pytest.fixture(scope="session")
 def multilingual_model(empty_model):
     from oarepo_model.api import model
-    from oarepo_model.presets.records_resources import records_resources_presets
+    from oarepo_model.presets.records_resources import records_resources_preset
 
     t1 = time.time()
 
     multilingual_model = model(
         name="multilingual_test",
         version="1.0.0",
-        presets=[records_resources_presets],
+        presets=[records_resources_preset],
         types=[multilingual_model_types],
         metadata_type="Metadata",
         customizations=[],

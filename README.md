@@ -13,16 +13,16 @@ include the necessary presets.
 # mymodel.py
 
 from oarepo_model.api import model
-from oarepo_model.presets.records_resources import records_resources_presets
-from oarepo_model.presets.drafts import drafts_presets
+from oarepo_model.presets.records_resources import records_resources_preset
+from oarepo_model.presets.drafts import drafts_preset
 
 
 my_model = model(
     "my_model",
     version="1.0.0",
     presets=[
-    records_resources_presets,
-    drafts_presets,
+    records_resources_preset,
+    drafts_preset,
     ],
     customizations=[
     ],
@@ -85,8 +85,8 @@ my_model = model(
     "my_model",
     version="1.0.0",
     presets=[
-    records_resources_presets,
-    drafts_presets,
+    records_resources_preset,
+    drafts_preset,
     ],
     customizations=[
     AddMixins("Record", BaseMixin),
@@ -106,8 +106,8 @@ my_model = model(
     "my_model",
     version="1.0.0",
     presets=[
-        records_resources_presets,
-        drafts_presets,
+        records_resources_preset,
+        drafts_preset,
     ],
     customizations=[
         AddToList("record_service_components", MyComponent),
@@ -121,12 +121,12 @@ To generate `RecordSchema`/`MetadataSchema` from a type definition, pass `types`
 
 ```python
 from oarepo_model.api import model
-from oarepo_model.presets.records_resources import records_resources_presets
+from oarepo_model.presets.records_resources import records_resources_preset
 
 my_model = model(
     "my_model",
     version="1.0.0",
-    presets=[records_resources_presets],
+    presets=[records_resources_preset],
     types=[
         {
             "RecordMetadata": {
