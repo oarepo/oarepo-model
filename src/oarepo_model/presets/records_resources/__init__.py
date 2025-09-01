@@ -81,7 +81,7 @@ from .services.records.ui_record_schema import RecordUISchemaPreset
 if TYPE_CHECKING:
     from ..base import Preset
 
-records_presets: list[type[Preset]] = [
+records_preset: list[type[Preset]] = [
     # record layer
     PIDProviderPreset,
     RecordPreset,
@@ -124,7 +124,7 @@ records_presets: list[type[Preset]] = [
     FinalizationPreset,
 ]
 
-files_presets: list[type[Preset]] = [
+files_preset: list[type[Preset]] = [
     # file layer
     FileRecordPreset,
     RecordWithFilesPreset,
@@ -145,4 +145,4 @@ files_presets: list[type[Preset]] = [
     ApiFilesBlueprintPreset,
 ]
 
-records_resources_presets: list[type[Preset]] = records_presets + files_presets
+records_resources_preset: list[type[Preset]] = records_preset + files_preset

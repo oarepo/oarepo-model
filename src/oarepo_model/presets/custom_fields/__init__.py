@@ -24,7 +24,7 @@ from .records.mapping import CustomFieldsMappingPreset
 from .services.component import CustomFieldsComponentPreset
 from .services.schema import RecordCustomFieldsSchemaPreset
 
-custom_fields_presets = [
+custom_fields_preset = [
     # records layer
     RecordWithCustomFieldsPreset,
     CustomFieldsRelationsPreset,
