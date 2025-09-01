@@ -94,39 +94,11 @@ def make_mro_consistent(class_list: list[type]) -> list[type]:
     """
     if not class_list:
         return []
-
-    # Start with the first class
-    result = []
-    result.append(class_list[0])
-
-    try:
-        for cls in class_list[1:]:
-            # Find the best position to insert the current class
-            insert_pos = len(result)
-
-            # Check all possible positions from right to left
-            for i in range(len(result), -1, -1):
-                try:
-                    # Test if inserting at position i would be valid
-                    temp_order = [*result[:i], cls, *result[i:]]
-                    mro_without_class_construction(temp_order)
-                    insert_pos = i
-                    break
-                except LinearizationError:
-                    continue
-            else:
-                raise TypeError(
-                    f"Cannot insert {cls} into MRO of {result}. It would break the method resolution order.",
-                )
-            # Insert at the found position
-            result.insert(insert_pos, cls)
-    except TypeError:
-        raise
-    except Exception as e:
-        raise TypeError(
-            f"Failed to make MRO consistent for {class_list}. Ensure that the classes are compatible.",
-        ) from e
-    return result
+    ret = mro_without_class_construction(class_list)
+    ret = [x for x in ret if x in class_list]
+    return [
+        x for x in ret if not any(issubclass(y, x) for y in ret if y != x)
+    ]  # keep most specific classes, discard base classes
 
 
 def camel_case_split(s: str) -> list[str]:
