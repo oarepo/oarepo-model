@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_records_resources.services import (
     Link,
     LinksTemplate,
-    RecordLink,
-    pagination_links,
+    RecordEndpointLink,
+    pagination_endpoint_links,
 )
 from invenio_records_resources.services.records.config import (
     RecordServiceConfig,
@@ -24,7 +24,6 @@ from invenio_records_resources.services.records.config import (
 from oarepo_runtime.services.config import (
     has_permission,
 )
-from oarepo_runtime.services.records import pagination_links_html
 
 from oarepo_model.customizations import (
     AddClass,
@@ -52,7 +51,8 @@ class RecordServiceConfigPreset(Preset):
         "RecordServiceConfig",
         "record_service_components",
         "record_links_item",
-        "record_search_item",
+        "record_search_item_links",
+        "record_search_links",
     )
 
     @override
@@ -62,12 +62,6 @@ class RecordServiceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        api_base = "{+api}/" + builder.model.slug + "/"
-        ui_base = "{+ui}/" + builder.model.slug + "/"
-
-        api_url = api_base + "{id}"
-        ui_url = ui_base + "{id}"
-
         class ServiceConfigMixin(ModelMixin):
             result_item_cls = Dependency("RecordItem")
             result_list_cls = Dependency("RecordList")
@@ -122,7 +116,7 @@ class RecordServiceConfigPreset(Preset):
                     supercls_links = {}
                 links = {
                     **supercls_links,
-                    **self.get_model_dependency("record_search_item"),
+                    **self.get_model_dependency("record_search_item_links"),
                 }
                 return {k: v for k, v in links.items() if v is not None}
 
@@ -134,8 +128,7 @@ class RecordServiceConfigPreset(Preset):
                     supercls_links = {}
                 links = {
                     **supercls_links,
-                    **pagination_links(api_base + "{?args*}"),
-                    **pagination_links_html(ui_base + "{?args*}"),
+                    **self.get_model_dependency("record_search_links"),
                 }
                 return {k: v for k, v in links.items() if v is not None}
 
@@ -145,19 +138,28 @@ class RecordServiceConfigPreset(Preset):
         yield AddMixins("RecordServiceConfig", ServiceConfigMixin)
 
         yield AddDictionary(
-            "record_search_item",
+            "record_search_item_links",
             {
-                "self": RecordLink(api_url, when=has_permission("read")),
-                "self_html": RecordLink(ui_url, when=has_permission("read")),
+                "self": RecordEndpointLink(
+                    f"{model.blueprint_base}.read",
+                    when=has_permission("read"),
+                ),
             },
         )
 
         yield AddDictionary(
             "record_links_item",
             {
-                "self": RecordLink(api_url, when=has_permission("read")),
-                "self_html": RecordLink(ui_url, when=has_permission("read")),
+                "self": RecordEndpointLink(
+                    f"{model.blueprint_base}.read",
+                    when=has_permission("read"),
+                ),
             },
+        )
+
+        yield AddDictionary(
+            "record_search_links",
+            pagination_endpoint_links(f"{model.blueprint_base}.search"),
         )
 
         yield AddToList(

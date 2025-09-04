@@ -70,6 +70,11 @@ class InvenioModel:
         """Return the in-memory package name for the model."""
         return f"runtime_models_{self.base_name}"
 
+    @property
+    def blueprint_base(self) -> str:
+        """Return the blueprint base name for the model."""
+        return self.base_name
+
 
 class CachedDescriptor:
     """A descriptor that caches the value in the instance or class."""
