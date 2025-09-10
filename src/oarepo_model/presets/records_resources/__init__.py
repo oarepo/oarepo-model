@@ -32,7 +32,7 @@ from .files.record_file_mapping import (
 )
 from .files.record_metadata import RecordMetadataWithFilesPreset
 from .finalizers import FinalizationPreset
-from .model_registration import ModelRegistrationPreset
+from .model_registration import ModelMetadataRegistrationPreset, ModelRegistrationPreset
 from .proxy import ProxyPreset
 from .records.dumper import RecordDumperPreset
 from .records.jsonschema import JSONSchemaPreset
@@ -121,6 +121,7 @@ records_preset: list[type[Preset]] = [
     ApiBlueprintPreset,
     AppBlueprintPreset,
     ModelRegistrationPreset,
+    ModelMetadataRegistrationPreset,
     FinalizationPreset,
 ]
 
