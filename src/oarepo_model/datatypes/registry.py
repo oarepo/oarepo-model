@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterable
 
 from .base import DataType
 from .wrapped import WrappedDataType
@@ -93,6 +93,13 @@ class DataTypeRegistry:
         if type_name not in self.types:
             raise KeyError(f"Data type '{type_name}' is not registered.")
         return self.types[type_name]
+
+    def items(self) -> Iterable[tuple[str, DataType]]:
+        """Return the items of the 'types' dictionary.
+
+        :return: key-value tuple pairs of the 'types' dictionary.
+        """
+        return self.types.items()
 
     def _unwind_shortcuts_in_properties(
         self,

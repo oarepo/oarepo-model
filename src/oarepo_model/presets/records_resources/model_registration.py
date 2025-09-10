@@ -12,7 +12,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from oarepo_model.customizations import AddDictionary, Customization
+from oarepo_runtime.api import ModelMetadata
+
+from oarepo_model.customizations import AddDictionary, AddToDictionary, Customization
+from oarepo_model.datatypes.wrapped import WrappedDataType
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -27,7 +30,7 @@ class ModelRegistrationPreset(Preset):
 
     This preset provides a dictionary of arguments to pass to the constructor
     of `oarepo_runtime.api.Model`. An instance of the model will then be registered
-    via `OAREPO_MODELS` configuation. This is done during init_config inside the ext.py
+    via `OAREPO_MODELS` configuration. This is done during init_config inside the ext.py
     """
 
     provides = ("oarepo_model_arguments",)
@@ -46,5 +49,37 @@ class ModelRegistrationPreset(Preset):
                 "name": model.name,
                 "description": model.description,
                 "version": model.version,
+            },
+        )
+
+
+class ModelMetadataRegistrationPreset(Preset):
+    """Preset for model metadata registration."""
+
+    modifies = ("oarepo_model_arguments",)
+
+    @override
+    def apply(
+        self,
+        builder: InvenioModelBuilder,
+        model: InvenioModel,
+        dependencies: dict[str, Any],
+    ) -> Generator[Customization]:
+        # use ModelMetadata from oarepo_runtime
+
+        wrapped_data_types = {
+            type_key: wrapped_type.type_dict
+            for type_key, wrapped_type in builder.type_registry.items()
+            if isinstance(wrapped_type, WrappedDataType)
+        }
+
+        yield AddToDictionary(
+            "oarepo_model_arguments",
+            {
+                "model_metadata": ModelMetadata(
+                    record_type=model.record_type,
+                    metadata_type=model.metadata_type,
+                    types=wrapped_data_types,
+                )
             },
         )
