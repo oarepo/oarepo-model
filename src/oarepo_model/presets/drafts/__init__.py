@@ -88,7 +88,7 @@ from .services.records.record_schema import DraftRecordSchemaPreset
 from .services.records.relations import RelationsServiceComponentPreset
 from .services.records.service import DraftServicePreset
 from .services.records.service_config import DraftServiceConfigPreset
-
+from .services.records.search_options import DraftSearchOptionsPreset
 if TYPE_CHECKING:
     from oarepo_model.presets.base import Preset
 
@@ -111,6 +111,7 @@ drafts_records_presets: list[type[Preset]] = [
     DraftRecordSchemaPreset,
     RelationsServiceComponentPreset,
     ParentRecordSchemaPreset,
+    DraftSearchOptionsPreset,
     # resource layer
     DraftResourcePreset,
     DraftResourceConfigPreset,

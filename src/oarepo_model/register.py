@@ -103,7 +103,7 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
     @override
     def name(self) -> str:
         """Return the name of this traversable."""
-        return self._name
+        return self._name.split("/")[-1] if self._name else ""
 
     @override
     def __str__(self) -> str:

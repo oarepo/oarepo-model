@@ -133,6 +133,9 @@ class DataType:
             "data_key": field_name,
         }
 
+    def get_facet(self, path, element, content=[], facets={}):
+        return facets
+
     def create_json_schema(
         self,
         element: dict[str, Any],  # noqa: ARG002 for override

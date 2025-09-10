@@ -75,7 +75,8 @@ from .services.records.service import RecordServicePreset
 from .services.records.service_config import RecordServiceConfigPreset
 from .services.records.ui_metadata_schema import MetadataUISchemaPreset
 from .services.records.ui_record_schema import RecordUISchemaPreset
-
+from .services.records.record_facets import RecordFacetsPreset
+from .services.records.metadata_facets import MetadataFacetsPreset
 if TYPE_CHECKING:
     from ..base import Preset
 
@@ -106,6 +107,8 @@ records_presets: list[type[Preset]] = [
     MetadataSchemaPreset,
     RecordUISchemaPreset,
     MetadataUISchemaPreset,
+    RecordFacetsPreset,
+    MetadataFacetsPreset,
     # resource layer
     RecordResourcePreset,
     RecordResourceConfigPreset,

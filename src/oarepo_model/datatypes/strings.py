@@ -22,7 +22,7 @@ import marshmallow.fields
 import marshmallow.validate
 
 from .base import DataType
-
+from oarepo_runtime.services.facets.utils import _label_for_field
 
 class KeywordDataType(DataType):
     """A data type representing a keyword field in the Oarepo model."""
@@ -37,6 +37,7 @@ class KeywordDataType(DataType):
             "ignore_above": 256,
         },
     )
+
 
     def _get_marshmallow_field_args(
         self,
@@ -81,6 +82,18 @@ class KeywordDataType(DataType):
             ret["pattern"] = element["pattern"]
         return ret
 
+    def get_facet(self, path, element, content=[], facets={}):
+        if element.get("searchable", True):
+            facet_def = element.get("facet-def")
+            if facet_def:
+                facets[path] = content + [facet_def]
+            else:
+                facets[path] = content + [{
+                    "facet": "invenio_records_resources.services.records.facets.TermsFacet",
+                    "field": path,
+                    "label": _label_for_field(path),
+                }]
+        return facets
 
 class FullTextDataType(KeywordDataType):
     """A data type representing a full-text field in the Oarepo model.
@@ -94,6 +107,8 @@ class FullTextDataType(KeywordDataType):
             "type": "text",
         },
     )
+    def get_facet(self, path,element, content =[], facets = {}):
+        return facets
 
 
 class FulltextWithKeywordDataType(KeywordDataType):
@@ -114,3 +129,16 @@ class FulltextWithKeywordDataType(KeywordDataType):
             },
         }
     )
+    def get_facet(self, path, element, content=[], facets={}):
+        if element.get("searchable", True):
+            facet_def = element.get("facet-def")
+            if facet_def:
+                facets[path] = content + [facet_def]
+            else:
+                facets[path] = content + [{
+                    "facet": "invenio_records_resources.services.records.facets.TermsFacet",
+                    "field": path +".keyword",
+                    "label": _label_for_field(path),
+                }]
+        return facets
+

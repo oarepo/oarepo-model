@@ -28,6 +28,7 @@ import marshmallow_utils.fields
 from marshmallow_utils.fields.edtfdatestring import EDTFValidator
 
 from .base import DataType
+from oarepo_runtime.services.facets.utils import _label_for_field
 
 
 class DateDataType(DataType):
@@ -67,6 +68,21 @@ class DateDataType(DataType):
             ),
         }
 
+    def get_facet(self, path, element, content=[], facets={}):
+        if element.get("searchable", True):
+            facet_def = element.get("facet-def")
+            if facet_def:
+                facets[path] = content + [facet_def]
+            else:
+                facets[path] = content + [{
+                    "facet": "oarepo_runtime.services.facets.date.DateFacet",
+                    "field": path + ".keyword",
+                    "label": _label_for_field(path),
+                }]
+        return facets
+
+
+
     @override
     def _get_marshmallow_field_args(
         self,
@@ -100,6 +116,20 @@ class DateTimeDataType(DataType):
             "strict_date_hour_minute_second_fraction",
         },
     )
+
+    def get_facet(self, path, element, content=[], facets={}):
+        if element.get("searchable", True):
+            facet_def = element.get("facet-def")
+            if facet_def:
+                facets[path] = content + [facet_def]
+            else:
+                facets[path] = content + [{
+                    "facet": "oarepo_runtime.services.facets.date.DateTimeFacet",
+                    "field": path + ".keyword",
+                    "label": _label_for_field(path),
+                }]
+        return facets
+
 
     @override
     def create_ui_marshmallow_fields(
@@ -159,6 +189,22 @@ class TimeDataType(DataType):
             "basic_time_no_millis||hour_minute_second||hour||hour_minute",
         },
     )
+
+    def get_facet(self, path, element, content=[], facets={}):
+        if element.get("searchable", True):
+            facet_def = element.get("facet-def")
+            if facet_def:
+                facets[path] = content + [facet_def]
+            else:
+                facets[path] = content + [{
+                    "facet": "oarepo_runtime.services.facets.date.TimeFacet",
+                    "field": path + ".keyword",
+                    "label": _label_for_field(path),
+                }]
+        return facets
+
+
+
 
     @override
     def create_ui_marshmallow_fields(
@@ -273,6 +319,19 @@ class EDTFTimeDataType(DataType):
 
         return ret
 
+    def get_facet(self, path, element, content=[], facets={}):
+        if element.get("searchable", True):
+            facet_def = element.get("facet-def")
+            if facet_def:
+                facets[path] = content + [facet_def]
+            else:
+                facets[path] = content + [{
+                    "facet": "oarepo_runtime.services.facets.date.EDTFFacet",
+                    "field": path + ".keyword",
+                    "label": _label_for_field(path),
+                }]
+        return facets
+
 
 class EDTFDataType(DataType):
     """Data type for EDTF (Extended Date/Time Format) values."""
@@ -327,6 +386,18 @@ class EDTFDataType(DataType):
         )
 
         return ret
+    def get_facet(self, path, element, content=[], facets={}):
+        if element.get("searchable", True):
+            facet_def = element.get("facet-def")
+            if facet_def:
+                facets[path] = content + [facet_def]
+            else:
+                facets[path] = content + [{
+                    "facet": "oarepo_runtime.services.facets.date.EDTFFacet",
+                    "field": path +".keyword",
+                    "label": _label_for_field(path),
+                }]
+        return facets
 
 
 class EDTFIntervalType(DataType):
@@ -382,3 +453,16 @@ class EDTFIntervalType(DataType):
         )
 
         return ret
+
+    def get_facet(self, path, element, content=[], facets={}):
+        if element.get("searchable", True):
+            facet_def = element.get("facet-def")
+            if facet_def:
+                facets[path] = content + [facet_def]
+            else:
+                facets[path] = content + [{
+                    "facet": "oarepo_runtime.services.facets.date.EDTFIntervalFacet",
+                    "field": path +".keyword",
+                    "label": _label_for_field(path),
+                }]
+        return facets

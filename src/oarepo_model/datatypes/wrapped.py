@@ -16,6 +16,7 @@ data type registry.
 from __future__ import annotations
 
 from functools import cached_property
+from importlib.metadata import metadata
 from typing import TYPE_CHECKING, Any, cast, override
 
 from .base import DataType
@@ -104,6 +105,16 @@ class WrappedDataType(DataType):
         """
         return cast("ObjectDataType", self.impl).create_marshmallow_schema(
             self._merge_type_dict(element),
+        )
+    def get_facet(
+        self,
+        element: dict[str, Any], content = []
+    ) -> Any:
+        field_name = ""
+        if self.name == "Metadata":
+            field_name = "metadata"
+        return cast("ObjectDataType", self.impl).get_facet(
+            field_name,self._merge_type_dict(element), [], facets = {}
         )
 
     def create_ui_marshmallow_schema(

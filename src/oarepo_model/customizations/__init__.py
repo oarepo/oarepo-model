@@ -25,6 +25,7 @@ from .add_entry_point import AddEntryPoint
 from .add_file_to_module import AddFileToModule
 from .add_json_file import AddJSONFile
 from .add_list import AddList
+from .add_facet_group import AddFacetGroup
 from .add_mixin import AddMixins
 from .add_module import AddModule
 from .add_to_dictionary import AddToDictionary
@@ -56,4 +57,5 @@ __all__ = [
     "CopyFile",
     "Customization",
     "PatchJSONFile",
+    "AddFacetGroup"
 ]

@@ -28,6 +28,11 @@ def test_service(app):
 
 
 @pytest.fixture(scope="module")
+def facet_service(app):
+    """Service instance."""
+    return app.extensions["facet_test"].records_service
+
+@pytest.fixture(scope="module")
 def test_draft_service(app):
     """Service instance."""
     return app.extensions["draft_test"].records_service
@@ -92,6 +97,11 @@ def input_data_with_files_disabled(input_data):
     data["files"]["enabled"] = False
     return data
 
+@pytest.fixture
+def input_facets_data():
+    """Input data with files disabled."""
+    data = {'files': {'enabled': False}, 'metadata': {'b': 'jej'}}
+    return data
 
 class DefaultHeaders:
     """Default headers for requests."""

@@ -23,6 +23,7 @@ from babel.numbers import format_decimal
 from flask_babel import get_locale
 
 from .base import DataType
+from oarepo_runtime.services.facets.utils import _label_for_field
 
 
 class FormatNumber(marshmallow.fields.Field):
@@ -106,6 +107,18 @@ class NumberDataType(DataType):
             ret["max_exclusive"] = element["max_exclusive"]
         return ret
 
+    def get_facet(self, path, element, content=[], facets={}):
+        if element.get("searchable", True):
+            facet_def = element.get("facet-def")
+            if facet_def:
+                facets[path] = content + [facet_def]
+            else:
+                facets[path] = content + [{
+                    "facet": "invenio_records_resources.services.records.facets.TermsFacet",
+                    "field": path + ".keyword",
+                    "label": _label_for_field(path),
+                }]
+        return facets
 
 class IntegerDataType(NumberDataType):
     """Data type for 32-bit integers."""

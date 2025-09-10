@@ -15,7 +15,9 @@ by other customizations or used to collect related items during model building.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, override
+# from .add_to_dictionary import AddToDictionary
+from typing import TYPE_CHECKING, Any, override
+from deepmerge import always_merger
 
 from .base import Customization
 
@@ -24,12 +26,13 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
-class AddList(Customization):
+class AddFacetGroup(Customization):
     """Customization to add a list to the model."""
 
     def __init__(
         self,
         name: str,
+        facets,
         exists_ok: bool = False,
     ) -> None:
         """Initialize the AddList customization.
@@ -38,9 +41,9 @@ class AddList(Customization):
         :param exists_ok: Whether to ignore if the list already exists.
         """
         super().__init__(name)
+        self.facets = facets
         self.exists_ok = exists_ok
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-        builder.add_list(self.name, exists_ok=self.exists_ok)
-
+        builder.partials["FacetGroups"][self.name] = self.facets

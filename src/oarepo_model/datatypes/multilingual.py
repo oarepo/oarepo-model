@@ -24,6 +24,7 @@ from oarepo_runtime.services.schema.i18n_ui import I18nStrUIField, MultilingualU
 
 from .base import ARRAY_ITEM_PATH
 from .collections import ArrayDataType, ObjectDataType
+from oarepo_runtime.services.facets.utils import _label_for_field
 
 if TYPE_CHECKING:
     import marshmallow
@@ -74,6 +75,7 @@ class I18nDataType(ObjectDataType, MultilingualMixin):
             },
         }
 
+
     @override
     def create_ui_marshmallow_fields(
         self,
@@ -115,6 +117,20 @@ class I18nDataType(ObjectDataType, MultilingualMixin):
         }
         return ret
 
+    def get_facet(self, path, element, content=[], facets={}):
+        searchable = element.get("searchable", True)
+
+        if searchable:
+            lang, value = self.get_multilingual_field(element)
+
+            facet = content + [
+                {"facet": "oarepo_runtime.services.facets.nested_facet.NestedLabeledFacet", "path": path},
+                {"facet": "invenio_records_resources.services.records.facets.TermsFacet", "field": path + "." + lang,
+                 "label": _label_for_field(path)}]
+
+            facets[path] = facet
+        return facets
+
 
 class MultilingualDataType(ArrayDataType, MultilingualMixin):
     """A data type for multilingual dictionaries."""
@@ -143,6 +159,18 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
             field_name: MultilingualUIField(lang_name=lang, value_name=value),
         }
 
+
+    def get_facet(self, path, element, content=[], facets={}):
+        searchable = element.get("searchable", True)
+
+        if searchable:
+            lang, value = self.get_multilingual_field(element)
+
+            facet= content + [{"facet": "oarepo_runtime.services.facets.nested_facet.NestedLabeledFacet", "path": path},
+                {"facet": "invenio_records_resources.services.records.facets.TermsFacet", "field": path + "."+ lang, "label": _label_for_field(path) }]
+
+            facets[path] = facet
+        return facets
     @override
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
         """Create a mapping for the data type.
@@ -167,10 +195,12 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
 
         This method should be overridden by subclasses to provide specific UI model creation logic.
         """
+        lang, value = self.get_multilingual_field(element)
+
         element["items"] = {
             "properties": {
-                "lang": {"required": True, "type": "keyword"},
-                "value": {"required": True, "type": "fulltext+keyword"},
+                lang: {"required": True, "type": "keyword"},
+                value: {"required": True, "type": "fulltext+keyword"},
             },
             "type": "object",
         }

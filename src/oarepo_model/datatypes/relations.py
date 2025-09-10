@@ -166,6 +166,9 @@ class PIDRelation(ObjectDataType):
     ) -> str | None:
         return element.get("cache_key")
 
+    def get_facet(self, path,element, content =[], facets = {}):
+        return facets
+
     def _key_names(
         self,
         element: dict[str, Any],

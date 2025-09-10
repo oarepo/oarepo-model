@@ -57,6 +57,23 @@ class ObjectDataType(DataType):
             )
         return element["properties"]
 
+    def get_facet(self, field_name: str, element: dict[str, Any], content =[], facets = {}):
+        if "properties" in element:
+            properties = self._get_properties(element)
+
+            facets: dict[str, Any] = {}
+            for key, value in properties.items():
+                # py_key = convert_to_python_identifier(field_name +"." +key)
+                if field_name =="":
+                    path = key
+                elif field_name.endswith(key):
+                    path = field_name
+                else:
+                    path = field_name +"." +key
+                facets.update(self._registry.get_type(value).get_facet(path, value, content, facets))
+
+            return facets
+
     def create_marshmallow_schema(
         self,
         element: dict[str, Any],
@@ -225,6 +242,16 @@ class NestedDataType(ObjectDataType):
     TYPE = "nested"
     mapping_type = "nested"
 
+    def get_facet(self, field_name: str, element: dict[str, Any], content = [], facets = {}):
+        if "properties" in element:
+            properties = self._get_properties(element)
+            for key, value in properties.items():
+                if field_name.endswith(key):
+                    path = field_name
+                else:
+                    path = field_name + "." + key
+                facets.update(self._registry.get_type(value).get_facet(path, value, content=[{"facet": "oarepo_runtime.services.facets.nested_facet.NestedLabeledFacet", "path": field_name}], facets= facets))
+        return facets
 
 def unique_validator(value: list[Any]) -> None:
     """Validate that the array does not contain duplicates."""
@@ -354,6 +381,11 @@ class ArrayDataType(DataType):
             element["items"],
             [*path, ("", element)],
         )
+
+    def get_facet(self, field_name: str, element: dict[str, Any], content =[], facets = {}):
+        value = element.get("items", element)
+        facets.update(self._registry.get_type(value).get_facet(field_name, value, content, facets))
+        return facets
 
 
 class PermissiveSchema(marshmallow.Schema):

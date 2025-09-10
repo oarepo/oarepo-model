@@ -324,6 +324,7 @@ class InvenioModelBuilder:
         """Get a list by name."""
         return self._get(name, BuilderList)
 
+
     def add_dictionary(
         self,
         name: str,
