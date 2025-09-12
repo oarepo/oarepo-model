@@ -22,7 +22,7 @@ from .blueprints.blueprint_module import BlueprintModulePreset
 from .blueprints.files.api_blueprint import ApiFilesBlueprintPreset
 from .blueprints.records.api_blueprint import ApiBlueprintPreset
 from .blueprints.records.app_blueprint import AppBlueprintPreset
-from .ext import ExtPreset
+from .ext import ExtPreset, FilesFeaturePreset, RecordsFeaturePreset
 from .ext_files import ExtFilesPreset
 from .files.file_metadata import FileMetadataPreset
 from .files.file_record import FileRecordPreset
@@ -79,7 +79,7 @@ from .services.records.ui_metadata_schema import MetadataUISchemaPreset
 from .services.records.ui_record_schema import RecordUISchemaPreset
 
 if TYPE_CHECKING:
-    from ..base import Preset
+    from oarepo_model.presets import Preset
 
 records_preset: list[type[Preset]] = [
     # record layer
@@ -123,6 +123,8 @@ records_preset: list[type[Preset]] = [
     ModelRegistrationPreset,
     ModelMetadataRegistrationPreset,
     FinalizationPreset,
+    # feature
+    RecordsFeaturePreset,
 ]
 
 files_preset: list[type[Preset]] = [
@@ -144,6 +146,8 @@ files_preset: list[type[Preset]] = [
     # extension
     ExtFilesPreset,
     ApiFilesBlueprintPreset,
+    # feature
+    FilesFeaturePreset,
 ]
 
 records_resources_preset: list[type[Preset]] = records_preset + files_preset

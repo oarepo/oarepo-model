@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, override
 from oarepo_runtime.api import Export, Model
 from oarepo_runtime.config import build_config
 
+import oarepo_model
 from oarepo_model.customizations import (
     AddClass,
     AddEntryPoint,
@@ -92,6 +93,7 @@ class ExtPreset(Preset):
                 """Model arguments for the extension."""
                 return {
                     "records_alias_enabled": model.configuration.get("records_alias_enabled", True),
+                    "features": {"records": {"version": oarepo_model.__version__}},
                     **runtime_dependencies.get("oarepo_model_arguments"),
                 }
 
@@ -219,3 +221,49 @@ class ExtPreset(Preset):
             key="records_service",
             value=add_to_service_and_indexer_registry,
         )
+
+
+class FilesFeaturePreset(Preset):
+    """Preset for enabling files feature."""
+
+    @override
+    def apply(
+        self,
+        builder: InvenioModelBuilder,
+        model: InvenioModel,
+        dependencies: dict[str, Any],
+    ) -> Generator[Customization]:
+        class FilesFeatureMixin:
+            @property
+            def model_arguments(self) -> dict[str, Any]:
+                """Model arguments for the extension."""
+                parent_model_args = super().model_arguments  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                return {
+                    **parent_model_args,
+                    "features": {**parent_model_args["features"], "files": {"version": oarepo_model.__version__}},
+                }
+
+        yield AddMixins("Ext", FilesFeatureMixin)
+
+
+class RecordsFeaturePreset(Preset):
+    """Preset for enabling records feature."""
+
+    @override
+    def apply(
+        self,
+        builder: InvenioModelBuilder,
+        model: InvenioModel,
+        dependencies: dict[str, Any],
+    ) -> Generator[Customization]:
+        class RecordsFeatureMixin:
+            @property
+            def model_arguments(self) -> dict[str, Any]:
+                """Model arguments for the extension."""
+                parent_model_args = super().model_arguments  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                return {
+                    **parent_model_args,
+                    "features": {**parent_model_args["features"], "records": {"version": oarepo_model.__version__}},
+                }
+
+        yield AddMixins("Ext", RecordsFeatureMixin)
