@@ -15,6 +15,7 @@ including support for extensible record schemas and dynamic field configurations
 
 from __future__ import annotations
 
+from .ext import CustomFieldsFeaturePreset
 from .records.api import RecordWithCustomFieldsPreset
 from .records.custom_fields_relation import CustomFieldsRelationsPreset
 from .records.draft import DraftWithCustomFieldsPreset
@@ -35,4 +36,6 @@ custom_fields_preset = [
     # services layer
     RecordCustomFieldsSchemaPreset,
     CustomFieldsComponentPreset,
+    # feature
+    CustomFieldsFeaturePreset,
 ]

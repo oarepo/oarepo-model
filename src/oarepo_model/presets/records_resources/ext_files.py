@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from oarepo_runtime.config import build_config
 
+import oarepo_model
 from oarepo_model.customizations import (
     AddMixins,
     AddToList,
@@ -90,8 +91,10 @@ class ExtFilesPreset(Preset):
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
+                parent_model_args = super().model_arguments  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
                 return {
-                    **super().model_arguments,  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                    **parent_model_args,
+                    "features": {**parent_model_args["features"], "files": {"version": oarepo_model.__version__}},
                     "file_service": self.files_service,
                 }
 
