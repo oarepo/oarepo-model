@@ -125,6 +125,31 @@ class ObjectDataType(DataType):
         properties_fields["Meta"] = Meta
         return type(self.name, (marshmallow.Schema,), properties_fields)
 
+    def get_facet(
+        self,
+        field_name: str,
+        element: dict[str, Any],
+        nested_facets: list[Any] | None = None,
+        facets: dict[str, list] | None = None,
+    ) -> dict[str, list]:
+        """Create facets for the data type."""
+        if facets is None:
+            facets = {}
+        if nested_facets is None:
+            nested_facets = []
+        if "properties" in element:
+            properties = self._get_properties(element)
+            for key, value in properties.items():
+                if field_name == "":
+                    path = key
+                elif field_name.endswith(key):
+                    path = field_name
+                else:
+                    path = field_name + "." + key
+                facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
+
+        return facets
+
     def create_ui_marshmallow_fields(
         self,
         field_name: str,
@@ -224,6 +249,39 @@ class NestedDataType(ObjectDataType):
 
     TYPE = "nested"
     mapping_type = "nested"
+
+    def get_facet(
+        self,
+        field_name: str,
+        element: dict[str, Any],
+        nested_facets: list[Any] | None = None,
+        facets: dict[str, list] | None = None,
+    ) -> dict[str, list]:
+        """Create facets for the data type."""
+        if facets is None:
+            facets = {}
+        if nested_facets is None:
+            nested_facets = []
+        if "properties" in element:
+            properties = self._get_properties(element)
+            for key, value in properties.items():
+                path = field_name if field_name.endswith(key) else f"{field_name}.{key}"
+
+                facets.update(
+                    self._registry.get_type(value).get_facet(
+                        path,
+                        value,
+                        nested_facets=[
+                            *nested_facets,
+                            {
+                                "facet": "oarepo_runtime.services.facets.nested_facet.NestedLabeledFacet",
+                                "path": field_name,
+                            },
+                        ],
+                        facets=facets,
+                    )
+                )
+        return facets
 
 
 def unique_validator(value: list[Any]) -> None:
@@ -354,6 +412,22 @@ class ArrayDataType(DataType):
             element["items"],
             [*path, ("", element)],
         )
+
+    def get_facet(
+        self,
+        field_name: str,
+        element: dict[str, Any],
+        nested_facets: list[Any] | None = None,
+        facets: dict[str, list] | None = None,
+    ) -> dict[str, list]:
+        """Create facets for the data type."""
+        if facets is None:
+            facets = {}
+        if nested_facets is None:
+            nested_facets = []
+        value = element.get("items", element)
+        facets.update(self._registry.get_type(value).get_facet(field_name, value, nested_facets, facets))
+        return facets
 
 
 class PermissiveSchema(marshmallow.Schema):

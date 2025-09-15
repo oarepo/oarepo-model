@@ -79,6 +79,9 @@ class RecordServiceConfigPreset(Preset):
             service_id = builder.model.base_name
             indexer_queue_name = f"{builder.model.base_name}_indexer"
 
+            record_facets = Dependency("RecordFacets")
+            metadata_facets = Dependency("MetadataFacets")
+
             search_item_links_template = LinksTemplate
 
             @property
