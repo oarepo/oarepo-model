@@ -68,7 +68,7 @@ class RecordResultItemPreset(Preset):
                 return [
                     *super().components,  # type: ignore[misc]
                     *[
-                        component()
+                        component
                         for component in cast(
                             "list[type[ResultComponent]]",
                             dependencies.get(
@@ -101,7 +101,7 @@ class RecordResultListPreset(Preset):
                 return [
                     *super().components,  # type: ignore[misc]
                     *[
-                        component()
+                        component
                         for component in cast(
                             "list[type[ResultComponent]]",
                             dependencies.get(
