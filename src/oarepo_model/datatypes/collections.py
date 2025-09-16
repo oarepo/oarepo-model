@@ -127,7 +127,7 @@ class ObjectDataType(DataType):
 
     def get_facet(
         self,
-        field_name: str,
+        path: str,
         element: dict[str, Any],
         nested_facets: list[Any] | None = None,
         facets: dict[str, list] | None = None,
@@ -140,13 +140,13 @@ class ObjectDataType(DataType):
         if "properties" in element:
             properties = self._get_properties(element)
             for key, value in properties.items():
-                if field_name == "":
-                    path = key
-                elif field_name.endswith(key):
-                    path = field_name
+                if path == "":
+                    _path = key
+                elif path.endswith(key):
+                    _path = path
                 else:
-                    path = field_name + "." + key
-                facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
+                    _path = path + "." + key
+                facets.update(self._registry.get_type(value).get_facet(_path, value, nested_facets, facets))
 
         return facets
 
@@ -252,7 +252,7 @@ class NestedDataType(ObjectDataType):
 
     def get_facet(
         self,
-        field_name: str,
+        path: str,
         element: dict[str, Any],
         nested_facets: list[Any] | None = None,
         facets: dict[str, list] | None = None,
@@ -265,17 +265,17 @@ class NestedDataType(ObjectDataType):
         if "properties" in element:
             properties = self._get_properties(element)
             for key, value in properties.items():
-                path = field_name if field_name.endswith(key) else f"{field_name}.{key}"
+                _path = path if path.endswith(key) else f"{path}.{key}"
 
                 facets.update(
                     self._registry.get_type(value).get_facet(
-                        path,
+                        _path,
                         value,
                         nested_facets=[
                             *nested_facets,
                             {
                                 "facet": "oarepo_runtime.services.facets.nested_facet.NestedLabeledFacet",
-                                "path": field_name,
+                                "path": path,
                             },
                         ],
                         facets=facets,
@@ -415,7 +415,7 @@ class ArrayDataType(DataType):
 
     def get_facet(
         self,
-        field_name: str,
+        path: str,
         element: dict[str, Any],
         nested_facets: list[Any] | None = None,
         facets: dict[str, list] | None = None,
@@ -426,7 +426,7 @@ class ArrayDataType(DataType):
         if nested_facets is None:
             nested_facets = []
         value = element.get("items", element)
-        facets.update(self._registry.get_type(value).get_facet(field_name, value, nested_facets, facets))
+        facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
         return facets
 
 
