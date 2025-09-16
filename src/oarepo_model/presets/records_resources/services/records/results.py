@@ -64,18 +64,13 @@ class RecordResultItemPreset(Preset):
     ) -> Generator[Customization]:
         class RecordItemMixin:
             @property
-            def components(self) -> list[ResultComponent]:
+            def components(self) -> list[type[ResultComponent]]:
                 return [
                     *super().components,  # type: ignore[misc]
-                    *[
-                        component
-                        for component in cast(
-                            "list[type[ResultComponent]]",
-                            dependencies.get(
-                                "record_result_item_components",
-                            ),
-                        )
-                    ],
+                    *cast(
+                        "list[type[ResultComponent]]",
+                        dependencies.get("record_result_item_components"),
+                    ),
                 ]
 
         yield AddClass("RecordItem", clazz=RecordItem)
@@ -97,18 +92,13 @@ class RecordResultListPreset(Preset):
     ) -> Generator[Customization]:
         class RecordListMixin:
             @property
-            def components(self) -> list[ResultComponent]:
+            def components(self) -> list[type[ResultComponent]]:
                 return [
                     *super().components,  # type: ignore[misc]
-                    *[
-                        component
-                        for component in cast(
-                            "list[type[ResultComponent]]",
-                            dependencies.get(
-                                "record_result_list_components",
-                            ),
-                        )
-                    ],
+                    *cast(
+                        "list[type[ResultComponent]]",
+                        dependencies.get("record_result_list_components"),
+                    ),
                 ]
 
         yield AddClass("RecordList", clazz=RecordList)

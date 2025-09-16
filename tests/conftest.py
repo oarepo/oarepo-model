@@ -588,7 +588,7 @@ def vocabulary_fixtures(app, db, search_clear, search):
 
             config = VC().get_config(settings, origin=filepath)
 
-        success, errored, filtered = _process_vocab(config)
+        _, errored, filtered = _process_vocab(config)
         assert errored == 0
         assert filtered == 0
 
