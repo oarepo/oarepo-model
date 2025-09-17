@@ -22,6 +22,7 @@ from .blueprints.files.api_draft_media_files_blueprint import (
     ApiDraftMediaFilesBlueprintPreset,
 )
 from .blueprints.files.api_media_files_blueprint import ApiMediaFilesBlueprintPreset
+from .ext import DraftsFilesFeaturePreset, DraftsRecordsFeaturePreset
 from .ext_draft_files import ExtDraftFilesPreset
 from .ext_draft_media_files import ExtDraftMediaFilesPreset
 from .ext_media_files import ExtMediaFilesPreset
@@ -90,7 +91,7 @@ from .services.records.service import DraftServicePreset
 from .services.records.service_config import DraftServiceConfigPreset
 
 if TYPE_CHECKING:
-    from oarepo_model.presets.base import Preset
+    from oarepo_model.presets import Preset
 
 
 drafts_records_preset: list[type[Preset]] = [
@@ -115,6 +116,8 @@ drafts_records_preset: list[type[Preset]] = [
     DraftResourcePreset,
     DraftResourceConfigPreset,
     DraftsRecordUISchemaPreset,
+    # feature
+    DraftsRecordsFeaturePreset,
 ]
 
 drafts_files_preset: list[type[Preset]] = [
@@ -161,6 +164,8 @@ drafts_files_preset: list[type[Preset]] = [
     ApiDraftFilesBlueprintPreset,
     ApiMediaFilesBlueprintPreset,
     ApiDraftMediaFilesBlueprintPreset,
+    # feature
+    DraftsFilesFeaturePreset,
 ]
 
 drafts_preset = drafts_records_preset + drafts_files_preset

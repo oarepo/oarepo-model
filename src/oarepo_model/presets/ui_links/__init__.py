@@ -11,6 +11,12 @@
 from __future__ import annotations
 
 from .drafts_ui_links import DraftsUILinksPreset
+from .ext import UILinksFeaturePreset
 from .records_ui_links import RecordUILinksPreset
 
-ui_links_preset = [RecordUILinksPreset, DraftsUILinksPreset]
+ui_links_preset = [
+    RecordUILinksPreset,
+    DraftsUILinksPreset,
+    # feature
+    UILinksFeaturePreset,
+]

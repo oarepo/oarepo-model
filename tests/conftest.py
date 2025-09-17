@@ -397,6 +397,7 @@ def ui_links_model(model_types):
     from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_records_preset
     from oarepo_model.presets.records_resources import records_preset
+    from oarepo_model.presets.ui import ui_preset
     from oarepo_model.presets.ui_links import ui_links_preset
 
     t1 = time.time()
@@ -408,7 +409,7 @@ def ui_links_model(model_types):
             records_preset,
             drafts_records_preset,
             ui_links_preset,
-            ui_links_preset,
+            ui_preset,
         ],
         types=[model_types],
         metadata_type="Metadata",
@@ -588,7 +589,7 @@ def vocabulary_fixtures(app, db, search_clear, search):
 
             config = VC().get_config(settings, origin=filepath)
 
-        success, errored, filtered = _process_vocab(config)
+        _success, errored, filtered = _process_vocab(config)
         assert errored == 0
         assert filtered == 0
 
