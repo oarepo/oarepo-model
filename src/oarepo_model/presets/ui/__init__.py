@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+from .ext import UIFeaturePreset
 from .ui_ext import UIExtPreset
 from .ui_metadata import UIMetadataPreset
 from .ui_record import UIRecordPreset
@@ -18,4 +19,6 @@ ui_preset = [
     UIRecordPreset,
     UIMetadataPreset,
     UIExtPreset,
+    # feature
+    UIFeaturePreset,
 ]
