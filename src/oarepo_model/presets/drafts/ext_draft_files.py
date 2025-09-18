@@ -95,6 +95,16 @@ class ExtDraftFilesPreset(Preset):
                     "draft_file_service": self.draft_files_service,
                 }
 
+            @property
+            def records_service_params(self) -> dict[str, Any]:
+                """Parameters for the record service."""
+                params = super().records_service_params  # type: ignore[misc]
+                return {
+                    **params,
+                    "draft_files_service": self.draft_files_service,
+                    "files_service": self.files_service,  # type: ignore[attr-defined]
+                }
+
         yield AddMixins("Ext", ExtDraftFilesMixin)
 
         yield AddToList(
