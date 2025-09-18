@@ -64,8 +64,10 @@ from .services.files.file_service_config import FileServiceConfigPreset
 from .services.files.record_with_files_schema import (
     RecordWithFilesSchemaPreset,
 )
+from .services.records.metadata_facets import MetadataFacetsPreset
 from .services.records.metadata_schema import MetadataSchemaPreset
 from .services.records.permission_policy import PermissionPolicyPreset
+from .services.records.record_facets import RecordFacetsPreset
 from .services.records.record_schema import RecordSchemaPreset
 from .services.records.results import (
     RecordResultComponentsPreset,
@@ -97,6 +99,8 @@ records_preset: list[type[Preset]] = [
     RecordWithRelationsPreset,
     RelationsDumperExtPreset,
     # service layer
+    RecordFacetsPreset,
+    MetadataFacetsPreset,
     RecordServicePreset,
     RecordServiceConfigPreset,
     RecordResultComponentsPreset,

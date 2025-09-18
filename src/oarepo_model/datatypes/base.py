@@ -50,6 +50,11 @@ class DataType:
         self._name = name or self.TYPE
 
     @property
+    def facet_name(self) -> str:
+        """Define facet class."""
+        return "invenio_records_resources.services.records.facets.TermsFacet"
+
+    @property
     def name(self) -> str:
         """Get the name of the data type.
 
@@ -78,6 +83,18 @@ class DataType:
         return self._get_marshmallow_field_class(field_name, element)(
             **self._get_marshmallow_field_args(field_name, element),
         )
+
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any] | None = None,
+        facets: dict[str, list] | None = None,
+    ) -> Any:
+        """Create facets for the data type."""
+        _, _, _, _ = path, element, nested_facets, facets
+
+        return facets
 
     def create_ui_marshmallow_fields(
         self,

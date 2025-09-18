@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from invenio_records_resources.services.records.config import SearchOptions
+from invenio_drafts_resources.services.records.config import SearchDraftsOptions
 
 from oarepo_model.customizations import AddClass, Customization
 from oarepo_model.presets import Preset
@@ -22,17 +22,17 @@ if TYPE_CHECKING:
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
+
 from oarepo_model.customizations import (
-    AddDictionary,
     AddMixins,
 )
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 
 
-class RecordSearchOptionsPreset(Preset):
+class DraftSearchOptionsPreset(Preset):
     """Preset for record search options class."""
 
-    provides = ("RecordSearchOptions",)
+    provides = ("DraftSearchOptions",)
 
     @override
     def apply(
@@ -41,12 +41,11 @@ class RecordSearchOptionsPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield AddDictionary("FacetGroups", {}, exists_ok=True)
-
-        class RecordSearchOptionsMixin(ModelMixin):
+        # yield AddDictionary("FacetGroups"FacetGroups, {}, exists_ok=True)
+        class DraftSearchOptionsMixin(ModelMixin):
             facets = Dependency("RecordFacets")
             facet_groups = Dependency("FacetGroups")
 
-        yield AddClass("RecordSearchOptions", clazz=SearchOptions)
+        yield AddClass("DraftSearchOptions", clazz=SearchDraftsOptions)
 
-        yield AddMixins("RecordSearchOptions", RecordSearchOptionsMixin)
+        yield AddMixins("DraftSearchOptions", DraftSearchOptionsMixin)

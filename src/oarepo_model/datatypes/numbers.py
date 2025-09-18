@@ -21,6 +21,7 @@ import marshmallow.fields
 import marshmallow.validate
 from babel.numbers import format_decimal
 from flask_babel import get_locale
+from oarepo_runtime.services.facets.utils import get_basic_facet
 
 from .base import DataType
 
@@ -57,6 +58,22 @@ class NumberDataType(DataType):
                 attribute=field_name,
             ),
         }
+
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any] | None = None,
+        facets: dict[str, list] | None = None,
+    ) -> Any:
+        """Create facets for the data type."""
+        if facets is None:
+            facets = {}
+        if nested_facets is None:
+            nested_facets = []
+        if element.get("searchable", True):
+            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
+        return facets
 
     @override
     def _get_marshmallow_field_args(

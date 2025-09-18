@@ -49,7 +49,12 @@ class RecordWithFilesPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         class RecordWithFilesMixin:
-            files = FilesField(store=False, create=False, delete=False, file_cls=dependencies.get("FileRecord"))
+            files = FilesField(
+                store=False,
+                create=False,
+                delete=False,
+                file_cls=dependencies.get("FileRecord"),
+            )
 
         yield AddMixins(
             "Record",

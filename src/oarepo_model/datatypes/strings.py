@@ -20,6 +20,7 @@ from typing import Any, override
 
 import marshmallow.fields
 import marshmallow.validate
+from oarepo_runtime.services.facets.utils import get_basic_facet
 
 from .base import DataType
 
@@ -81,6 +82,22 @@ class KeywordDataType(DataType):
             ret["pattern"] = element["pattern"]
         return ret
 
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any] | None = None,
+        facets: dict[str, list] | None = None,
+    ) -> Any:
+        """Create facets for the data type."""
+        if facets is None:
+            facets = {}
+        if nested_facets is None:
+            nested_facets = []
+        if element.get("searchable", True):
+            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
+        return facets
+
 
 class FullTextDataType(KeywordDataType):
     """A data type representing a full-text field in the Oarepo model.
@@ -94,6 +111,17 @@ class FullTextDataType(KeywordDataType):
             "type": "text",
         },
     )
+
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any] | None = None,
+        facets: dict[str, list] | None = None,
+    ) -> Any:
+        """Create facets for the data type."""
+        _, _, _, _ = path, element, nested_facets, facets
+        return facets
 
 
 class FulltextWithKeywordDataType(KeywordDataType):
@@ -114,3 +142,26 @@ class FulltextWithKeywordDataType(KeywordDataType):
             },
         }
     )
+
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any] | None = None,
+        facets: dict[str, list] | None = None,
+    ) -> Any:
+        """Create facets for the data type."""
+        if facets is None:
+            facets = {}
+        if nested_facets is None:
+            nested_facets = []
+        if element.get("searchable", True):
+            return get_basic_facet(
+                facets,
+                element.get("facet-def"),
+                path,
+                nested_facets,
+                self.facet_name,
+                keyword=True,
+            )
+        return facets
