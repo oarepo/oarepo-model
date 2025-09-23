@@ -485,23 +485,13 @@ class EDTFIntervalType(DataType):
 
         return ret
 
-    @property
-    def facet_name(self) -> str:
-        """Define facet class."""
-        return "oarepo_runtime.services.facets.date.EDTFIntervalFacet"
-
     def get_facet(
-        self,
-        path: str,
-        element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
+            self,
+            path: str,
+            element: dict[str, Any],
+            nested_facets: list[Any] | None = None,
+            facets: dict[str, list] | None = None,
     ) -> Any:
         """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
-        if element.get("searchable", True):
-            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
+        _, _, _, _ = path, element, nested_facets, facets
         return facets

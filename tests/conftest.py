@@ -229,7 +229,7 @@ facet_model_types = {
             "vlastni": {
                 "type": "keyword",
                 "facet-def": {
-                    "facet": "oarepo_runtime.services.facets.date.EDTFIntervalFacet",
+                    "facet": "oarepo_runtime.services.facets.date.DateFacet",
                     "field": "vlastni.cesta",
                     "label": "jeeej",
                 },

@@ -159,9 +159,8 @@ class FulltextWithKeywordDataType(KeywordDataType):
             return get_basic_facet(
                 facets,
                 element.get("facet-def"),
-                path,
+                path + ".keyword",
                 nested_facets,
                 self.facet_name,
-                keyword=True,
             )
         return facets
