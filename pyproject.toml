@@ -10,10 +10,10 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
     "oarepo-runtime>=2.0.0dev5,<3.0.0",
     "graphlib",
-    "oarepo[rdm,tests]>=13.0.0,<14.0.0",
     "deepmerge>=2.0",
     "dotenv>=0.9.9",
     "marshmallow-i18n-messages>=0.1.0",
+    "oarepo[rdm,tests]>=13.0.0,<15.0.0",
 ]
 
 [project.urls]
@@ -27,6 +27,7 @@ build-backend = "hatchling.build"
 dev = [
     "ruff>=0.11.13",
     "types-PyYAML",
+    "invenio-typing-stubs @ git+https://github.com/oarepo/invenio-typing-stubs.git",
 ]
 tests = [
     "pytest-invenio",
@@ -44,3 +45,6 @@ testpaths = [
     "tests",
     "src"
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true
