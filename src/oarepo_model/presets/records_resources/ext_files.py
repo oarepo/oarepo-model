@@ -27,6 +27,7 @@ from oarepo_model.customizations import (
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
+from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -36,6 +37,15 @@ if TYPE_CHECKING:
     from invenio_records_resources.services.files import FileService
 
     from oarepo_model.builder import InvenioModelBuilder
+
+
+class RecordWithFilesExtensionProtocol(RecordExtensionProtocol):
+    """Protocol for record extensions with files support."""
+
+    @property
+    def files_service(self) -> FileService:
+        """File service instance."""
+        raise NotImplementedError
 
 
 class ExtFilesPreset(Preset):
@@ -50,7 +60,7 @@ class ExtFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class ExtFilesMixin(ModelMixin):
+        class ExtFilesMixin(ModelMixin, RecordExtensionProtocol):
             """Mixin for extension class."""
 
             app: Flask
@@ -91,10 +101,13 @@ class ExtFilesPreset(Preset):
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
-                parent_model_args = super().model_arguments  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                parent_model_args = super().model_arguments
                 return {
                     **parent_model_args,
-                    "features": {**parent_model_args["features"], "files": {"version": oarepo_model.__version__}},
+                    "features": {
+                        **parent_model_args["features"],
+                        "files": {"version": oarepo_model.__version__},
+                    },
                     "file_service": self.files_service,
                 }
 

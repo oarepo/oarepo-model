@@ -30,7 +30,11 @@ from oarepo_model.customizations.high_level.add_pid_relation import (
 from .collections import ObjectDataType
 
 if TYPE_CHECKING:
-    from invenio_records_resources.records.systemfields.pid import PIDField
+    from collections.abc import Callable
+
+    from invenio_records_resources.records.systemfields.pid import (
+        PIDFieldContext,
+    )
 
     from oarepo_model.customizations.base import Customization
 
@@ -151,15 +155,18 @@ class PIDRelation(ObjectDataType):
         self,
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002 for overriding
-    ) -> PIDField:
+    ) -> PIDFieldContext:
         """Get the PID field from the element."""
         if "pid_field" in element:
-            pidf = obj_or_import_string(element["pid_field"])
+            pidf = cast(
+                "Callable[[dict[str, Any]], PIDFieldContext]",
+                obj_or_import_string(element["pid_field"]),
+            )
             if pidf is None or not callable(pidf):
                 raise ValueError(
                     f"PID field {element['pid_field']} could not be imported.",
                 )
-            return pidf(element)  # type: ignore # noqa
+            return pidf(element)
         if "record_cls" in element:
             rec = obj_or_import_string(element["record_cls"])
             if rec is None or not hasattr(rec, "pid"):

@@ -52,18 +52,16 @@ class FinalizationPreset(Preset):
 
         runtime_dependencies = builder.get_runtime_dependencies()
 
-        @staticmethod  # type: ignore[misc]
         def api_finalizer(app: Flask) -> None:
             for finalizer_func in runtime_dependencies.get("api_finalizers"):
                 finalizer_func(app)
 
-        @staticmethod  # type: ignore[misc]
         def app_finalizer(app: Flask) -> None:
             for finalizer_func in runtime_dependencies.get("app_finalizers"):
                 finalizer_func(app)
 
-        yield AddToModule("finalizers", "api_finalizer", api_finalizer)
-        yield AddToModule("finalizers", "app_finalizer", app_finalizer)
+        yield AddToModule("finalizers", "api_finalizer", staticmethod(api_finalizer))
+        yield AddToModule("finalizers", "app_finalizer", staticmethod(app_finalizer))
 
         yield AddEntryPoint(
             group="invenio_base.finalize_app",

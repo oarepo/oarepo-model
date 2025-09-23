@@ -15,7 +15,7 @@ the Flask extension for handling draft files in Invenio applications.
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from oarepo_runtime.config import build_config
 
@@ -26,6 +26,9 @@ from oarepo_model.customizations import (
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
+from oarepo_model.presets.records_resources.ext_files import (
+    RecordWithFilesExtensionProtocol,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -49,15 +52,18 @@ class ExtDraftFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class ExtDraftFilesMixin(ModelMixin):
+        class ExtDraftFilesMixin(ModelMixin, RecordWithFilesExtensionProtocol):
             """Mixin for extension class."""
 
             app: Flask
 
             @cached_property
             def draft_files_service(self) -> FileService:
-                return self.get_model_dependency("DraftFileService")(
-                    **self.draft_files_service_params,
+                return cast(
+                    "FileService",
+                    self.get_model_dependency("DraftFileService")(
+                        **self.draft_files_service_params,
+                    ),
                 )
 
             @property
@@ -91,18 +97,18 @@ class ExtDraftFilesPreset(Preset):
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
                 return {
-                    **super().model_arguments,  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                    **super().model_arguments,
                     "draft_file_service": self.draft_files_service,
                 }
 
             @property
             def records_service_params(self) -> dict[str, Any]:
                 """Parameters for the record service."""
-                params = super().records_service_params  # type: ignore[misc]
+                params = super().records_service_params
                 return {
                     **params,
                     "draft_files_service": self.draft_files_service,
-                    "files_service": self.files_service,  # type: ignore[attr-defined]
+                    "files_service": self.files_service,
                 }
 
         yield AddMixins("Ext", ExtDraftFilesMixin)

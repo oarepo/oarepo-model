@@ -18,6 +18,7 @@ from oarepo_model.customizations import (
     Customization,
 )
 from oarepo_model.presets import Preset
+from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -38,7 +39,7 @@ class UILinksFeaturePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class UILinksFeatureMixin:
+        class UILinksFeatureMixin(RecordExtensionProtocol):
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
@@ -47,10 +48,13 @@ class UILinksFeaturePreset(Preset):
                 except ImportError:
                     version = "unknown"
 
-                parent_model_args = super().model_arguments  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                parent_model_args = super().model_arguments
                 return {
                     **parent_model_args,
-                    "features": {**parent_model_args["features"], "ui-links": {"version": version}},
+                    "features": {
+                        **parent_model_args["features"],
+                        "ui-links": {"version": version},
+                    },
                 }
 
         yield AddMixins("Ext", UILinksFeatureMixin)

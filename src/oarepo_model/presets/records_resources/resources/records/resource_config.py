@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from babel.support import LazyProxy
 from flask_resources import (
@@ -91,4 +91,4 @@ def _register_export(cache: dict[str, ResponseHandler], export: Export) -> Respo
             )
         return cache[export.code]
 
-    return LazyProxy(lookup_or_create)  # type: ignore[return-value]
+    return cast("ResponseHandler", LazyProxy(lookup_or_create))

@@ -433,7 +433,7 @@ class InvenioModelBuilder:
 
         self.entry_points[(group, name)] = f"runtime_models_{self.model.base_name}{separator}{value}"
 
-    _not_found_messages = MappingProxyType(
+    _not_found_messages = MappingProxyType[type, str](
         {
             BuilderClass: "Builder class",
             BuilderClassList: "Builder class list",
@@ -447,7 +447,7 @@ class InvenioModelBuilder:
         """Get a partial by name."""
         if name not in self.partials:
             raise PartialNotFoundError(
-                f"{self._not_found_messages[clz]} {name} not found.",  # type: ignore # noqa
+                f"{self._not_found_messages[clz]} {name} not found.",
             )
         partial = self.partials[name]
         if not isinstance(partial, clz):
