@@ -88,8 +88,8 @@ class DataType:
         self,
         path: str,
         element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
+        nested_facets: Any,
+        facets: Any = None,
     ) -> Any:
         """Create facets for the data type."""
         _, _, _, _ = path, element, nested_facets, facets

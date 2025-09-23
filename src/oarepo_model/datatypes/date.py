@@ -306,8 +306,8 @@ class EDTFTimeDataType(DataType):
         self,
         path: str,
         element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
+        nested_facets: Any,
+        facets: Any = None,
     ) -> Any:
         """Create facets for the data type."""
         if facets is None:
@@ -382,8 +382,8 @@ class EDTFDataType(DataType):
         self,
         path: str,
         element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
+        nested_facets: Any,
+        facets: Any = None,
     ) -> Any:
         """Create facets for the data type."""
         if element.get("searchable", True):
@@ -486,11 +486,11 @@ class EDTFIntervalType(DataType):
         return ret
 
     def get_facet(
-            self,
-            path: str,
-            element: dict[str, Any],
-            nested_facets: list[Any] | None = None,
-            facets: dict[str, list] | None = None,
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any] | None = None,
+        facets: dict[str, list] | None = None,
     ) -> Any:
         """Create facets for the data type."""
         _, _, _, _ = path, element, nested_facets, facets
