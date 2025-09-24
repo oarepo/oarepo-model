@@ -72,8 +72,12 @@ def model_types_in_json_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_json("data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"),
-        from_json("data_types_in_json_list.json", origin="tests/data_types_in_json_list.json"),
+        from_json(
+            "data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"
+        ),
+        from_json(
+            "data_types_in_json_list.json", origin="tests/data_types_in_json_list.json"
+        ),
     ]
 
 
@@ -82,8 +86,12 @@ def model_types_in_yaml_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_yaml("data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"),
-        from_yaml("data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml"),
+        from_yaml(
+            "data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"
+        ),
+        from_yaml(
+            "data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml"
+        ),
     ]
 
 
@@ -116,10 +124,7 @@ def empty_model(model_types):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield empty_model
-    finally:
-        empty_model.unregister()
+    return empty_model
 
 
 @pytest.fixture(scope="session")
@@ -144,10 +149,7 @@ def draft_model(model_types):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield draft_model
-    finally:
-        draft_model.unregister()
+    return draft_model
 
 
 @pytest.fixture(scope="session")
@@ -176,10 +178,7 @@ def facet_model(model_types):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield facet_model
-    finally:
-        facet_model.unregister()
+    return facet_model
 
 
 @pytest.fixture(scope="session")
@@ -203,10 +202,7 @@ def draft_model_with_files(model_types):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield draft_model
-    finally:
-        draft_model.unregister()
+    return draft_model
 
 
 facet_model_types = {
@@ -429,10 +425,7 @@ def relation_model(empty_model):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield relation_model
-    finally:
-        relation_model.unregister()
+    return relation_model
 
 
 @pytest.fixture(scope="session")
@@ -451,10 +444,7 @@ def records_cf_model(model_types):
     )
     m.register()
 
-    try:
-        yield m
-    finally:
-        m.unregister()
+    return m
 
 
 @pytest.fixture(scope="session")
@@ -474,10 +464,7 @@ def drafts_cf_model(model_types):
     )
     m.register()
 
-    try:
-        yield m
-    finally:
-        m.unregister()
+    return m
 
 
 @pytest.fixture(scope="session")
@@ -501,10 +488,7 @@ def vocabulary_model(empty_model):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield vocabulary_model
-    finally:
-        vocabulary_model.unregister()
+    return vocabulary_model
 
 
 @pytest.fixture(scope="session")
@@ -527,10 +511,7 @@ def multilingual_model(empty_model):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield multilingual_model
-    finally:
-        multilingual_model.unregister()
+    return multilingual_model
 
 
 @pytest.fixture(scope="session")
@@ -562,25 +543,12 @@ def ui_links_model(model_types):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield ui_links_model
-    finally:
-        ui_links_model.unregister()
+    return ui_links_model
 
 
 @pytest.fixture(scope="module")
 def app_config(
     app_config,
-    empty_model,
-    draft_model,
-    draft_model_with_files,
-    records_cf_model,
-    facet_model,
-    drafts_cf_model,
-    relation_model,
-    vocabulary_model,
-    multilingual_model,
-    ui_links_model,
 ):
     """Override pytest-invenio app_config fixture.
 
@@ -592,15 +560,21 @@ def app_config(
 
     app_config["FILES_REST_DEFAULT_STORAGE_CLASS"] = "L"
 
-    app_config["RECORDS_REFRESOLVER_CLS"] = "invenio_records.resolver.InvenioRefResolver"
-    app_config["RECORDS_REFRESOLVER_STORE"] = "invenio_jsonschemas.proxies.current_refresolver_store"
+    app_config["RECORDS_REFRESOLVER_CLS"] = (
+        "invenio_records.resolver.InvenioRefResolver"
+    )
+    app_config["RECORDS_REFRESOLVER_STORE"] = (
+        "invenio_jsonschemas.proxies.current_refresolver_store"
+    )
 
     app_config["THEME_FRONTPAGE"] = False
 
-    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = {  # avoid pool_timeout set in invenio_app_rdm
-        "pool_pre_ping": False,
-        "pool_recycle": 3600,
-    }
+    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = (
+        {  # avoid pool_timeout set in invenio_app_rdm
+            "pool_pre_ping": False,
+            "pool_recycle": 3600,
+        }
+    )
 
     app_config["RDM_NAMESPACES"] = {
         "cern": "https://greybook.cern.ch/",
@@ -626,7 +600,9 @@ def app_config(
                         "label": "Experiment description",
                         "placeholder": "This experiment aims to...",
                         "icon": "pencil",
-                        "description": ("You should fill this field with the experiment description.",),
+                        "description": (
+                            "You should fill this field with the experiment description.",
+                        ),
                     },
                 },
             ],
@@ -640,7 +616,9 @@ def app_config(
 
     app_config["RDM_PERSISTENT_IDENTIFIERS"] = {}
 
-    app_config["RDM_OPTIONAL_DOI_VALIDATOR"] = lambda _draft, _previous_published, **_kwargs: True
+    app_config["RDM_OPTIONAL_DOI_VALIDATOR"] = (
+        lambda _draft, _previous_published, **_kwargs: True
+    )
 
     app_config["DATACITE_TEST_MODE"] = True
     app_config["RDM_RECORDS_ALLOW_RESTRICTION_AFTER_GRACE_PERIOD"] = True
@@ -672,7 +650,18 @@ def create_app(instance_path, entry_points):
 
 
 @pytest.fixture(scope="module")
-def extra_entry_points():
+def extra_entry_points(
+    empty_model,
+    draft_model,
+    draft_model_with_files,
+    records_cf_model,
+    facet_model,
+    drafts_cf_model,
+    relation_model,
+    vocabulary_model,
+    multilingual_model,
+    ui_links_model,
+):
     return {
         "invenio_base.blueprints": [
             "invenio_app_rdm_records = tests.mock_module:create_invenio_app_rdm_records_blueprint",
