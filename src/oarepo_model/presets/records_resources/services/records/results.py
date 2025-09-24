@@ -81,6 +81,11 @@ class RecordResultItemPreset(Preset):
                     ),
                 )
 
+            @components.setter
+            def components(self, _value: tuple[type[ResultComponent], ...]) -> None:
+                # needed to silence mypy error about read-only property
+                raise AttributeError("can't set attribute")
+
         yield AddClass("RecordItem", clazz=RecordItem)
         yield AddMixins("RecordItem", RecordItemMixin)
 
@@ -110,6 +115,11 @@ class RecordResultListPreset(Preset):
                         ),
                     ),
                 )
+
+            @components.setter
+            def components(self, _value: tuple[type[ResultComponent], ...]) -> None:
+                # needed to silence mypy error about read-only property
+                raise AttributeError("can't set attribute")
 
         yield AddClass("RecordList", clazz=RecordList)
         yield AddMixins("RecordList", RecordListMixin)
