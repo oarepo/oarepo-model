@@ -235,6 +235,7 @@ facet_model_types = {
                 },
             },
             "date": {"type": "date"},
+            "time": {"type": "time"},
             "edtf": {"type": "edtf"},
             "edtf-time": {
                 "type": "edtf-time",
