@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 from invenio_base.utils import obj_or_import_string
 from marshmallow.fields import Field
+from oarepo_runtime.services.facets.utils import get_basic_facet
 
 if TYPE_CHECKING:
     from oarepo_model.customizations.base import Customization
@@ -88,8 +89,8 @@ class DataType:
         self,
         path: str,
         element: dict[str, Any],
-        nested_facets: Any,
-        facets: Any = None,
+        nested_facets: list[Any],
+        facets: dict[str, list],
     ) -> Any:
         """Create facets for the data type."""
         _, _, _, _ = path, element, nested_facets, facets
@@ -231,3 +232,24 @@ class DataType:
             ret["input"] = self._registry.get_type(element).TYPE
 
         return ret
+
+
+class FacetMixin:
+    """Mixin for basic facet generation."""
+
+    @property
+    def facet_name(self) -> str:
+        """Define facet class."""
+        return "invenio_records_resources.services.records.facets.TermsFacet"
+
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any],
+        facets: dict[str, list],
+    ) -> Any:
+        """Create facets for the data type."""
+        if element.get("searchable", True):
+            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
+        return facets

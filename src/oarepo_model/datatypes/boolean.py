@@ -19,9 +19,8 @@ from typing import Any, override
 
 import marshmallow
 from invenio_i18n import gettext
-from oarepo_runtime.services.facets.utils import get_basic_facet
 
-from .base import DataType
+from .base import DataType, FacetMixin
 
 
 class FormatBoolean(marshmallow.fields.Field):
@@ -42,7 +41,7 @@ class FormatBoolean(marshmallow.fields.Field):
         return yes if value else no
 
 
-class BooleanDataType(DataType):
+class BooleanDataType(FacetMixin, DataType):
     """Data type for boolean values."""
 
     TYPE = "boolean"
@@ -74,19 +73,3 @@ class BooleanDataType(DataType):
         ret["truthy"] = [True]
         ret["falsy"] = [False]
         return ret
-
-    def get_facet(
-        self,
-        path: str,
-        element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-    ) -> Any:
-        """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
-        if element.get("searchable", True):
-            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
-        return facets

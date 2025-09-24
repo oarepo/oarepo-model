@@ -26,12 +26,11 @@ import marshmallow.fields
 import marshmallow.validate
 import marshmallow_utils.fields
 from marshmallow_utils.fields.edtfdatestring import EDTFValidator
-from oarepo_runtime.services.facets.utils import get_basic_facet
 
-from .base import DataType
+from .base import DataType, FacetMixin
 
 
-class DateDataType(DataType):
+class DateDataType(FacetMixin, DataType):
     """Data type for basic date values."""
 
     TYPE = "date"
@@ -90,24 +89,8 @@ class DateDataType(DataType):
         """Define facet class."""
         return "oarepo_runtime.services.facets.date.DateFacet"
 
-    def get_facet(
-        self,
-        path: str,
-        element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-    ) -> Any:
-        """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
-        if element.get("searchable", True):
-            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
-        return facets
 
-
-class DateTimeDataType(DataType):
+class DateTimeDataType(FacetMixin, DataType):
     """Data type for date and time values."""
 
     TYPE = "datetime"
@@ -127,22 +110,6 @@ class DateTimeDataType(DataType):
     def facet_name(self) -> str:
         """Define facet class."""
         return "oarepo_runtime.services.facets.date.DateTimeFacet"
-
-    def get_facet(
-        self,
-        path: str,
-        element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-    ) -> Any:
-        """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
-        if element.get("searchable", True):
-            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
-        return facets
 
     @override
     def create_ui_marshmallow_fields(
@@ -188,7 +155,7 @@ class DateTimeDataType(DataType):
         return ret
 
 
-class TimeDataType(DataType):
+class TimeDataType(FacetMixin, DataType):
     """Data type for time values."""
 
     TYPE = "time"
@@ -207,22 +174,6 @@ class TimeDataType(DataType):
     def facet_name(self) -> str:
         """Define facet class."""
         return "oarepo_runtime.services.facets.date.TimeFacet"
-
-    def get_facet(
-        self,
-        path: str,
-        element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-    ) -> Any:
-        """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
-        if element.get("searchable", True):
-            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
-        return facets
 
     @override
     def create_ui_marshmallow_fields(
@@ -283,7 +234,7 @@ class CachedMultilayerEDTFValidator(EDTFValidator):
         return value
 
 
-class EDTFTimeDataType(DataType):
+class EDTFTimeDataType(FacetMixin, DataType):
     """Data type for EDTF (Extended Date/Time Format) time values."""
 
     TYPE = "edtf-time"
@@ -301,22 +252,6 @@ class EDTFTimeDataType(DataType):
     def facet_name(self) -> str:
         """Define facet class."""
         return "oarepo_runtime.services.facets.date.EDTFFacet"
-
-    def get_facet(
-        self,
-        path: str,
-        element: dict[str, Any],
-        nested_facets: Any,
-        facets: Any = None,
-    ) -> Any:
-        """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
-        if element.get("searchable", True):
-            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
-        return facets
 
     @override
     def create_ui_marshmallow_fields(
@@ -359,7 +294,7 @@ class EDTFTimeDataType(DataType):
         return ret
 
 
-class EDTFDataType(DataType):
+class EDTFDataType(FacetMixin, DataType):
     """Data type for EDTF (Extended Date/Time Format) values."""
 
     TYPE = "edtf"
@@ -377,18 +312,6 @@ class EDTFDataType(DataType):
     def facet_name(self) -> str:
         """Define facet class."""
         return "oarepo_runtime.services.facets.date.EDTFFacet"
-
-    def get_facet(
-        self,
-        path: str,
-        element: dict[str, Any],
-        nested_facets: Any,
-        facets: Any = None,
-    ) -> Any:
-        """Create facets for the data type."""
-        if element.get("searchable", True):
-            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
-        return facets
 
     @override
     def create_ui_marshmallow_fields(

@@ -62,8 +62,5 @@ def get_facets(
     """Get the marshmallow schema for a given schema type."""
     if isinstance(schema_type, (str, dict)):
         datatype = builder.type_registry.get_type(schema_type)
-        return cast("Any", datatype).get_facet(
-            "",
-            {} if isinstance(schema_type, str) else schema_type,
-        )
+        return cast("Any", datatype).get_facet("", {} if isinstance(schema_type, str) else schema_type, [], {})
     return {}
