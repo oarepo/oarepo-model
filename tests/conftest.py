@@ -72,12 +72,8 @@ def model_types_in_json_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_json(
-            "data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"
-        ),
-        from_json(
-            "data_types_in_json_list.json", origin="tests/data_types_in_json_list.json"
-        ),
+        from_json("data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"),
+        from_json("data_types_in_json_list.json", origin="tests/data_types_in_json_list.json"),
     ]
 
 
@@ -86,12 +82,8 @@ def model_types_in_yaml_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_yaml(
-            "data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"
-        ),
-        from_yaml(
-            "data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml"
-        ),
+        from_yaml("data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"),
+        from_yaml("data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml"),
     ]
 
 
@@ -560,21 +552,15 @@ def app_config(
 
     app_config["FILES_REST_DEFAULT_STORAGE_CLASS"] = "L"
 
-    app_config["RECORDS_REFRESOLVER_CLS"] = (
-        "invenio_records.resolver.InvenioRefResolver"
-    )
-    app_config["RECORDS_REFRESOLVER_STORE"] = (
-        "invenio_jsonschemas.proxies.current_refresolver_store"
-    )
+    app_config["RECORDS_REFRESOLVER_CLS"] = "invenio_records.resolver.InvenioRefResolver"
+    app_config["RECORDS_REFRESOLVER_STORE"] = "invenio_jsonschemas.proxies.current_refresolver_store"
 
     app_config["THEME_FRONTPAGE"] = False
 
-    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = (
-        {  # avoid pool_timeout set in invenio_app_rdm
-            "pool_pre_ping": False,
-            "pool_recycle": 3600,
-        }
-    )
+    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = {  # avoid pool_timeout set in invenio_app_rdm
+        "pool_pre_ping": False,
+        "pool_recycle": 3600,
+    }
 
     app_config["RDM_NAMESPACES"] = {
         "cern": "https://greybook.cern.ch/",
@@ -600,9 +586,7 @@ def app_config(
                         "label": "Experiment description",
                         "placeholder": "This experiment aims to...",
                         "icon": "pencil",
-                        "description": (
-                            "You should fill this field with the experiment description.",
-                        ),
+                        "description": ("You should fill this field with the experiment description.",),
                     },
                 },
             ],
@@ -616,9 +600,7 @@ def app_config(
 
     app_config["RDM_PERSISTENT_IDENTIFIERS"] = {}
 
-    app_config["RDM_OPTIONAL_DOI_VALIDATOR"] = (
-        lambda _draft, _previous_published, **_kwargs: True
-    )
+    app_config["RDM_OPTIONAL_DOI_VALIDATOR"] = lambda _draft, _previous_published, **_kwargs: True
 
     app_config["DATACITE_TEST_MODE"] = True
     app_config["RDM_RECORDS_ALLOW_RESTRICTION_AFTER_GRACE_PERIOD"] = True
