@@ -120,14 +120,10 @@ class I18nDataType(ObjectDataType, MultilingualMixin):
         self,
         path: str,
         element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-    ) -> dict[str, list]:
+        nested_facets: list[Any],
+        facets: dict[str, list],
+    ) -> Any:
         """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
         searchable = element.get("searchable", True)
 
         if searchable:
@@ -235,14 +231,10 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
         self,
         path: str,
         element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-    ) -> dict[str, list]:
+        nested_facets: list[Any],
+        facets: dict[str, list],
+    ) -> Any:
         """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
         searchable = element.get("searchable", True)
 
         if searchable:

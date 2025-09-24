@@ -129,14 +129,10 @@ class ObjectDataType(DataType):
         self,
         path: str,
         element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-    ) -> dict[str, list]:
+        nested_facets: list[Any],
+        facets: dict[str, list],
+    ) -> Any:
         """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
         if "properties" in element:
             properties = self._get_properties(element)
             for key, value in properties.items():
@@ -254,14 +250,10 @@ class NestedDataType(ObjectDataType):
         self,
         path: str,
         element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-    ) -> dict[str, list]:
+        nested_facets: list[Any],
+        facets: dict[str, list],
+    ) -> Any:
         """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
         if "properties" in element:
             properties = self._get_properties(element)
             for key, value in properties.items():
@@ -417,14 +409,10 @@ class ArrayDataType(DataType):
         self,
         path: str,
         element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-    ) -> dict[str, list]:
+        nested_facets: list[Any],
+        facets: dict[str, list],
+    ) -> Any:
         """Create facets for the data type."""
-        if facets is None:
-            facets = {}
-        if nested_facets is None:
-            nested_facets = []
         value = element.get("items", element)
         facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
         return facets

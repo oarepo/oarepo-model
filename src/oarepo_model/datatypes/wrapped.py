@@ -110,8 +110,8 @@ class WrappedDataType(DataType):
         self,
         path: str,
         element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
+        nested_facets: list[Any],
+        facets: dict[str, list],
     ) -> Any:
         """Create facets for the wrapped data type."""
         if self.name == "Metadata":
