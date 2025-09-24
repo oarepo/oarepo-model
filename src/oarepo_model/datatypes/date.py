@@ -27,10 +27,10 @@ import marshmallow.validate
 import marshmallow_utils.fields
 from marshmallow_utils.fields.edtfdatestring import EDTFValidator
 
-from .base import DataType
+from .base import DataType, FacetMixin
 
 
-class DateDataType(DataType):
+class DateDataType(FacetMixin, DataType):
     """Data type for basic date values."""
 
     TYPE = "date"
@@ -84,8 +84,13 @@ class DateDataType(DataType):
 
         return ret
 
+    @property
+    def facet_name(self) -> str:
+        """Define facet class."""
+        return "oarepo_runtime.services.facets.date.DateFacet"
 
-class DateTimeDataType(DataType):
+
+class DateTimeDataType(FacetMixin, DataType):
     """Data type for date and time values."""
 
     TYPE = "datetime"
@@ -100,6 +105,11 @@ class DateTimeDataType(DataType):
             "strict_date_hour_minute_second_fraction",
         },
     )
+
+    @property
+    def facet_name(self) -> str:
+        """Define facet class."""
+        return "oarepo_runtime.services.facets.date.DateTimeFacet"
 
     @override
     def create_ui_marshmallow_fields(
@@ -145,7 +155,7 @@ class DateTimeDataType(DataType):
         return ret
 
 
-class TimeDataType(DataType):
+class TimeDataType(FacetMixin, DataType):
     """Data type for time values."""
 
     TYPE = "time"
@@ -159,6 +169,11 @@ class TimeDataType(DataType):
             "basic_time_no_millis||hour_minute_second||hour||hour_minute",
         },
     )
+
+    @property
+    def facet_name(self) -> str:
+        """Define facet class."""
+        return "oarepo_runtime.services.facets.date.TimeFacet"
 
     @override
     def create_ui_marshmallow_fields(
@@ -219,7 +234,7 @@ class CachedMultilayerEDTFValidator(EDTFValidator):
         return value
 
 
-class EDTFTimeDataType(DataType):
+class EDTFTimeDataType(FacetMixin, DataType):
     """Data type for EDTF (Extended Date/Time Format) time values."""
 
     TYPE = "edtf-time"
@@ -232,6 +247,11 @@ class EDTFTimeDataType(DataType):
             "format": "strict_date_time||strict_date_time_no_millis||strict_date||yyyy-MM||yyyy",
         },
     )
+
+    @property
+    def facet_name(self) -> str:
+        """Define facet class."""
+        return "oarepo_runtime.services.facets.date.EDTFFacet"
 
     @override
     def create_ui_marshmallow_fields(
@@ -274,7 +294,7 @@ class EDTFTimeDataType(DataType):
         return ret
 
 
-class EDTFDataType(DataType):
+class EDTFDataType(FacetMixin, DataType):
     """Data type for EDTF (Extended Date/Time Format) values."""
 
     TYPE = "edtf"
@@ -287,6 +307,11 @@ class EDTFDataType(DataType):
             "format": "strict_date||yyyy-MM||yyyy",
         },
     )
+
+    @property
+    def facet_name(self) -> str:
+        """Define facet class."""
+        return "oarepo_runtime.services.facets.date.EDTFFacet"
 
     @override
     def create_ui_marshmallow_fields(
@@ -382,3 +407,14 @@ class EDTFIntervalType(DataType):
         )
 
         return ret
+
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any] | None = None,
+        facets: dict[str, list] | None = None,
+    ) -> Any:
+        """Create facets for the data type."""
+        _, _, _, _ = path, element, nested_facets, facets
+        return facets

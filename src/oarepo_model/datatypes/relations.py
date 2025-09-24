@@ -56,6 +56,18 @@ class PIDRelation(ObjectDataType):
 
     marshmallow_field_class = marshmallow.fields.Nested
 
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any],
+        facets: dict[str, list],
+    ) -> Any:
+        """Create facets for the data type."""
+        _, _, _, _ = path, element, nested_facets, facets
+
+        return facets
+
     def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
         if "properties" in element:
             if not isinstance(element["properties"], dict):

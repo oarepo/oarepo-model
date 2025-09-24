@@ -106,6 +106,20 @@ class WrappedDataType(DataType):
             self._merge_type_dict(element),
         )
 
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any],
+        facets: dict[str, list],
+    ) -> Any:
+        """Create facets for the wrapped data type."""
+        if self.name == "Metadata":
+            path = "metadata"
+        return cast("ObjectDataType", self.impl).get_facet(
+            path, element=self._merge_type_dict(element), nested_facets=nested_facets, facets=facets
+        )
+
     def create_ui_marshmallow_schema(
         self,
         element: dict[str, Any],

@@ -22,6 +22,7 @@ from .add_class_field import AddClassField
 from .add_class_list import AddClassList
 from .add_dictionary import AddDictionary
 from .add_entry_point import AddEntryPoint
+from .add_facet_group import AddFacetGroup
 from .add_file_to_module import AddFileToModule
 from .add_json_file import AddJSONFile
 from .add_list import AddList
@@ -43,6 +44,7 @@ __all__ = [
     "AddClassList",
     "AddDictionary",
     "AddEntryPoint",
+    "AddFacetGroup",
     "AddFileToModule",
     "AddJSONFile",
     "AddList",

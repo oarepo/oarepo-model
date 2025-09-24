@@ -22,7 +22,7 @@ import marshmallow.validate
 from babel.numbers import format_decimal
 from flask_babel import get_locale
 
-from .base import DataType
+from .base import DataType, FacetMixin
 
 
 class FormatNumber(marshmallow.fields.Field):
@@ -42,7 +42,7 @@ class FormatNumber(marshmallow.fields.Field):
         return format_decimal(value, locale=loc)
 
 
-class NumberDataType(DataType):
+class NumberDataType(FacetMixin, DataType):
     """Base class for numeric data types."""
 
     @override

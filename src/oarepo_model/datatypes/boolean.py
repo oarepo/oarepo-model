@@ -20,7 +20,7 @@ from typing import Any, override
 import marshmallow
 from invenio_i18n import gettext
 
-from .base import DataType
+from .base import DataType, FacetMixin
 
 
 class FormatBoolean(marshmallow.fields.Field):
@@ -41,7 +41,7 @@ class FormatBoolean(marshmallow.fields.Field):
         return yes if value else no
 
 
-class BooleanDataType(DataType):
+class BooleanDataType(FacetMixin, DataType):
     """Data type for boolean values."""
 
     TYPE = "boolean"

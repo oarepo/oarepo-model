@@ -24,6 +24,7 @@ from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
 from oarepo_runtime.services.records.mapping import update_all_records_mappings
 
+from oarepo_model.customizations import AddFacetGroup
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
 log = logging.getLogger("tests")
@@ -150,6 +151,38 @@ def draft_model(model_types):
 
 
 @pytest.fixture(scope="session")
+def facet_model(model_types):
+    from oarepo_model.api import model
+    from oarepo_model.presets.drafts import drafts_records_preset
+    from oarepo_model.presets.records_resources import records_preset
+
+    t1 = time.time()
+
+    facet_model = model(
+        name="facet_test",
+        version="1.0.0",
+        presets=[records_preset, drafts_records_preset],
+        types=[facet_model_types],
+        metadata_type="Metadata",
+        customizations=[
+            AddFacetGroup("curator", ["b", "jazyk", "vlastni"]),
+            AddFacetGroup("default", ["b", "jazyk"]),
+            AddFacetGroup("owner", ["jazyk", "b"]),
+        ],
+    )
+
+    facet_model.register()
+
+    t2 = time.time()
+    log.info("Model created in %.2f seconds", t2 - t1)
+
+    try:
+        yield facet_model
+    finally:
+        facet_model.unregister()
+
+
+@pytest.fixture(scope="session")
 def draft_model_with_files(model_types):
     from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_preset
@@ -176,6 +209,114 @@ def draft_model_with_files(model_types):
         draft_model.unregister()
 
 
+facet_model_types = {
+    "Metadata": {
+        "properties": {
+            "jej": {
+                "type": "nested",
+                "properties": {
+                    "c": {
+                        "type": "keyword",
+                    }
+                },
+            },
+            "multi": {"type": "multilingual"},
+            "jazyk": {"type": "i18n"},
+            "b": {
+                "type": "fulltext+keyword",
+            },
+            "c": {"type": "fulltext"},
+            "vlastni": {
+                "type": "keyword",
+                "facet-def": {
+                    "facet": "oarepo_runtime.services.facets.date.DateFacet",
+                    "field": "vlastni.cesta",
+                    "label": "jeeej",
+                },
+            },
+            "date": {"type": "date"},
+            "time": {"type": "time"},
+            "edtf": {"type": "edtf"},
+            "edtf-time": {
+                "type": "edtf-time",
+            },
+            "edtf-interval": {
+                "type": "edtf-interval",
+            },
+            "datetime": {
+                "type": "datetime",
+            },
+            "d": {"type": "keyword", "searchable": False},
+            "b_nes": {
+                "type": "nested",
+                "properties": {
+                    "c": {
+                        "type": "keyword",
+                    },
+                    "f": {
+                        "type": "object",
+                        "properties": {"g": {"type": "keyword"}},
+                    },
+                },
+            },
+            "b_obj": {
+                "type": "object",
+                "properties": {
+                    "c": {
+                        "type": "keyword",
+                    },
+                    "d": {"type": "fulltext+keyword"},
+                    "f": {
+                        "type": "nested",
+                        "properties": {"g": {"type": "keyword"}},
+                    },
+                },
+            },
+            "arr": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "a": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {"c": {"type": "keyword"}},
+                            },
+                        }
+                    },
+                },
+            },
+            "arrnes": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "a": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {"c": {"type": "keyword"}},
+                            },
+                        }
+                    },
+                },
+            },
+            "obyc_array": {
+                "type": "array",
+                "items": {"type": "keyword"},
+            },
+            "language": {
+                "type": "vocabulary",
+                "vocabulary-type": "languages",
+            },
+            "affiliation": {
+                "type": "vocabulary",
+                "vocabulary-type": "affiliations",
+            },
+        }
+    }
+}
 relation_model_types = {
     "Metadata": {
         "properties": {
@@ -434,6 +575,7 @@ def app_config(
     draft_model,
     draft_model_with_files,
     records_cf_model,
+    facet_model,
     drafts_cf_model,
     relation_model,
     vocabulary_model,

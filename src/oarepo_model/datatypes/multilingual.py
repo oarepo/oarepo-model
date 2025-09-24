@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     import marshmallow
 
     from oarepo_model.customizations import Customization
+from oarepo_runtime.services.facets.utils import _label_for_field
 
 
 class MultilingualMixin:
@@ -115,6 +116,35 @@ class I18nDataType(ObjectDataType, MultilingualMixin):
         }
         return ret
 
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any],
+        facets: dict[str, list],
+    ) -> Any:
+        """Create facets for the data type."""
+        searchable = element.get("searchable", True)
+
+        if searchable:
+            lang, _value = self.get_multilingual_field(element)
+
+            facet = [
+                *nested_facets,
+                {
+                    "facet": "oarepo_runtime.services.facets.nested_facet.NestedLabeledFacet",
+                    "path": path,
+                },
+                {
+                    "facet": "invenio_records_resources.services.records.facets.TermsFacet",
+                    "field": f"{path}.{lang}",
+                    "label": _label_for_field(path),
+                },
+            ]
+
+            facets[path] = facet
+        return facets
+
 
 class MultilingualDataType(ArrayDataType, MultilingualMixin):
     """A data type for multilingual dictionaries."""
@@ -196,6 +226,35 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
                 "properties": {lang: {"type": "string"}, value: {"type": "string"}},
             },
         }
+
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any],
+        facets: dict[str, list],
+    ) -> Any:
+        """Create facets for the data type."""
+        searchable = element.get("searchable", True)
+
+        if searchable:
+            lang, _value = self.get_multilingual_field(element)
+
+            facet = [
+                *nested_facets,
+                {
+                    "facet": "oarepo_runtime.services.facets.nested_facet.NestedLabeledFacet",
+                    "path": path,
+                },
+                {
+                    "facet": "invenio_records_resources.services.records.facets.TermsFacet",
+                    "field": f"{path}.{lang}",
+                    "label": _label_for_field(path),
+                },
+            ]
+
+            facets[path] = facet
+        return facets
 
 
 class I18nDictDataType(ObjectDataType):
