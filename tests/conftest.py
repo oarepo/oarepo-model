@@ -234,6 +234,16 @@ facet_model_types = {
                     "label": "jeeej",
                 },
             },
+            "edtf": {"type": "edtf"},
+            "edtf-time": {
+                "type": "edtf-time",
+            },
+            "edtf-interval": {
+                "type": "edtf-interval",
+            },
+            "datetime": {
+                "type": "datetime",
+            },
             "d": {"type": "keyword", "searchable": False},
             "b_nes": {
                 "type": "nested",
