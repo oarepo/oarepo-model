@@ -27,7 +27,7 @@ build-backend = "hatchling.build"
 dev = [
     "ruff>=0.11.13",
     "types-PyYAML",
-    "invenio-typing-stubs @ git+https://github.com/oarepo/invenio-typing-stubs.git",
+    "oarepo-invenio-typing-stubs",
 ]
 tests = [
     "pytest-invenio",
