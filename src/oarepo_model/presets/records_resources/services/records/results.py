@@ -25,8 +25,14 @@ from oarepo_model.presets import Preset
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+    from oarepo_runtime.services.results import RecordItem as BaseRecordItem
+    from oarepo_runtime.services.results import RecordList as BaseRecordList
+
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
+else:
+    BaseRecordItem = object
+    BaseRecordList = object
 
 
 class RecordResultComponentsPreset(Preset):
@@ -62,21 +68,23 @@ class RecordResultItemPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class RecordItemMixin:
+        class RecordItemMixin(BaseRecordItem):
             @property
-            def components(self) -> list[ResultComponent]:
-                return [
-                    *super().components,  # type: ignore[misc]
-                    *[
-                        component()
-                        for component in cast(
-                            "list[type[ResultComponent]]",
-                            dependencies.get(
-                                "record_result_item_components",
-                            ),
-                        )
-                    ],
-                ]
+            def components(self) -> tuple[type[ResultComponent], ...]:
+                return (
+                    *super().components,
+                    *cast(
+                        "list[type[ResultComponent]]",
+                        dependencies.get(
+                            "record_result_item_components",
+                        ),
+                    ),
+                )
+
+            @components.setter
+            def components(self, _value: tuple[type[ResultComponent], ...]) -> None:
+                # needed to silence mypy error about read-only property
+                raise AttributeError("can't set attribute")  # pragma: no cover
 
         yield AddClass("RecordItem", clazz=RecordItem)
         yield AddMixins("RecordItem", RecordItemMixin)
@@ -95,21 +103,23 @@ class RecordResultListPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class RecordListMixin:
+        class RecordListMixin(BaseRecordList):
             @property
-            def components(self) -> list[ResultComponent]:
-                return [
-                    *super().components,  # type: ignore[misc]
-                    *[
-                        component()
-                        for component in cast(
-                            "list[type[ResultComponent]]",
-                            dependencies.get(
-                                "record_result_list_components",
-                            ),
-                        )
-                    ],
-                ]
+            def components(self) -> tuple[type[ResultComponent], ...]:
+                return (
+                    *super().components,
+                    *cast(
+                        "list[type[ResultComponent]]",
+                        dependencies.get(
+                            "record_result_list_components",
+                        ),
+                    ),
+                )
+
+            @components.setter
+            def components(self, _value: tuple[type[ResultComponent], ...]) -> None:
+                # needed to silence mypy error about read-only property
+                raise AttributeError("can't set attribute")  # pragma: no cover
 
         yield AddClass("RecordList", clazz=RecordList)
         yield AddMixins("RecordList", RecordListMixin)

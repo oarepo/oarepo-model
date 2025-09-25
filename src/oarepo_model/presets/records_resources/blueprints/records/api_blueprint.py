@@ -51,7 +51,6 @@ class ApiBlueprintPreset(Preset):
         runtime_dependencies = builder.get_runtime_dependencies()
 
         # need to use staticmethod as python's magic always passes self as the first argument
-        @staticmethod  # type: ignore[misc]
         def create_api_blueprint(app: Flask) -> Blueprint:
             """Create DocumentsRecord blueprint."""
             with app.app_context():
@@ -65,7 +64,7 @@ class ApiBlueprintPreset(Preset):
 
             return blueprint
 
-        yield AddToModule("blueprints", "create_api_blueprint", create_api_blueprint)
+        yield AddToModule("blueprints", "create_api_blueprint", staticmethod(create_api_blueprint))
 
         yield AddEntryPoint(
             group="invenio_base.api_blueprints",

@@ -26,6 +26,9 @@ from oarepo_model.customizations import (
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
+from oarepo_model.presets.records_resources.ext_files import (
+    RecordWithFilesExtensionProtocol,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -49,7 +52,7 @@ class ExtMediaFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class ExtMediaFilesMixin(ModelMixin):
+        class ExtMediaFilesMixin(ModelMixin, RecordWithFilesExtensionProtocol):
             """Mixin for extension class."""
 
             app: Flask
@@ -91,7 +94,7 @@ class ExtMediaFilesPreset(Preset):
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
                 return {
-                    **super().model_arguments,  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                    **super().model_arguments,
                     "media_file_service": self.media_files_service,
                 }
 

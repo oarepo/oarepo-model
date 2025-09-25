@@ -16,7 +16,7 @@ draft operations like publish, edit, and version management.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from invenio_drafts_resources.services import (
     RecordServiceConfig as DraftServiceConfig,
@@ -56,7 +56,14 @@ from oarepo_model.presets import Preset
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+    from invenio_drafts_resources.records.api import Draft
+    from invenio_drafts_resources.services.records.config import (
+        RecordServiceConfig as DraftRecordServiceConfig,
+    )
+
     from oarepo_model.builder import InvenioModelBuilder
+else:
+    DraftRecordServiceConfig = object
 
 
 class DraftServiceConfigPreset(Preset):
@@ -80,13 +87,13 @@ class DraftServiceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class DraftServiceConfigMixin(ModelMixin):
-            draft_cls = Dependency("Draft")
+        class DraftServiceConfigMixin(ModelMixin, DraftRecordServiceConfig):
+            draft_cls = cast("type[Draft]", Dependency("Draft"))
 
             @property
             def links_search_drafts(self) -> dict[str, Link]:
                 try:
-                    supercls_links = super().links_search_drafts  # type: ignore[misc]
+                    supercls_links = super().links_search_drafts
                 except AttributeError:  # if they aren't defined in the superclass
                     supercls_links = {}
                 links = {
@@ -98,7 +105,7 @@ class DraftServiceConfigPreset(Preset):
             @property
             def links_search_versions(self) -> dict[str, Link]:
                 try:
-                    supercls_links = super().links_search_versions  # type: ignore[misc]
+                    supercls_links = super().links_search_versions
                 except AttributeError:  # if they aren't defined in the superclass
                     supercls_links = {}
                 links = {

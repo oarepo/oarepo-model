@@ -222,9 +222,17 @@ class TimeDataType(FacetMixin, DataType):
 class CachedMultilayerEDTFValidator(EDTFValidator):
     """A cached EDTF validator."""
 
-    @functools.lru_cache(maxsize=1024)  # noqa memory consumption ok
-    def __call__(self, value: str) -> str:  # type: ignore # noqa
+    @override
+    def __call__(self, value: str) -> str:
         """Validate the EDTF value and return it."""
+        return self._cached_validation(value)
+
+    @functools.lru_cache(maxsize=1024)  # noqa memory consumption ok
+    def _cached_validation(self, value: str) -> str:
+        """Validate EDTF string.
+
+        If a value is valid, do not revalidate again, take it from cache.
+        """
         # at first try to parse the value as a date because it is much faster
         # and most of the time it is a date
         try:

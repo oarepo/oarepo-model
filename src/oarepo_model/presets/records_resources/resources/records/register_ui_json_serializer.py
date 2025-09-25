@@ -19,7 +19,7 @@ resource response handlers. It includes:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from invenio_i18n import lazy_gettext as _
 from werkzeug.local import LocalProxy
@@ -32,6 +32,8 @@ from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+
+    from flask_resources.serializers import BaseSerializer
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
@@ -56,5 +58,8 @@ class RegisterJSONUISerializerPreset(Preset):
             code="ui_json",
             name=_("UI JSON"),
             mimetype="application/vnd.inveniordm.v1+json",
-            serializer=LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),  # type: ignore[arg-type]
+            serializer=cast(
+                "BaseSerializer",
+                LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),
+            ),
         )

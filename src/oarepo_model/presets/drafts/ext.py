@@ -30,6 +30,9 @@ if TYPE_CHECKING:
 from typing import TYPE_CHECKING, Any, override
 
 from oarepo_model.presets import Preset
+from oarepo_model.presets.records_resources.ext_files import (
+    RecordWithFilesExtensionProtocol,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -50,12 +53,12 @@ class DraftsFilesFeaturePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class DraftsFilesFeatureMixin:
+        class DraftsFilesFeatureMixin(RecordWithFilesExtensionProtocol):
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
                 return {
-                    **super().model_arguments,  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                    **super().model_arguments,
                     "features": {"drafts-files": {"version": __version__}},
                 }
 
@@ -74,11 +77,11 @@ class DraftsRecordsFeaturePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class DraftsRecordsFeatureMixin:
+        class DraftsRecordsFeatureMixin(RecordWithFilesExtensionProtocol):
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
-                parent_model_args = super().model_arguments  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                parent_model_args = super().model_arguments
                 return {
                     **parent_model_args,
                     "features": {

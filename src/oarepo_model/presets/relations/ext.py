@@ -19,6 +19,7 @@ from oarepo_model.customizations import (
     Customization,
 )
 from oarepo_model.presets import Preset
+from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -39,14 +40,17 @@ class RelationsFeaturePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class RelationsFeatureMixin:
+        class RelationsFeatureMixin(RecordExtensionProtocol):
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
-                parent_model_args = super().model_arguments  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                parent_model_args = super().model_arguments
                 return {
                     **parent_model_args,
-                    "features": {**parent_model_args["features"], "relations": {"version": __version__}},
+                    "features": {
+                        **parent_model_args["features"],
+                        "relations": {"version": __version__},
+                    },
                 }
 
         yield AddMixins("Ext", RelationsFeatureMixin)

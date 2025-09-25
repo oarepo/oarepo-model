@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any, cast, override
 from .relations import PIDRelation
 
 if TYPE_CHECKING:
-    from invenio_records_resources.records.systemfields.pid import PIDField
+    from invenio_records_resources.records.systemfields.pid import PIDFieldContext
     from marshmallow import Schema
 
 
@@ -112,28 +112,28 @@ class VocabularyDataType(PIDRelation):
         self,
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],
-    ) -> PIDField:
+    ) -> PIDFieldContext:
         match element["vocabulary-type"]:
             case "affiliations":
                 from invenio_vocabularies.contrib.affiliations.api import Affiliation
 
-                return Affiliation.pid  # type: ignore # noqa
+                return Affiliation.pid
             case "funders":
                 from invenio_vocabularies.contrib.funders.api import Funder
 
-                return Funder.pid  # type: ignore # noqa
+                return Funder.pid
             case "awards":
                 from invenio_vocabularies.contrib.awards.api import Award
 
-                return Award.pid  # type: ignore # noqa
+                return Award.pid
             case "subjects":
                 from invenio_vocabularies.contrib.subjects.api import Subject
 
-                return Subject.pid  # type: ignore # noqa
+                return Subject.pid
             case vocab_type:
                 from invenio_vocabularies.records.api import Vocabulary
 
-                return Vocabulary.pid.with_type_ctx(vocab_type)  # type: ignore # noqa
+                return cast("PIDFieldContext", Vocabulary.pid.with_type_ctx(vocab_type))
 
     def _cache_key(
         self,

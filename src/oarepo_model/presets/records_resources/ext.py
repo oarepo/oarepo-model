@@ -15,7 +15,7 @@ for handling records, resources, and services in Invenio applications.
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, Protocol, cast, override
 
 from invenio_records_resources import __version__
 from oarepo_runtime.api import Export, Model
@@ -41,6 +41,24 @@ if TYPE_CHECKING:
     from invenio_records_resources.services.records import RecordService
 
     from oarepo_model.builder import InvenioModelBuilder
+
+
+class RecordExtensionProtocol(Protocol):
+    """Protocol for flask extension with model arguments."""
+
+    @property
+    def model_arguments(self) -> dict[str, Any]:
+        """Return model arguments for the extension."""
+        return super().model_arguments  # type: ignore[no-any-return,misc]  # pragma: no cover
+
+    @property
+    def records_service_params(self) -> dict[str, Any]:
+        """Return parameters for the records service."""
+        return super().records_service_params  # type: ignore[no-any-return,misc]  # pragma: no cover
+
+    def init_config(self, _app: Flask) -> None:
+        """Initialize configuration."""
+        return super().init_config(_app)  # type: ignore[no-any-return,misc]  # pragma: no cover
 
 
 class ExtPreset(Preset):
@@ -101,7 +119,7 @@ class ExtPreset(Preset):
             def model(self) -> Model:
                 return Model(**self.model_arguments)
 
-        class ServicesResourcesExtMixin(ModelMixin):
+        class ServicesResourcesExtMixin(ModelMixin, RecordExtensionProtocol):
             """Mixin for extension class."""
 
             app: Flask
@@ -141,13 +159,13 @@ class ExtPreset(Preset):
 
             @property
             def metadata_exports(self) -> list[Export]:
-                return runtime_dependencies.get("exports")  # type: ignore[no-any-return]
+                return cast("list[Export]", runtime_dependencies.get("exports"))
 
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
                 return {
-                    **super().model_arguments,  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                    **super().model_arguments,
                     "service": self.records_service,
                     "service_config": self.records_service.config,
                     "resource_config": self.records_resource.config,
@@ -156,7 +174,7 @@ class ExtPreset(Preset):
                 }
 
             def init_config(self, app: Flask) -> None:
-                super().init_config(app)  # type: ignore[misc]
+                super().init_config(app)
 
         yield AddClass("Ext", clazz=ExtBase)
         yield AddMixins("Ext", ServicesResourcesExtMixin)
@@ -235,14 +253,17 @@ class FilesFeaturePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class FilesFeatureMixin:
+        class FilesFeatureMixin(RecordExtensionProtocol):
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
-                parent_model_args = super().model_arguments  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                parent_model_args = super().model_arguments
                 return {
                     **parent_model_args,
-                    "features": {**parent_model_args["features"], "files": {"version": __version__}},
+                    "features": {
+                        **parent_model_args["features"],
+                        "files": {"version": __version__},
+                    },
                 }
 
         yield AddMixins("Ext", FilesFeatureMixin)
@@ -260,14 +281,17 @@ class RecordsFeaturePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class RecordsFeatureMixin:
+        class RecordsFeatureMixin(RecordExtensionProtocol):
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
-                parent_model_args = super().model_arguments  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                parent_model_args = super().model_arguments
                 return {
                     **parent_model_args,
-                    "features": {**parent_model_args["features"], "records": {"version": __version__}},
+                    "features": {
+                        **parent_model_args["features"],
+                        "records": {"version": __version__},
+                    },
                 }
 
         yield AddMixins("Ext", RecordsFeatureMixin)

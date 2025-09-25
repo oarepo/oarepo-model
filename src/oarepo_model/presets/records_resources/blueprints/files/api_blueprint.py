@@ -48,7 +48,6 @@ class ApiFilesBlueprintPreset(Preset):
         yield AddModule("blueprints", exists_ok=True)
 
         # need to use staticmethod as python's magic always passes self as the first argument
-        @staticmethod  # type: ignore[misc]
         def create_files_api_blueprint(app: Flask) -> Blueprint:
             """Create FilesRecord blueprint."""
             with app.app_context():
@@ -57,7 +56,7 @@ class ApiFilesBlueprintPreset(Preset):
         yield AddToModule(
             "blueprints",
             "create_files_api_blueprint",
-            create_files_api_blueprint,
+            staticmethod(create_files_api_blueprint),
         )
 
         yield AddEntryPoint(

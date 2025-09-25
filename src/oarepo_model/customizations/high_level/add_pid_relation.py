@@ -27,7 +27,7 @@ from invenio_records_resources.records.systemfields import (
 from ..base import Customization
 
 if TYPE_CHECKING:
-    from invenio_records_resources.records.systemfields.pid import PIDField
+    from invenio_records_resources.records.systemfields.pid import PIDFieldContext
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
@@ -49,7 +49,7 @@ class AddPIDRelation(Customization):
         name: str,
         path: list[str | type[ARRAY_PATH_ITEM]],
         keys: list[str],
-        pid_field: PIDField,
+        pid_field: PIDFieldContext,
         cache_key: str | None = None,
         **kwargs: Any,
     ) -> None:

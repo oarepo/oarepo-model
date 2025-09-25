@@ -116,10 +116,7 @@ def empty_model(model_types):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield empty_model
-    finally:
-        empty_model.unregister()
+    return empty_model
 
 
 @pytest.fixture(scope="session")
@@ -144,10 +141,7 @@ def draft_model(model_types):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield draft_model
-    finally:
-        draft_model.unregister()
+    return draft_model
 
 
 @pytest.fixture(scope="session")
@@ -176,10 +170,7 @@ def facet_model(model_types):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield facet_model
-    finally:
-        facet_model.unregister()
+    return facet_model
 
 
 @pytest.fixture(scope="session")
@@ -203,10 +194,7 @@ def draft_model_with_files(model_types):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield draft_model
-    finally:
-        draft_model.unregister()
+    return draft_model
 
 
 facet_model_types = {
@@ -429,10 +417,7 @@ def relation_model(empty_model):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield relation_model
-    finally:
-        relation_model.unregister()
+    return relation_model
 
 
 @pytest.fixture(scope="session")
@@ -451,10 +436,7 @@ def records_cf_model(model_types):
     )
     m.register()
 
-    try:
-        yield m
-    finally:
-        m.unregister()
+    return m
 
 
 @pytest.fixture(scope="session")
@@ -474,10 +456,7 @@ def drafts_cf_model(model_types):
     )
     m.register()
 
-    try:
-        yield m
-    finally:
-        m.unregister()
+    return m
 
 
 @pytest.fixture(scope="session")
@@ -501,10 +480,7 @@ def vocabulary_model(empty_model):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield vocabulary_model
-    finally:
-        vocabulary_model.unregister()
+    return vocabulary_model
 
 
 @pytest.fixture(scope="session")
@@ -527,10 +503,7 @@ def multilingual_model(empty_model):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield multilingual_model
-    finally:
-        multilingual_model.unregister()
+    return multilingual_model
 
 
 @pytest.fixture(scope="session")
@@ -562,25 +535,12 @@ def ui_links_model(model_types):
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
 
-    try:
-        yield ui_links_model
-    finally:
-        ui_links_model.unregister()
+    return ui_links_model
 
 
 @pytest.fixture(scope="module")
 def app_config(
     app_config,
-    empty_model,
-    draft_model,
-    draft_model_with_files,
-    records_cf_model,
-    facet_model,
-    drafts_cf_model,
-    relation_model,
-    vocabulary_model,
-    multilingual_model,
-    ui_links_model,
 ):
     """Override pytest-invenio app_config fixture.
 
@@ -672,7 +632,18 @@ def create_app(instance_path, entry_points):
 
 
 @pytest.fixture(scope="module")
-def extra_entry_points():
+def extra_entry_points(
+    empty_model,
+    draft_model,
+    draft_model_with_files,
+    records_cf_model,
+    facet_model,
+    drafts_cf_model,
+    relation_model,
+    vocabulary_model,
+    multilingual_model,
+    ui_links_model,
+):
     return {
         "invenio_base.blueprints": [
             "invenio_app_rdm_records = tests.mock_module:create_invenio_app_rdm_records_blueprint",

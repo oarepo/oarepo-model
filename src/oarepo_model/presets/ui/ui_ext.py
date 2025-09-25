@@ -22,6 +22,7 @@ from oarepo_model.customizations import (
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
+from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -43,7 +44,7 @@ class UIExtPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class ExtUIMixin(ModelMixin):
+        class ExtUIMixin(ModelMixin, RecordExtensionProtocol):
             """Mixin for extension class."""
 
             app: Flask
@@ -52,7 +53,7 @@ class UIExtPreset(Preset):
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
                 return {
-                    **super().model_arguments,  # type: ignore[misc] # pyright: ignore[reportAttributeAccessIssue]
+                    **super().model_arguments,
                     "ui_model": builder.runtime_dependencies.get("ui_model"),
                 }
 
