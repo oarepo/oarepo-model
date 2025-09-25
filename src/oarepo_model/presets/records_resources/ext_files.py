@@ -45,7 +45,7 @@ class RecordWithFilesExtensionProtocol(RecordExtensionProtocol):
     @property
     def files_service(self) -> FileService:
         """File service instance."""
-        raise NotImplementedError
+        return super().files_service  # type: ignore[no-any-return,misc] # pragma: no cover
 
 
 class ExtFilesPreset(Preset):

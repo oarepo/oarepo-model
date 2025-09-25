@@ -49,16 +49,16 @@ class RecordExtensionProtocol(Protocol):
     @property
     def model_arguments(self) -> dict[str, Any]:
         """Return model arguments for the extension."""
-        return super().model_arguments  # type: ignore[no-any-return,misc]
+        return super().model_arguments  # type: ignore[no-any-return,misc]  # pragma: no cover
 
     @property
     def records_service_params(self) -> dict[str, Any]:
         """Return parameters for the records service."""
-        return super().records_service_params  # type: ignore[no-any-return,misc]
+        return super().records_service_params  # type: ignore[no-any-return,misc]  # pragma: no cover
 
     def init_config(self, _app: Flask) -> None:
         """Initialize configuration."""
-        return super().init_config(_app)  # type: ignore[no-any-return,misc]
+        return super().init_config(_app)  # type: ignore[no-any-return,misc]  # pragma: no cover
 
 
 class ExtPreset(Preset):
