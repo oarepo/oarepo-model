@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
+from invenio_drafts_resources.services.records.config import is_record
 from invenio_records_resources.services import (
     ConditionalLink,
     RecordEndpointLink,
@@ -25,7 +26,6 @@ from invenio_records_resources.services import (
 from oarepo_runtime.services.config import (
     has_draft,
     has_permission,
-    is_published_record,
 )
 
 from oarepo_model.customizations import (
@@ -65,12 +65,23 @@ class DraftsUILinksPreset(Preset):
 
         self_links = {
             "self_html": ConditionalLink(
-                cond=is_published_record(),
-                if_=RecordEndpointLink(f"{ui_blueprint_name}.detail", when=has_permission("read")),
-                else_=RecordEndpointLink(f"{ui_blueprint_name}.preview", when=has_permission("read_draft")),
+                cond=is_record,
+                if_=RecordEndpointLink(f"{ui_blueprint_name}.record_detail", when=has_permission("read")),
+                else_=RecordEndpointLink(f"{ui_blueprint_name}.deposit_edit", when=has_permission("read_draft")),
+            ),
+            "edit_html": RecordEndpointLink(
+                f"{ui_blueprint_name}.deposit_edit",
+                when=has_permission("edit"),
             ),
             "preview_html": RecordEndpointLink(
-                f"{ui_blueprint_name}.preview",
+                f"{ui_blueprint_name}.record_detail",
+                vars=lambda _, vars_: vars_.update(
+                    {
+                        "args": {
+                            "preview": "1",
+                        }
+                    }
+                ),
                 when=has_draft() & has_permission("read_draft"),
             ),
             "latest_html": RecordEndpointLink(
