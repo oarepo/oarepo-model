@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, cast, override
 
 from babel.support import LazyProxy
 from flask_resources import (
-    ResponseHandler,
+    ResponseHandler, RequestBodyParser,
 )
 from invenio_records_resources.resources.records.config import RecordResourceConfig
 from invenio_records_resources.resources.records.headers import etag_headers
@@ -31,7 +31,7 @@ from oarepo_model.presets import Preset
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from oarepo_runtime.api import Export
+    from oarepo_runtime.api import Export, Import
 
     from oarepo_model.builder import InvenioModelBuilder
 
@@ -55,12 +55,17 @@ class RecordResourceConfigPreset(Preset):
 
             # Response handling
             response_handlers = Dependency("record_response_handlers", "exports", transform=_merge_with_exports)
+            request_body_parsers = Dependency("record_request_body_parsers", "imports", transform=_merge_with_imports)
 
         yield AddClass("RecordResourceConfig", clazz=RecordResourceConfig)
         yield AddMixins("RecordResourceConfig", RecordResourceConfigMixin)
 
         yield AddDictionary(
             "record_response_handlers",
+            {},
+        )
+        yield AddDictionary(
+            "record_request_body_parsers",
             {},
         )
 
@@ -92,3 +97,29 @@ def _register_export(cache: dict[str, ResponseHandler], export: Export) -> Respo
         return cache[export.code]
 
     return cast("ResponseHandler", LazyProxy(lookup_or_create))
+
+
+def _merge_with_imports(record_request_body_parsers: dict, imports: list[Import]) -> dict:
+    """Merge imports into the record_request_body_parsers."""
+    # we need to return lazy request body parsers as well as do not recreate then with
+    # every call. To do this we need to cache the created handlers.
+    handler_cache: dict[str, RequestBodyParser] = {}
+
+    for import_option in imports:
+        record_request_body_parsers[import_option.mimetype] = _register_import(handler_cache, import_option)
+    return record_request_body_parsers
+
+
+def _register_import(cache: dict[str, RequestBodyParser], import_option: Import) -> RequestBodyParser:
+    """Register a new import and return its request body parser.
+
+    The handler is created when it is accessed first time and cached for future use.
+    """
+
+    def lookup_or_create() -> RequestBodyParser:
+        """Lookup or create a new request body parser."""
+        if import_option.code not in cache:
+            cache[import_option.code] = RequestBodyParser(import_option.deserializer)
+        return cache[import_option.code]
+
+    return cast("RequestBodyParser", LazyProxy(lookup_or_create))

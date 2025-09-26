@@ -17,7 +17,8 @@ with simple, declarative interfaces.
 from __future__ import annotations
 
 from .add_export import AddMetadataExport
+from .add_import import AddMetadataImport
 from .add_pid_relation import AddPIDRelation
 from .set_permission_policy import SetPermissionPolicy
 
-__all__ = ("AddMetadataExport", "AddPIDRelation", "SetPermissionPolicy")
+__all__ = ("AddMetadataExport", "AddPIDRelation", "SetPermissionPolicy", "AddMetadataImport")
