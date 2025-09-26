@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from flask_resources import BaseListSchema
 from flask_resources.deserializers import DeserializerMixin
 
 from oarepo_model.customizations import AddClass, Customization
@@ -45,18 +44,11 @@ class JSONDeserializerPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        runtime_dependencies = builder.get_runtime_dependencies()
-
         class JSONDeserializer(DeserializerMixin):
             """JSON deserializer."""
 
             def __init__(self):
                 """Initialise Deserializer."""
-                super().__init__(
-                    format_serializer_cls=DeserializerMixin,
-                    object_schema_cls=runtime_dependencies.get("RecordUISchema"),
-                    list_schema_cls=BaseListSchema,
-                    schema_context={"object_key": "ui"},
-                )
+                super().__init__()
 
         yield AddClass("JSONDeserializer", JSONDeserializer)

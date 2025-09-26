@@ -45,5 +45,5 @@ class ImportsPreset(Preset):
             name=_("JSON"),
             mimetype="application/json",
             deserializer=DeserializerMixin(),
-            description="json import",
+            description=_("json import"),
         )

@@ -62,5 +62,5 @@ class RegisterJSONDeSerializerPreset(Preset):
                 "DeserializerMixin",
                 LocalProxy(lambda: runtime_deps.get("JSONDeserializer")()),
             ),
-            description="json import",
+            description=_("json import"),
         )

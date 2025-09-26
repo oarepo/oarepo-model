@@ -39,7 +39,7 @@ class AddMetadataImport(Customization):
         name: LazyString,
         mimetype: str,
         deserializer: DeserializerMixin,
-        description: str,
+        description: LazyString,
         **kwargs: Any,
     ):
         """Initialize the AddMetadataImport customization.
@@ -68,6 +68,5 @@ class AddMetadataImport(Customization):
                 mimetype=self._mimetype,
                 description=self._description,
                 deserializer=self._deserializer,
-                **self._kwargs,
             )
         )
