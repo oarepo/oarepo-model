@@ -104,7 +104,7 @@ class DraftServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_versions(self) -> dict[str, Link]:
+            def links_search_versions(self) -> dict[str, Link]:
                 try:
                     supercls_links = super().links_search_versions
                 except AttributeError:  # if they aren't defined in the superclass
