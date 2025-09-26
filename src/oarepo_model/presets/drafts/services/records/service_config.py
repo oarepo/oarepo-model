@@ -41,6 +41,7 @@ from oarepo_runtime.services.config import (
     has_published_record,
     is_published_record,
 )
+from oarepo_runtime.services.records.links import pagination_record_endpoint_links
 
 from oarepo_model.customizations import (
     AddDictionary,
@@ -186,7 +187,8 @@ class DraftServiceConfigPreset(Preset):
             pagination_endpoint_links(f"{model.blueprint_base}.search_user_records"),
         )
 
+        # We need <pid_value> to substitute into the url rule but search_versions adds <id> into the link template
         yield AddDictionary(
             "record_version_search_links",
-            pagination_endpoint_links(f"{model.blueprint_base}.search_versions"),
+            pagination_record_endpoint_links(f"{model.blueprint_base}.search_versions"),
         )
