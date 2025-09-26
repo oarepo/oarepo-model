@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 class RecordResourceConfigPreset(Preset):
     """Preset for record resource config class."""
 
-    provides = ("RecordResourceConfig", "record_response_handlers")
+    provides = ("RecordResourceConfig", "record_response_handlers", "record_request_body_parsers")
 
     @override
     def apply(
@@ -55,6 +55,7 @@ class RecordResourceConfigPreset(Preset):
 
             # Response handling
             response_handlers = Dependency("record_response_handlers", "exports", transform=_merge_with_exports)
+            # Request handling
             request_body_parsers = Dependency("record_request_body_parsers", "imports", transform=_merge_with_imports)
 
         yield AddClass("RecordResourceConfig", clazz=RecordResourceConfig)

@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, override
 from flask_resources import (
     JSONSerializer,
 )
+from flask_resources.deserializers import DeserializerMixin
 from invenio_i18n import lazy_gettext as _
 
 from oarepo_model.customizations import AddList, AddMetadataImport, Customization
@@ -46,9 +47,6 @@ class ImportsPreset(Preset):
             code="json",
             name=_("JSON"),
             mimetype="application/json",
-            serializer=JSONSerializer(),
+            deserializer=DeserializerMixin,
             display=True,
-            oai_metadata_prefix=None,
-            oai_schema=None,
-            oai_namespace=None,
         )
