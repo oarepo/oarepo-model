@@ -16,14 +16,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from flask_resources.deserializers import DeserializerMixin
 from oarepo_runtime.api import Import
 
 from ..base import Customization
 
 if TYPE_CHECKING:
     from flask_babel.speaklater import LazyString
-    from flask_resources.serializers import BaseSerializer
+    from flask_resources.deserializers import DeserializerMixin
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
@@ -34,7 +33,7 @@ class AddMetadataImport(Customization):
 
     modifies = ("imports",)
 
-    def __init__(  # noqa PLR0913 too many arguments
+    def __init__(
         self,
         code: str,
         name: LazyString,

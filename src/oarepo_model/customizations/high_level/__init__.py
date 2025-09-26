@@ -21,4 +21,4 @@ from .add_import import AddMetadataImport
 from .add_pid_relation import AddPIDRelation
 from .set_permission_policy import SetPermissionPolicy
 
-__all__ = ("AddMetadataExport", "AddPIDRelation", "SetPermissionPolicy", "AddMetadataImport")
+__all__ = ("AddMetadataExport", "AddMetadataImport", "AddPIDRelation", "SetPermissionPolicy")

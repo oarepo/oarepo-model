@@ -12,9 +12,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from flask_resources import (
-    JSONSerializer,
-)
 from flask_resources.deserializers import DeserializerMixin
 from invenio_i18n import lazy_gettext as _
 
@@ -47,6 +44,6 @@ class ImportsPreset(Preset):
             code="json",
             name=_("JSON"),
             mimetype="application/json",
-            deserializer=DeserializerMixin,
-            display=True,
+            deserializer=DeserializerMixin(),
+            description="json import",
         )

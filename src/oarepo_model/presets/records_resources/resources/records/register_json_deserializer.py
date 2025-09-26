@@ -24,26 +24,25 @@ from typing import TYPE_CHECKING, Any, cast, override
 from invenio_i18n import lazy_gettext as _
 from werkzeug.local import LocalProxy
 
-from oarepo_model.customizations import (
-    AddMetadataExport,
-    Customization,
-)
 from oarepo_model.customizations.high_level import AddMetadataImport
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from flask_resources.serializers import BaseSerializer
+    from flask_resources.deserializers.base import DeserializerMixin
 
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.customizations import (
+        Customization,
+    )
     from oarepo_model.model import InvenioModel
 
 
 class RegisterJSONDeSerializerPreset(Preset):
     """Preset for registering JSON UI Serializer."""
 
-    depends_on = ("JSONUISerializer",)
+    depends_on = ("JSONDeserializer",)
     modifies = ("imports",)
 
     @override
@@ -56,11 +55,12 @@ class RegisterJSONDeSerializerPreset(Preset):
         runtime_deps = builder.get_runtime_dependencies()
 
         yield AddMetadataImport(
-            code="ui_json",
-            name=_("UI JSON"),
+            code="json",
+            name=_("JSON"),
             mimetype="application/vnd.inveniordm.v1+json",
             deserializer=cast(
-                "BaseSerializer",
-                LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),
+                "DeserializerMixin",
+                LocalProxy(lambda: runtime_deps.get("JSONDeserializer")()),
             ),
+            description="json import",
         )

@@ -14,7 +14,8 @@ from typing import TYPE_CHECKING, Any, cast, override
 
 from babel.support import LazyProxy
 from flask_resources import (
-    ResponseHandler, RequestBodyParser,
+    RequestBodyParser,
+    ResponseHandler,
 )
 from invenio_records_resources.resources.records.config import RecordResourceConfig
 from invenio_records_resources.resources.records.headers import etag_headers
