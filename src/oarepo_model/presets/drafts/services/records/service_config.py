@@ -41,7 +41,6 @@ from oarepo_runtime.services.config import (
     has_published_record,
     is_published_record,
 )
-from oarepo_runtime.services.records.links import pagination_record_endpoint_links
 
 from oarepo_model.customizations import (
     AddDictionary,
@@ -55,7 +54,7 @@ from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Callable, Generator
 
     from invenio_drafts_resources.records.api import Draft
     from invenio_drafts_resources.services.records.config import (
@@ -63,6 +62,7 @@ if TYPE_CHECKING:
     )
 
     from oarepo_model.builder import InvenioModelBuilder
+
 else:
     DraftRecordServiceConfig = object
 
@@ -92,7 +92,9 @@ class DraftServiceConfigPreset(Preset):
             draft_cls = cast("type[Draft]", Dependency("Draft"))
 
             @property
-            def links_search_drafts(self) -> dict[str, Link]:
+            def links_search_drafts(  # type: ignore[reportIncompatibleVariableOverride]
+                self,
+            ) -> dict[str, Link | EndpointLink | Callable[..., Link | EndpointLink]]:
                 try:
                     supercls_links = super().links_search_drafts
                 except AttributeError:  # if they aren't defined in the superclass
@@ -104,7 +106,7 @@ class DraftServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search_versions(self) -> dict[str, Link]:
+            def links_search_versions(self) -> dict[str, Link | EndpointLink]:  # type: ignore[reportIncompatibleVariableOverride]
                 try:
                     supercls_links = super().links_search_versions
                 except AttributeError:  # if they aren't defined in the superclass
@@ -187,8 +189,12 @@ class DraftServiceConfigPreset(Preset):
             pagination_endpoint_links(f"{model.blueprint_base}.search_user_records"),
         )
 
-        # We need <pid_value> to substitute into the url rule but search_versions adds <id> into the link template
+        # Versions behave differently for draft records and rdm records. In draft records,
+        # versions require that record is given as an "id" parameter, while in rdm records,
+        # it must be given by a pid_value parameter. Because we normally would not use
+        # draft records without rdm layer, we keep the links empty here and override them
+        # in rdm preset inside oarepo-rdm.
         yield AddDictionary(
             "record_version_search_links",
-            pagination_record_endpoint_links(f"{model.blueprint_base}.search_versions"),
+            {},
         )
