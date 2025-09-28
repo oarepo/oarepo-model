@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast, override
 
 from invenio_records_resources.services import (
+    EndpointLink,
     Link,
     LinksTemplate,
     RecordEndpointLink,
@@ -37,7 +38,7 @@ from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator
+    from collections.abc import Callable, Generator, Mapping
 
     import marshmallow as ma
     from invenio_records_permissions.policies.records import RecordPermissionPolicy
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
     )
 
     from oarepo_model.builder import InvenioModelBuilder
+
 
 else:
     BaseRecordServiceConfig = object
@@ -97,7 +99,7 @@ class RecordServiceConfigPreset(Preset):
             search_item_links_template = LinksTemplate
 
             @property
-            def components(self) -> tuple[type[ServiceComponent], ...]:
+            def components(self) -> tuple[type[ServiceComponent], ...]:  # type: ignore[reportIncompatibleVariableOverride]
                 # TODO: needs to be fixed as we have multiple mixins and the sources
                 # in oarepo-runtime do not support this yet
                 # return process_service_configs(
@@ -114,7 +116,9 @@ class RecordServiceConfigPreset(Preset):
             model = builder.model.name
 
             @property
-            def links_item(self) -> dict[str, Callable[..., Any] | Link]:
+            def links_item(  # type: ignore[reportIncompatibleVariableOverride]
+                self,
+            ) -> Mapping[str, Callable[..., Link | EndpointLink] | Link | EndpointLink]:
                 try:
                     supercls_links = super().links_item
                 except AttributeError:  # if they aren't defined in the superclass
@@ -127,7 +131,7 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search_item(self) -> dict[str, Link]:
+            def links_search_item(self) -> Mapping[str, Link]:  # type: ignore[reportIncompatibleVariableOverride]
                 try:
                     # this is oarepo extension - do not put all links on search result
                     # item
@@ -141,7 +145,9 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search(self) -> dict[str, Callable[..., Any] | Link]:
+            def links_search(  # type: ignore[reportIncompatibleVariableOverride]
+                self,
+            ) -> Mapping[str, Callable[..., Link | EndpointLink] | Link | EndpointLink]:
                 try:
                     supercls_links = super().links_search
                 except AttributeError:  # if they aren't defined in the superclass
