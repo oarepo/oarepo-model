@@ -34,9 +34,6 @@ dev = [
 tests = [
     "pytest-invenio",
 ]
-oarepo13=[
-    "oarepo[rdm]>=13,<14",
-]
 oarepo14=[
     "oarepo[rdm]>=14,<15",
 ]
