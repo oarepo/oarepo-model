@@ -23,6 +23,7 @@ from .relations import PIDRelation
 
 if TYPE_CHECKING:
     from invenio_records_resources.records.systemfields.pid import PIDFieldContext
+    from invenio_vocabularies.records.systemfields.pid import VocabularyPIDFieldContext
     from marshmallow import Schema
 
 
@@ -133,7 +134,10 @@ class VocabularyDataType(PIDRelation):
             case vocab_type:
                 from invenio_vocabularies.records.api import Vocabulary
 
-                return cast("PIDFieldContext", Vocabulary.pid.with_type_ctx(vocab_type))
+                return cast(
+                    "PIDFieldContext",
+                    cast("VocabularyPIDFieldContext", Vocabulary.pid).with_type_ctx(vocab_type),
+                )
 
     def _cache_key(
         self,
