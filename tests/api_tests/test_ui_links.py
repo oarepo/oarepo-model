@@ -21,15 +21,15 @@ def app_with_bp(app):
     bp = Blueprint("test_ui_links_ui", __name__)
 
     # mock UI resource
-    @bp.route("/test-ui-links/preview/<pid_value>", methods=["GET"])
+    @bp.route("/test-ui-links/records/<pid_value>?preview=1", methods=["GET"])
     def preview(pid_value: str) -> str:
         return "preview ok"
 
-    @bp.route("/test-ui-links/latest/<pid_value>", methods=["GET"])
+    @bp.route("/test-ui-links/<pid_value>/latest", methods=["GET"])
     def latest(pid_value: str) -> str:
         return "latest ok"
 
-    @bp.route("/test-ui-links/search", methods=["GET"])
+    @bp.route("/test-ui-links/", methods=["GET"])
     def search() -> str:
         return "search ok"
 
