@@ -85,7 +85,7 @@ class DraftsUILinksPreset(Preset):
                 when=has_draft() & has_permission("read_draft"),
             ),
             "latest_html": RecordEndpointLink(
-                f"{ui_blueprint_name}.latest",
+                f"{ui_blueprint_name}.record_latest",
                 when=has_permission("read"),
             ),
         }
