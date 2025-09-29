@@ -25,7 +25,6 @@ def app_with_bp(app):
     def preview(pid_value: str) -> str:
         return "preview ok"
 
-
     @bp.route("/test-ui-links/", methods=["GET"])
     def search() -> str:
         return "search ok"
@@ -36,7 +35,7 @@ def app_with_bp(app):
 
     @bp.route("/test-ui-links/uploads/new", methods=["GET"])
     def deposit_create() -> str:
-         return "deposit create ok"
+        return "deposit create ok"
 
     @bp.route("/test-ui-links/records/<pid_value>")
     def record_detail(pid_value) -> str:
@@ -45,7 +44,7 @@ def app_with_bp(app):
     @bp.route("/test-ui-links/records/<pid_value>/latest", methods=["GET"])
     def record_latest(pid_value: str) -> str:
         return "latest ok"
-    
+
     @bp.route("/test-ui-links/records/<pid_value>/export/<export_format>", methods=["GET"])
     def export(pid_value, export_format: str) -> str:
         return "export ok"
