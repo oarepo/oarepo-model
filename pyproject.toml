@@ -10,6 +10,7 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
     "oarepo-runtime>=2.0.0dev5,<3.0.0",
     "graphlib",
+    "oarepo[rdm,tests]>=14.0.0,<15.0.0",
     "deepmerge>=2.0",
     "dotenv>=0.9.9",
     "marshmallow-i18n-messages>=0.1.0",
@@ -32,9 +33,6 @@ dev = [
 ]
 tests = [
     "pytest-invenio",
-]
-oarepo13=[
-    "oarepo[rdm]>=13,<14",
 ]
 oarepo14=[
     "oarepo[rdm]>=14,<15",

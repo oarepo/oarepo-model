@@ -25,13 +25,29 @@ def app_with_bp(app):
     def preview(pid_value: str) -> str:
         return "preview ok"
 
-    @bp.route("/test-ui-links/latest/<pid_value>", methods=["GET"])
-    def latest(pid_value: str) -> str:
-        return "latest ok"
-
-    @bp.route("/test-ui-links/search", methods=["GET"])
+    @bp.route("/test-ui-links/", methods=["GET"])
     def search() -> str:
         return "search ok"
+
+    @bp.route("/test-ui-links/uploads/<pid_value>", methods=["GET"])
+    def deposit_edit(pid_value: str) -> str:
+        return "deposit edit ok"
+
+    @bp.route("/test-ui-links/uploads/new", methods=["GET"])
+    def deposit_create() -> str:
+        return "deposit create ok"
+
+    @bp.route("/test-ui-links/records/<pid_value>")
+    def record_detail(pid_value) -> str:
+        return "detail ok"
+
+    @bp.route("/test-ui-links/records/<pid_value>/latest", methods=["GET"])
+    def record_latest(pid_value: str) -> str:
+        return "latest ok"
+
+    @bp.route("/test-ui-links/records/<pid_value>/export/<export_format>", methods=["GET"])
+    def export(pid_value, export_format: str) -> str:
+        return "export ok"
 
     app.register_blueprint(bp)
     return app
