@@ -28,10 +28,10 @@ import marshmallow
 from flask_resources import BaseObjectSchema
 from invenio_rdm_records.resources.serializers.ui.fields import AccessStatusField
 from invenio_rdm_records.resources.serializers.ui.schema import (
-    FormatDate,
     TombstoneSchema,
 )
 from marshmallow import fields
+from marshmallow_utils.fields import FormatDate
 
 from oarepo_model.customizations import AddClass, AddMixins, Customization
 from oarepo_model.datatypes.collections import ObjectDataType

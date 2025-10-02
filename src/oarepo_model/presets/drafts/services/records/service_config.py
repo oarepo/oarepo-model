@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any, cast, override
 from invenio_drafts_resources.services import (
     RecordServiceConfig as DraftServiceConfig,
 )
-from invenio_rdm_records.services.config import (
+from invenio_drafts_resources.services.records.config import (
     is_record,
 )
 from invenio_records_resources.services import (
