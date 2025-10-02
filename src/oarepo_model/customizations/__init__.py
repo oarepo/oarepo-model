@@ -34,7 +34,7 @@ from .add_to_module import AddToModule
 from .base import Customization
 from .change_base import ChangeBase
 from .copy_file import CopyFile
-from .high_level import AddMetadataExport, AddPIDRelation, SetPermissionPolicy
+from .high_level import AddMetadataExport, AddMetadataImport, AddPIDRelation, SetPermissionPolicy
 from .patch_json_file import PatchJSONFile
 
 __all__ = [
@@ -49,6 +49,7 @@ __all__ = [
     "AddJSONFile",
     "AddList",
     "AddMetadataExport",
+    "AddMetadataImport",
     "AddMixins",
     "AddModule",
     "AddPIDRelation",
