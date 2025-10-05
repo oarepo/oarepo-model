@@ -50,7 +50,7 @@ class ObjectDataType(DataType):
         This method can be overridden by subclasses to provide specific properties logic.
         """
         if "properties" not in element:
-            raise ValueError("Element must contain 'properties' key.")
+            raise ValueError(f"Element must contain 'properties' key. Got {element}")  # pragma: no cover
         if not isinstance(element["properties"], dict):
             raise TypeError(
                 "Element 'properties' must be a dictionary.",

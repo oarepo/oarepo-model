@@ -15,8 +15,11 @@ data type registry.
 
 from __future__ import annotations
 
+import copy
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, cast, override
+
+import deepmerge
 
 from .base import DataType
 
@@ -60,7 +63,10 @@ class WrappedDataType(DataType):
             for key, value in element.items()
             if key != "type"  # remove type to avoid conflicts
         }
-        return strict_merge(self.type_dict, element_without_type)
+        return cast(
+            "dict[str, Any]",
+            deepmerge.always_merger.merge(copy.deepcopy(self.type_dict), element_without_type),
+        )
 
     @override
     def create_marshmallow_field(
@@ -117,7 +123,10 @@ class WrappedDataType(DataType):
         if self.name == "Metadata":
             path = "metadata"
         return cast("ObjectDataType", self.impl).get_facet(
-            path, element=self._merge_type_dict(element), nested_facets=nested_facets, facets=facets
+            path,
+            element=self._merge_type_dict(element),
+            nested_facets=nested_facets,
+            facets=facets,
         )
 
     def create_ui_marshmallow_schema(
@@ -155,27 +164,3 @@ class WrappedDataType(DataType):
         path: list[str],
     ) -> dict[str, Any]:
         return self.impl.create_ui_model(self._merge_type_dict(element), path)
-
-
-def strict_merge[T](a: T, b: T) -> T:
-    """Merge two dictionaries, arrays or other types.
-
-    In dictionaries, one element can not override another element with the same key.
-    """
-    match a:
-        case dict():
-            if not isinstance(b, dict):
-                raise TypeError(f"Cannot merge dict with {type(b)}")
-            if not a.keys().isdisjoint(b.keys()):
-                raise ValueError(
-                    f"Cannot merge dictionaries with overlapping keys: {a.keys() & b.keys()}",
-                )
-            return cast("T", {**a, **b})
-        case list():
-            if not isinstance(b, list):
-                raise TypeError(f"Cannot merge list with {type(b)}")
-            return cast("T", a + b)
-        case _:
-            if a != b:
-                raise TypeError(f"Cannot merge {type(a)} with {type(b)}")
-            return a

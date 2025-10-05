@@ -24,7 +24,7 @@ from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
 from oarepo_runtime.services.records.mapping import update_all_records_mappings
 
-from oarepo_model.customizations import AddFacetGroup
+from oarepo_model.customizations import AddDefaultSearchFields, AddFacetGroup
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
 log = logging.getLogger("tests")
@@ -134,7 +134,9 @@ def draft_model(model_types):
         presets=[records_preset, drafts_records_preset, ui_links_preset],
         types=[model_types],
         metadata_type="Metadata",
-        customizations=[],
+        customizations=[
+            AddDefaultSearchFields("title"),
+        ],
     )
     draft_model.register()
 
