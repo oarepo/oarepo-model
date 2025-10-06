@@ -226,12 +226,10 @@ class DataType:
         else:
             replaced_arrays.append(path[-1])
 
-        target_path = "/".join(replaced_arrays)
-
         ret: dict[str, Any] = {
-            "help": (element.get("help.key", f"{target_path}.help")),
-            "label": (element.get("label.key", f"{target_path}.label")),
-            "hint": (element.get("hint.key", f"{target_path}.hint")),
+            "help": (element.get("help", {"und": ""})),
+            "label": (element.get("label", {"und": replaced_arrays[-1]})),
+            "hint": (element.get("hint", {"und": ""})),
         }
         if element.get("required"):
             ret["required"] = True
