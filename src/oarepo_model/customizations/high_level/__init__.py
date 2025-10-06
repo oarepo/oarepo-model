@@ -18,6 +18,12 @@ from __future__ import annotations
 
 from .add_export import AddMetadataExport
 from .add_pid_relation import AddPIDRelation
+from .add_search_fields import AddDefaultSearchFields
 from .set_permission_policy import SetPermissionPolicy
 
-__all__ = ("AddMetadataExport", "AddPIDRelation", "SetPermissionPolicy")
+__all__ = (
+    "AddDefaultSearchFields",
+    "AddMetadataExport",
+    "AddPIDRelation",
+    "SetPermissionPolicy",
+)

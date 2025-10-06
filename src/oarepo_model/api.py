@@ -55,6 +55,7 @@ class FunctionalPreset:
         types: list[dict[str, Any] | Callable[[], dict]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         customizations: list[Customization],
+        params: dict[str, Any],
     ) -> None:
         """Perform extra action before populating the type registry."""
 
@@ -64,36 +65,40 @@ class FunctionalPreset:
         types: list[dict[str, Any] | Callable[[], dict]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         customizations: list[Customization],
+        params: dict[str, Any],
     ) -> None:
         """Perform extra action after populating the type registry."""
 
-    def after_builder_created(
+    def after_builder_created(  # noqa PLR0913 - too many arguments
         self,
         model: InvenioModel,
         types: list[dict[str, Any] | Callable[[], dict]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         builder: InvenioModelBuilder,
         customizations: list[Customization],
+        params: dict[str, Any],
     ) -> None:
         """Perform extra action after the model builder is created."""
 
-    def after_presets_sorted(
+    def after_presets_sorted(  # noqa PLR0913 - too many arguments
         self,
         model: InvenioModel,
         types: list[dict[str, Any] | Callable[[], dict]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         builder: InvenioModelBuilder,
         customizations: list[Customization],
+        params: dict[str, Any],
     ) -> None:
         """Perform extra action after the presets are sorted."""
 
-    def after_user_customizations_applied(
+    def after_user_customizations_applied(  # noqa PLR0913 - too many arguments
         self,
         model: InvenioModel,
         types: list[dict[str, Any] | Callable[[], dict]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         builder: InvenioModelBuilder,
         customizations: list[Customization],
+        params: dict[str, Any],
     ) -> None:
         """Perform extra action after user customizations are applied."""
 
@@ -105,6 +110,7 @@ class FunctionalPreset:
         builder: InvenioModelBuilder,
         customizations: list[Customization],
         model_namespace: SimpleNamespace,
+        params: dict[str, Any],
     ) -> None:
         """Perform extra action after the model is built."""
 
@@ -160,7 +166,12 @@ def model(  # noqa: PLR0913 too many arguments
 
     flattened_presets, functional_presets = flatten_presets(presets)
 
+    # passing locals here so that functional presets can modify the parameters
+    # before the model is created
     FunctionalPreset.call(functional_presets, "before_invenio_model", params=locals())
+
+    # now capturing the current state of locals for the rest of the calls
+    params = {**locals()}
 
     model = InvenioModel(
         name=name,
@@ -178,6 +189,7 @@ def model(  # noqa: PLR0913 too many arguments
         types=types,
         presets=presets,
         customizations=customizations,
+        params=params,
     )
 
     type_registry = populate_type_registry(types)
@@ -189,6 +201,7 @@ def model(  # noqa: PLR0913 too many arguments
         types=types,
         presets=presets,
         customizations=customizations,
+        params=params,
     )
 
     builder = InvenioModelBuilder(model, type_registry)
@@ -201,6 +214,7 @@ def model(  # noqa: PLR0913 too many arguments
         presets=presets,
         builder=builder,
         customizations=customizations,
+        params=params,
     )
 
     # filter out presets that do not have only_if condition satisfied
@@ -216,6 +230,7 @@ def model(  # noqa: PLR0913 too many arguments
         presets=presets,
         builder=builder,
         customizations=customizations,
+        params=params,
     )
 
     user_customizations = [*(customizations)]
@@ -262,6 +277,7 @@ def model(  # noqa: PLR0913 too many arguments
         presets=presets,
         builder=builder,
         customizations=customizations,
+        params=params,
     )
 
     # maybe replace this with a LazyNamespace if there are dependency issues
@@ -281,6 +297,7 @@ def model(  # noqa: PLR0913 too many arguments
         builder=builder,
         customizations=customizations,
         model_namespace=ret,
+        params=params,
     )
     return ret
 
