@@ -48,20 +48,22 @@ class DateDataType(FacetMixin, DataType):
         element: dict[str, Any],
     ) -> dict[str, marshmallow.fields.Field]:
         """Create a Marshmallow UI fields for Date value, specifically long, medium, short, full formats."""
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or marshmallow_utils.fields.FormatDate
+
         return {
-            f"{field_name}_l10n_long": marshmallow_utils.fields.FormatDate(
+            f"{field_name}_l10n_long": field_class(
                 attribute=field_name,
                 format="long",
             ),
-            f"{field_name}_l10n_medium": marshmallow_utils.fields.FormatDate(
+            f"{field_name}_l10n_medium": field_class(
                 attribute=field_name,
                 format="medium",
             ),
-            f"{field_name}_l10n_short": marshmallow_utils.fields.FormatDate(
+            f"{field_name}_l10n_short": field_class(
                 attribute=field_name,
                 format="short",
             ),
-            f"{field_name}_l10n_full": marshmallow_utils.fields.FormatDate(
+            f"{field_name}_l10n_full": field_class(
                 attribute=field_name,
                 format="full",
             ),
@@ -118,20 +120,23 @@ class DateTimeDataType(FacetMixin, DataType):
         element: dict[str, Any],
     ) -> dict[str, marshmallow.fields.Field]:
         """Create a Marshmallow UI fields for DateTime value, specifically long, medium, short, full formats."""
+        field_class = (
+            self._get_ui_marshmallow_field_class(field_name, element) or marshmallow_utils.fields.FormatDatetime
+        )
         return {
-            f"{field_name}_l10n_long": marshmallow_utils.fields.FormatDatetime(
+            f"{field_name}_l10n_long": field_class(
                 attribute=field_name,
                 format="long",
             ),
-            f"{field_name}_l10n_medium": marshmallow_utils.fields.FormatDatetime(
+            f"{field_name}_l10n_medium": field_class(
                 attribute=field_name,
                 format="medium",
             ),
-            f"{field_name}_l10n_short": marshmallow_utils.fields.FormatDatetime(
+            f"{field_name}_l10n_short": field_class(
                 attribute=field_name,
                 format="short",
             ),
-            f"{field_name}_l10n_full": marshmallow_utils.fields.FormatDatetime(
+            f"{field_name}_l10n_full": field_class(
                 attribute=field_name,
                 format="full",
             ),
@@ -182,20 +187,21 @@ class TimeDataType(FacetMixin, DataType):
         element: dict[str, Any],
     ) -> dict[str, marshmallow.fields.Field]:
         """Create a Marshmallow UI fields for Time value, specifically long, medium, short, full formats."""
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or marshmallow_utils.fields.FormatTime
         return {
-            f"{field_name}_l10n_long": marshmallow_utils.fields.FormatTime(
+            f"{field_name}_l10n_long": field_class(
                 attribute=field_name,
                 format="long",
             ),
-            f"{field_name}_l10n_medium": marshmallow_utils.fields.FormatTime(
+            f"{field_name}_l10n_medium": field_class(
                 attribute=field_name,
                 format="medium",
             ),
-            f"{field_name}_l10n_short": marshmallow_utils.fields.FormatTime(
+            f"{field_name}_l10n_short": field_class(
                 attribute=field_name,
                 format="short",
             ),
-            f"{field_name}_l10n_full": marshmallow_utils.fields.FormatTime(
+            f"{field_name}_l10n_full": field_class(
                 attribute=field_name,
                 format="full",
             ),
@@ -268,20 +274,21 @@ class EDTFTimeDataType(FacetMixin, DataType):
         element: dict[str, Any],
     ) -> dict[str, marshmallow.fields.Field]:
         """Create a Marshmallow UI fields for EDTFTime value, specifically long, medium, short, full formats."""
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or marshmallow_utils.fields.FormatEDTF
         return {
-            f"{field_name}_l10n_long": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_long": field_class(
                 attribute=field_name,
                 format="long",
             ),
-            f"{field_name}_l10n_medium": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_medium": field_class(
                 attribute=field_name,
                 format="medium",
             ),
-            f"{field_name}_l10n_short": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_short": field_class(
                 attribute=field_name,
                 format="short",
             ),
-            f"{field_name}_l10n_full": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_full": field_class(
                 attribute=field_name,
                 format="full",
             ),
@@ -328,20 +335,21 @@ class EDTFDataType(FacetMixin, DataType):
         element: dict[str, Any],
     ) -> dict[str, marshmallow.fields.Field]:
         """Create a Marshmallow UI fields for EDTF value, specifically long, medium, short, full formats."""
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or marshmallow_utils.fields.FormatEDTF
         return {
-            f"{field_name}_l10n_long": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_long": field_class(
                 attribute=field_name,
                 format="long",
             ),
-            f"{field_name}_l10n_medium": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_medium": field_class(
                 attribute=field_name,
                 format="medium",
             ),
-            f"{field_name}_l10n_short": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_short": field_class(
                 attribute=field_name,
                 format="short",
             ),
-            f"{field_name}_l10n_full": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_full": field_class(
                 attribute=field_name,
                 format="full",
             ),
@@ -383,20 +391,21 @@ class EDTFIntervalType(DataType):
         element: dict[str, Any],
     ) -> dict[str, marshmallow.fields.Field]:
         """Create a Marshmallow UI fields for EDTFInterval value, specifically long, medium, short, full formats."""
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or marshmallow_utils.fields.FormatEDTF
         return {
-            f"{field_name}_l10n_long": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_long": field_class(
                 attribute=field_name,
                 format="long",
             ),
-            f"{field_name}_l10n_medium": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_medium": field_class(
                 attribute=field_name,
                 format="medium",
             ),
-            f"{field_name}_l10n_short": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_short": field_class(
                 attribute=field_name,
                 format="short",
             ),
-            f"{field_name}_l10n_full": marshmallow_utils.fields.FormatEDTF(
+            f"{field_name}_l10n_full": field_class(
                 attribute=field_name,
                 format="full",
             ),

@@ -82,8 +82,9 @@ class I18nDataType(ObjectDataType, MultilingualMixin):
         element: dict[str, Any],
     ) -> dict[str, marshmallow.fields.Field]:
         lang, value = self.get_multilingual_field(element)
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or I18nStrUIField
 
-        return {field_name: I18nStrUIField(lang_name=lang, value_name=value)}
+        return {field_name: field_class(lang_name=lang, value_name=value)}
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
@@ -168,9 +169,10 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
     ) -> dict[str, marshmallow.fields.Field]:
         """Create a UI Marshmallow field for the data type."""
         lang, value = self.get_multilingual_field(element)
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or MultilingualUIField
 
         return {
-            field_name: MultilingualUIField(lang_name=lang, value_name=value),
+            field_name: field_class(lang_name=lang, value_name=value),
         }
 
     @override
@@ -269,6 +271,12 @@ class I18nDictDataType(ObjectDataType):
     """
 
     TYPE = "i18ndict"
+
+    @override
+    def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Get properties for the data type."""
+        # Note: maybe we should allow defining properties, not a strong need for now
+        return {}
 
     @override
     def create_marshmallow_field(
