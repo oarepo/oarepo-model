@@ -160,15 +160,18 @@ def model(  # noqa: PLR0913 too many arguments
     :param customizations: Customizations for the model.
     :return: An instance of InvenioModel.
     """
-    presets = presets or []
-    types = types or []
-    customizations = customizations or []
+    # shallow-copy the lists to avoid modifying the caller's lists
+    presets = list(presets or [])
+    types = list(types or [])
+    customizations = list(customizations or [])
 
-    flattened_presets, functional_presets = flatten_presets(presets)
+    _, functional_presets = flatten_presets(presets)
 
     # passing locals here so that functional presets can modify the parameters
     # before the model is created
     FunctionalPreset.call(functional_presets, "before_invenio_model", params=locals())
+
+    flattened_presets, functional_presets = flatten_presets(presets)
 
     # now capturing the current state of locals for the rest of the calls
     params = {**locals()}
