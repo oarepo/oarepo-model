@@ -165,9 +165,9 @@ class ObjectDataType(DataType):
             return {
                 field_name: ui_marshmallow_field,
             }
-
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or marshmallow.fields.Nested
         return {
-            field_name: marshmallow.fields.Nested(
+            field_name: field_class(
                 self.create_ui_marshmallow_schema(element),
             ),
         }
@@ -235,7 +235,7 @@ class ObjectDataType(DataType):
         ret = super().create_ui_model(element, path)
         ret["children"] = {
             key: self._registry.get_type(value).create_ui_model(value, [*path, key])
-            for key, value in element["properties"].items()
+            for key, value in self._get_properties(element).items()
         }
         return ret
 
@@ -354,7 +354,8 @@ class ArrayDataType(DataType):
         field = next(iter(items_fields.values())) if len(items_fields) == 1 else MultiFormatField(items_fields)
 
         # get representation of a marshmallow field
-        return {field_name: marshmallow.fields.List(field)}
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or marshmallow.fields.List
+        return {field_name: field_class(field)}
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
@@ -439,6 +440,11 @@ class DynamicObjectDataType(ObjectDataType):
     """
 
     TYPE = "dynamic-object"
+
+    @override
+    def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Get properties for the data type."""
+        return {}  # dynamic object has no explicit properties
 
     @override
     def create_marshmallow_schema(

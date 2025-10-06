@@ -52,8 +52,9 @@ class NumberDataType(FacetMixin, DataType):
         element: dict[str, Any],
     ) -> dict[str, marshmallow.fields.Field]:
         """Create a Marshmallow UI fields for number value."""
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or FormatNumber
         return {
-            f"{field_name}": FormatNumber(
+            f"{field_name}": field_class(
                 attribute=field_name,
             ),
         }

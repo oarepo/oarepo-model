@@ -16,7 +16,7 @@ that define how data types are implemented and used within OARepo models.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from invenio_base.utils import obj_or_import_string
 from marshmallow.fields import Field
@@ -84,6 +84,16 @@ class DataType:
         return self._get_marshmallow_field_class(field_name, element)(
             **self._get_marshmallow_field_args(field_name, element),
         )
+
+    def _get_ui_marshmallow_field_class(
+        self,
+        field_name: str,  # noqa: ARG002 for override
+        element: dict[str, Any],
+    ) -> type | None:
+        """Get a ui marshmallow field class."""
+        if element.get("ui_marshmallow_field_class"):
+            return cast("type", obj_or_import_string(element["ui_marshmallow_field_class"]))
+        return None
 
     def get_facet(
         self,

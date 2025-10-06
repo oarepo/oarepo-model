@@ -149,8 +149,9 @@ class PolymorphicDataType(DataType):
                 alternative_fields[discriminator_value] = next(iter(ui_fields.values()))
 
         # return custom marshmallow field that distinguishes what schema to use
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or PolymorphicField
         return {
-            field_name: PolymorphicField(
+            field_name: field_class(
                 discriminator=discriminator,
                 alternatives=alternative_fields,
             ),
