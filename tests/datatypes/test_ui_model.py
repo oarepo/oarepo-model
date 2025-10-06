@@ -43,7 +43,7 @@ def test_keyword_ui_model(test_ui_model):
     )
     assert ui_model == {
         "input": "keyword",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
         "hint": {"und": ""},
         "min_length": 1,
@@ -63,9 +63,9 @@ def test_fulltext_ui_model(test_ui_model):
     )
     assert ui_model == {
         "input": "fulltext",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
-        "hint":  {"und": ""},
+        "hint": {"und": ""},
         "min_length": 1,
         "max_length": 10,
         "pattern": "^[a-zA-Z ]+$",
@@ -83,7 +83,7 @@ def test_fulltext_plus_keyword_ui_model(test_ui_model):
     )
     assert ui_model == {
         "input": "fulltext+keyword",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
         "hint": {"und": ""},
         "min_length": 1,
@@ -102,9 +102,9 @@ def test_integer_ui_model(test_ui_model):
     )
     assert ui_model == {
         "input": "int",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
-        "hint":  {"und": ""},
+        "hint": {"und": ""},
         "min_inclusive": 0,
         "max_inclusive": 100,
     }
@@ -120,9 +120,9 @@ def test_float_ui_model(test_ui_model):
     )
     assert ui_model == {
         "input": "float",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
-        "hint":  {"und": ""},
+        "hint": {"und": ""},
         "min_inclusive": 0.0,
         "max_inclusive": 100.0,
     }
@@ -134,7 +134,7 @@ def test_boolean_ui_model(test_ui_model):
         "input": "boolean",
         "help": {"und": ""},
         "label": {"und": "a"},
-        "hint":  {"und": ""},
+        "hint": {"und": ""},
     }
 
 
@@ -150,22 +150,22 @@ def test_object_ui_model(test_ui_model):
     )
     assert ui_model == {
         "input": "object",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
-        "hint":  {"und": ""},
+        "hint": {"und": ""},
         "children": {
             "name": {
                 "input": "keyword",
-                "help":  {"und": ""},
+                "help": {"und": ""},
                 "label": {"und": "name"},
-                "hint":  {"und": ""},
+                "hint": {"und": ""},
                 "required": True,
             },
             "age": {
                 "input": "int",
-                "help":  {"und": ""},
+                "help": {"und": ""},
                 "label": {"und": "age"},
-                "hint":  {"und": ""},
+                "hint": {"und": ""},
                 "min_inclusive": 0,
             },
         },
@@ -190,29 +190,29 @@ def test_object_inside_object_ui_model(test_ui_model):
     )
     assert ui_model == {
         "input": "object",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
-        "hint":  {"und": ""},
+        "hint": {"und": ""},
         "children": {
             "person": {
                 "input": "object",
-                "help":  {"und": ""},
+                "help": {"und": ""},
                 "label": {"und": "person"},
-                "hint":  {"und": ""},
+                "hint": {"und": ""},
                 "required": True,
                 "children": {
                     "name": {
                         "input": "keyword",
-                        "help":  {"und": ""},
+                        "help": {"und": ""},
                         "label": {"und": "name"},
-                        "hint":  {"und": ""},
+                        "hint": {"und": ""},
                         "required": True,
                     },
                     "age": {
                         "input": "int",
-                        "help":  {"und": ""},
+                        "help": {"und": ""},
                         "label": {"und": "age"},
-                        "hint":  {"und": ""},
+                        "hint": {"und": ""},
                         "min_inclusive": 0,
                     },
                 },
@@ -232,14 +232,14 @@ def test_array(test_ui_model):
     )
     assert ui_model == {
         "input": "array",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
-        "hint":  {"und": ""},
+        "hint": {"und": ""},
         "child": {
             "input": "keyword",
-            "help":  {"und": ""},
+            "help": {"und": ""},
             "label": {"und": "item"},
-            "hint":  {"und": ""},
+            "hint": {"und": ""},
         },
         "min_items": 1,
         "max_items": 5,
@@ -263,29 +263,29 @@ def test_array_of_objects(test_ui_model):
     )
     assert ui_model == {
         "input": "array",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
-        "hint":  {"und": ""},
+        "hint": {"und": ""},
         "min_items": 1,
         "max_items": 3,
         "child": {
             "input": "object",
-            "help":  {"und": ""},
-            "label":  {"und": "item"},
-            "hint":  {"und": ""},
+            "help": {"und": ""},
+            "label": {"und": "item"},
+            "hint": {"und": ""},
             "children": {
                 "name": {
                     "input": "keyword",
-                    "help":  {"und": ""},
+                    "help": {"und": ""},
                     "label": {"und": "name"},
-                    "hint":  {"und": ""},
+                    "hint": {"und": ""},
                     "required": True,
                 },
                 "age": {
                     "input": "int",
-                    "help":  {"und": ""},
+                    "help": {"und": ""},
                     "label": {"und": "age"},
-                    "hint":  {"und": ""},
+                    "hint": {"und": ""},
                     "min_inclusive": 0,
                 },
             },
@@ -306,9 +306,9 @@ def test_forwarded_ui_model(test_ui_model):
     )
     assert ui_model == {
         "input": "double",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
-        "hint":  {"und": ""},
+        "hint": {"und": ""},
     }
 
 
@@ -329,22 +329,22 @@ def test_forwarded_object_ui_model(test_ui_model):
     )
     assert ui_model == {
         "input": "object",
-        "help":  {"und": ""},
+        "help": {"und": ""},
         "label": {"und": "a"},
-        "hint":  {"und": ""},
+        "hint": {"und": ""},
         "children": {
             "name": {
                 "input": "keyword",
-                "help":  {"und": ""},
+                "help": {"und": ""},
                 "label": {"und": "name"},
-                "hint":  {"und": ""},
+                "hint": {"und": ""},
                 "required": True,
             },
             "age": {
                 "input": "int",
-                "help":  {"und": ""},
+                "help": {"und": ""},
                 "label": {"und": "age"},
-                "hint":  {"und": ""},
+                "hint": {"und": ""},
                 "min_inclusive": 0,
             },
         },
@@ -353,7 +353,6 @@ def test_forwarded_object_ui_model(test_ui_model):
 
 def test_multilingual_labels_hints_help(test_ui_model):
     """Ensure multilingual label, hint, and help texts are preserved in UI models."""
-
     ui_model = test_ui_model(
         {
             "type": "object",
