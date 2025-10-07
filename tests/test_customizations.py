@@ -8,12 +8,20 @@
 #
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock
 
 import pytest
 
 from oarepo_model.builder import InvenioModelBuilder
-from oarepo_model.customizations import AddToDictionary, AddToList, AddToModule
+from oarepo_model.customizations import (
+    AddJSONFile,
+    AddModule,
+    AddToDictionary,
+    AddToList,
+    AddToModule,
+    IndexSettings,
+)
 
 
 def test_add_to_dictionary():
@@ -77,3 +85,34 @@ def test_add_to_module():
 
     AddToModule("AModule", "item1", 3, exists_ok=True).apply(builder, model)
     assert builder.get_module("AModule").item1 == 3
+
+
+def test_index_customizations():
+    model = MagicMock()
+    type_registry = MagicMock()
+    builder = InvenioModelBuilder(model, type_registry)
+    AddModule("blah").apply(builder, model)
+    AddJSONFile("record-mapping", "blah", "blah.json", {}, exists_ok=True).apply(builder, model)
+    IndexSettings({"a": 1, "b": [1, 2], "c": {"d": 4, "e": 5}, "f": "blah"}).apply(builder, model)
+    assert json.loads(builder.get_file("record-mapping").content) == {
+        "settings": {"a": 1, "b": [1, 2], "c": {"d": 4, "e": 5}, "f": "blah"}
+    }
+
+    IndexSettings({"a": 5, "b": [4], "c": {"d": 1, "e": None}, "f": "abc"}).apply(builder, model)
+    assert json.loads(builder.get_file("record-mapping").content) == {
+        "settings": {
+            "a": 5,
+            "b": [1, 2, 4],
+            "c": {"d": 1},
+            "f": "abc",
+        }
+    }
+    IndexSettings({"a": 1}).apply(builder, model)
+    assert json.loads(builder.get_file("record-mapping").content) == {
+        "settings": {
+            "a": 5,
+            "b": [1, 2, 4],
+            "c": {"d": 1},
+            "f": "abc",
+        }
+    }
