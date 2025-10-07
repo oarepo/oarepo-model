@@ -21,7 +21,6 @@ from functools import partial
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from types import SimpleNamespace
 
     from .customizations import Customization
@@ -52,7 +51,7 @@ class FunctionalPreset:
     def before_populate_type_registry(
         self,
         model: InvenioModel,
-        types: list[dict[str, Any] | Callable[[], dict]],
+        types: list[dict[str, Any]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         customizations: list[Customization],
         params: dict[str, Any],
@@ -62,7 +61,7 @@ class FunctionalPreset:
     def after_populate_type_registry(
         self,
         model: InvenioModel,
-        types: list[dict[str, Any] | Callable[[], dict]],
+        types: list[dict[str, Any]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         customizations: list[Customization],
         params: dict[str, Any],
@@ -72,7 +71,7 @@ class FunctionalPreset:
     def after_builder_created(  # noqa PLR0913 - too many arguments
         self,
         model: InvenioModel,
-        types: list[dict[str, Any] | Callable[[], dict]],
+        types: list[dict[str, Any]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         builder: InvenioModelBuilder,
         customizations: list[Customization],
@@ -83,7 +82,7 @@ class FunctionalPreset:
     def after_presets_sorted(  # noqa PLR0913 - too many arguments
         self,
         model: InvenioModel,
-        types: list[dict[str, Any] | Callable[[], dict]],
+        types: list[dict[str, Any]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         builder: InvenioModelBuilder,
         customizations: list[Customization],
@@ -94,7 +93,7 @@ class FunctionalPreset:
     def after_user_customizations_applied(  # noqa PLR0913 - too many arguments
         self,
         model: InvenioModel,
-        types: list[dict[str, Any] | Callable[[], dict]],
+        types: list[dict[str, Any]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         builder: InvenioModelBuilder,
         customizations: list[Customization],
@@ -105,7 +104,7 @@ class FunctionalPreset:
     def after_model_built(  # noqa PLR0913
         self,
         model: InvenioModel,
-        types: list[dict[str, Any] | Callable[[], dict]],
+        types: list[dict[str, Any]],
         presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
         builder: InvenioModelBuilder,
         customizations: list[Customization],
@@ -146,7 +145,7 @@ def model(  # noqa: PLR0913 too many arguments
     version: str = "0.1.0",
     configuration: dict[str, Any] | None = None,
     customizations: list[Customization] | None = None,
-    types: list[dict[str, Any] | Callable[[], dict]] | None = None,
+    types: list[dict[str, Any]] | None = None,
     metadata_type: str | None = None,
     record_type: str | None = None,
 ) -> SimpleNamespace:
@@ -316,7 +315,7 @@ def get_model_resources(model: InvenioModel, namespace: SimpleNamespace) -> dict
 
 
 def populate_type_registry(
-    types: list[dict[str, Any] | Callable[[], dict]] | None,
+    types: list[dict[str, Any]] | None,
 ) -> DataTypeRegistry:
     """Populate the type registry with types from entry points or provided collections."""
     type_registry = DataTypeRegistry()
@@ -325,9 +324,6 @@ def populate_type_registry(
         for type_collection in types:
             if isinstance(type_collection, dict):
                 type_registry.add_types(type_collection)
-            elif callable(type_collection):
-                loaded = type_collection()
-                type_registry.add_types(loaded)
             else:
                 raise TypeError(
                     f"Invalid type collection: {type_collection}. Expected a dict, str to a file or Path to the file.",
