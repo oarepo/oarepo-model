@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Iterable
 
 from .base import DataType
 from .wrapped import WrappedDataType
@@ -124,7 +124,7 @@ class DataTypeRegistry:
         return v
 
 
-def from_json(file_name: str, origin: str | None = None) -> Callable[[], dict]:
+def from_json(file_name: str, origin: str | None = None) -> dict[str, Any]:
     """Load custom data types from JSON files.
 
     Supports two formats:
@@ -142,18 +142,15 @@ def from_json(file_name: str, origin: str | None = None) -> Callable[[], dict]:
     """
     path = Path(origin).parent / file_name if origin else Path.cwd() / file_name
 
-    def _loader() -> dict:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        if isinstance(raw, list):
-            return {item.pop("name"): item for item in raw}
-        if isinstance(raw, dict):
-            return raw
-        raise TypeError(f"Expected dict or list, got {type(raw)}")
-
-    return _loader
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(raw, list):
+        return {item.pop("name"): item for item in raw}
+    if isinstance(raw, dict):
+        return raw
+    raise TypeError(f"Expected dict or list, got {type(raw)}")  # pragma: no cover
 
 
-def from_yaml(file_name: str, origin: str | None = None) -> Callable[[], dict]:
+def from_yaml(file_name: str, origin: str | None = None) -> dict[str, Any]:
     """Load custom data types from YAML files.
 
     Supports two formats:
@@ -171,12 +168,9 @@ def from_yaml(file_name: str, origin: str | None = None) -> Callable[[], dict]:
     """
     path = Path(origin).parent / file_name if origin else Path.cwd() / file_name
 
-    def _loader() -> dict:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-        if isinstance(raw, list):
-            return {item.pop("name"): item for item in raw}
-        if isinstance(raw, dict):
-            return raw
-        raise TypeError(f"Expected dict or list, got {type(raw)}")
-
-    return _loader
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if isinstance(raw, list):
+        return {item.pop("name"): item for item in raw}
+    if isinstance(raw, dict):
+        return raw
+    raise TypeError(f"Expected dict or list, got {type(raw)}")  # pragma: no cover
