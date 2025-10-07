@@ -464,6 +464,10 @@ def drafts_cf_model(model_types):
 @pytest.fixture(scope="session")
 def vocabulary_model(empty_model):
     from oarepo_model.api import model
+    from oarepo_model.customizations import (
+        IndexNestedFieldsLimit,
+        IndexTotalFieldsLimit,
+    )
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
@@ -476,7 +480,10 @@ def vocabulary_model(empty_model):
         presets=[records_resources_preset, relations_preset, ui_preset],
         types=[vocabulary_model_types],
         metadata_type="Metadata",
-        customizations=[],
+        customizations=[
+            IndexTotalFieldsLimit(2000),
+            IndexNestedFieldsLimit(1000),
+        ],
     )
     vocabulary_model.register()
 

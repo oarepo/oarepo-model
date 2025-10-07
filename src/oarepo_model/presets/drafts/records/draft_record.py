@@ -67,11 +67,11 @@ class DraftPreset(Preset):
 
             schema = ConstantField(
                 "$schema",
-                f"local://{builder.model.base_name}-v1.0.0.json",
+                f"local://{builder.model.base_name}-v{model.version}.json",
             )
 
             index = IndexField(
-                f"{builder.model.base_name}-draft-metadata-v1.0.0",
+                f"{builder.model.base_name}-draft-metadata-v{model.version}",
                 search_alias=f"{builder.model.base_name}",
             )
 

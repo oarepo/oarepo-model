@@ -38,6 +38,9 @@ from .high_level import (
     AddDefaultSearchFields,
     AddMetadataExport,
     AddPIDRelation,
+    IndexNestedFieldsLimit,
+    IndexSettings,
+    IndexTotalFieldsLimit,
     SetPermissionPolicy,
 )
 from .patch_json_file import PatchJSONFile
@@ -64,6 +67,9 @@ __all__ = [
     "ChangeBase",
     "CopyFile",
     "Customization",
+    "IndexNestedFieldsLimit",
+    "IndexSettings",
+    "IndexTotalFieldsLimit",
     "PatchJSONFile",
     "SetPermissionPolicy",
 ]
