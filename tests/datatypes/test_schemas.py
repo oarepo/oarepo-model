@@ -736,3 +736,23 @@ def test_polymorphic_field_mapping(test_schema):
         "first_name",  # from person
         "name",  # from org
     }
+
+
+class CustomSchema(ma.Schema):
+    """Custom schema class for testing."""
+
+
+def test_custom_schema_class(test_schema):
+    schema = test_schema(
+        {
+            "type": "object",
+            "marshmallow_schema_class": CustomSchema,
+            "properties": {
+                "name": {"type": "keyword", "required": True},
+                "age": {"type": "int", "min_inclusive": 0},
+            },
+        },
+    )
+    fld = schema.fields["a"]
+    fld_schema = fld.nested
+    assert fld_schema is CustomSchema
