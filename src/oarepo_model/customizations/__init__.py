@@ -37,6 +37,7 @@ from .copy_file import CopyFile
 from .high_level import (
     AddDefaultSearchFields,
     AddMetadataExport,
+    AddMetadataImport,
     AddPIDRelation,
     IndexNestedFieldsLimit,
     IndexSettings,
@@ -58,6 +59,7 @@ __all__ = [
     "AddJSONFile",
     "AddList",
     "AddMetadataExport",
+    "AddMetadataImport",
     "AddMixins",
     "AddModule",
     "AddPIDRelation",
