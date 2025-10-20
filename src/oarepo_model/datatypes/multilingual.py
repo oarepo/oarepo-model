@@ -43,7 +43,22 @@ class MultilingualMixin:
         return lang_name, value_name
 
 
-class I18nDataType(ObjectDataType, MultilingualMixin):
+class MultilingualRelationMixin:
+    """A mixin that disables creating relations inside a multilingual field."""
+
+    def create_relations(
+        self,
+        element: dict[str, Any],  # noqa: ARG002 # overriding a method inside a mixin
+        path: list[  # noqa: ARG002 # overriding a method inside a mixin
+            tuple[str, dict[str, Any]]
+        ],
+    ) -> list[Customization]:
+        """Create empty relations for the data type."""
+        # there are no relations inside a multilingual field
+        return []
+
+
+class I18nDataType(MultilingualRelationMixin, ObjectDataType, MultilingualMixin):
     """A data type for multilingual dictionaries."""
 
     TYPE = "i18n"
@@ -147,7 +162,7 @@ class I18nDataType(ObjectDataType, MultilingualMixin):
         return facets
 
 
-class MultilingualDataType(ArrayDataType, MultilingualMixin):
+class MultilingualDataType(MultilingualRelationMixin, ArrayDataType, MultilingualMixin):
     """A data type for multilingual dictionaries."""
 
     TYPE = "multilingual"
@@ -258,17 +273,8 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
             facets[path] = facet
         return facets
 
-    @override
-    def create_relations(
-        self,
-        element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],
-    ) -> list[Customization]:
-        # there are no relations inside a multilingual field
-        return []
 
-
-class I18nDictDataType(ObjectDataType):
+class I18nDictDataType(MultilingualRelationMixin, ObjectDataType):
     """A data type for multilingual dictionaries.
 
     Their serialization is:
@@ -318,12 +324,3 @@ class I18nDictDataType(ObjectDataType):
         This method can be overridden by subclasses to provide specific mapping creation logic.
         """
         return {"type": "object", "dynamic": "true"}
-
-    @override
-    def create_relations(
-        self,
-        element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],
-    ) -> list[Customization]:
-        # can not get relations for dynamic objects
-        return []

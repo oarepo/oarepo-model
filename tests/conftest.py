@@ -353,6 +353,14 @@ relation_model_types = {
                 # test that relations are not broken in multilingual fields
                 "type": "multilingual",
             },
+            "i18n": {
+                # test that relations are not broken in i18n fields
+                "type": "i18n",
+            },
+            "i18ndict": {
+                # test that relations are not broken in i18n fields with dict structure
+                "type": "i18ndict",
+            },
         },
     },
 }
