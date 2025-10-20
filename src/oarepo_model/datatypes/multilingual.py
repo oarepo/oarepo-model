@@ -258,6 +258,15 @@ class MultilingualDataType(ArrayDataType, MultilingualMixin):
             facets[path] = facet
         return facets
 
+    @override
+    def create_relations(
+        self,
+        element: dict[str, Any],
+        path: list[tuple[str, dict[str, Any]]],
+    ) -> list[Customization]:
+        # there are no relations inside a multilingual field
+        return []
+
 
 class I18nDictDataType(ObjectDataType):
     """A data type for multilingual dictionaries.

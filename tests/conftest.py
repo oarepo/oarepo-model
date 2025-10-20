@@ -349,6 +349,10 @@ relation_model_types = {
                     },
                 },
             },
+            "multilingual": {
+                # test that relations are not broken in multilingual fields
+                "type": "multilingual",
+            },
         },
     },
 }
