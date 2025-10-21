@@ -349,6 +349,30 @@ relation_model_types = {
                     },
                 },
             },
+            "triple_array": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "array": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "array": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "pid-relation",
+                                            "keys": ["id", "metadata.title"],
+                                            "record_cls": "runtime_models_test:Record",
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
             "multilingual": {
                 # test that relations are not broken in multilingual fields
                 "type": "multilingual",

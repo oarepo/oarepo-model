@@ -62,6 +62,14 @@ def test_relations(
                     {"array": [{"id": rec1_id}, {"id": rec2_id}]},
                     {"array": [{"id": rec3_id}]},
                 ],
+                "triple_array": [
+                    {
+                        "array": [
+                            {"array": [{"id": rec1_id}]},
+                            {"array": [{"id": rec2_id}, {"id": rec3_id}]},
+                        ]
+                    }
+                ],
             },
         },
     )
@@ -88,3 +96,14 @@ def test_relations(
     assert len(md["double_array"][1]["array"]) == 1
     assert md["double_array"][1]["array"][0]["id"] == rec3_id
     assert md["double_array"][1]["array"][0]["metadata"]["title"] == "Record 3"
+
+    assert len(md["triple_array"]) == 1
+    assert len(md["triple_array"][0]["array"]) == 2
+    assert len(md["triple_array"][0]["array"][0]["array"]) == 1
+    assert md["triple_array"][0]["array"][0]["array"][0]["id"] == rec1_id
+    assert md["triple_array"][0]["array"][0]["array"][0]["metadata"]["title"] == "Record 1"
+    assert len(md["triple_array"][0]["array"][1]["array"]) == 2
+    assert md["triple_array"][0]["array"][1]["array"][0]["id"] == rec2_id
+    assert md["triple_array"][0]["array"][1]["array"][0]["metadata"]["title"] == "Record 2"
+    assert md["triple_array"][0]["array"][1]["array"][1]["id"] == rec3_id
+    assert md["triple_array"][0]["array"][1]["array"][1]["metadata"]["title"] == "Record 3"

@@ -23,6 +23,7 @@ from invenio_records_resources.records.systemfields import (
     PIDNestedListRelation,
     PIDRelation,
 )
+from oarepo_runtime.records.systemfields.relations import PIDArbitraryNestedListRelation
 
 from ..base import Customization
 
@@ -70,56 +71,78 @@ class AddPIDRelation(Customization):
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         relations = builder.get_dictionary("relations")
         array_count = self.path.count(ARRAY_PATH_ITEM)
+
+        relation_field, array_paths = self._merge_paths_between_arrays()
+
         match array_count:
             case 0:
                 relations[self.name] = PIDRelation(
-                    ".".join(x for x in self.path if isinstance(x, str)),
+                    relation_field,
                     keys=self.keys,
                     pid_field=self.pid_field,
                     cache_key=self.cache_key,
                     **self.kwargs,
                 )
             case 1:
-                before_array = self.path[: self.path.index(ARRAY_PATH_ITEM)]
-                after_array = self.path[self.path.index(ARRAY_PATH_ITEM) + 1 :]
-
                 # If the last element is an array, we create a PIDListRelation
                 relations[self.name] = PIDListRelation(
-                    ".".join(x for x in before_array if isinstance(x, str)),
+                    array_paths[0],
                     keys=self.keys,
                     pid_field=self.pid_field,
                     cache_key=self.cache_key,
-                    relation_field=(".".join(x for x in after_array if isinstance(x, str)) if after_array else None),
+                    relation_field=relation_field,
                     **self.kwargs,
                 )
-
             case 2:
-                first_array_index = self.path.index(ARRAY_PATH_ITEM)
-                second_array_index = self.path.index(
-                    ARRAY_PATH_ITEM,
-                    first_array_index + 1,
-                )
-                before_first_array = self.path[:first_array_index]
-                between_arrays = self.path[first_array_index + 1 : second_array_index]
-                after_second_array = self.path[second_array_index + 1 :]
-
-                if after_second_array:
+                if relation_field:
                     raise NotImplementedError(
                         "Relations within nested arrays of objects are not supported yet.",
                     )
 
                 relations[self.name] = PIDNestedListRelation(
-                    ".".join(x for x in before_first_array if isinstance(x, str)),
-                    relation_field=(
-                        ".".join(x for x in between_arrays if isinstance(x, str)) if between_arrays else None
-                    ),
+                    array_paths[0],
+                    relation_field=array_paths[1],
+                    keys=self.keys,
+                    pid_field=self.pid_field,
+                    cache_key=self.cache_key,
+                    **self.kwargs,
+                )
+            case _:
+                relations[self.name] = PIDArbitraryNestedListRelation(
+                    array_paths=array_paths,
+                    relation_field=relation_field,
                     keys=self.keys,
                     pid_field=self.pid_field,
                     cache_key=self.cache_key,
                     **self.kwargs,
                 )
 
-            case _:
-                raise NotImplementedError(
-                    "Only one or two arrays in the path are supported for PID relations.",
-                )
+    def _merge_paths_between_arrays(self) -> tuple[str | None, list[str]]:
+        """Merge path segments between array markers.
+
+        This method processes the path to identify segments between array markers
+        and merges them into dot-separated strings. It also determines the relation
+        field (the segment after the last array marker) if it exists.
+        """
+        merged_paths_with_array_markers: list[Any] = []
+        joined: list[str] = []
+        for x in self.path:
+            if isinstance(x, str):
+                joined.append(x)
+            else:
+                if joined:
+                    merged_paths_with_array_markers.append(".".join(joined))
+                    joined = []
+                merged_paths_with_array_markers.append(ARRAY_PATH_ITEM)
+        if joined:
+            merged_paths_with_array_markers.append(".".join(joined))
+
+        # pop the relation field if the last item is not an array
+        relation_field = (
+            None if merged_paths_with_array_markers[-1] is ARRAY_PATH_ITEM else merged_paths_with_array_markers.pop()
+        )
+
+        # filter out array markers
+        array_paths = [x for x in merged_paths_with_array_markers if x is not ARRAY_PATH_ITEM]
+
+        return relation_field, array_paths
