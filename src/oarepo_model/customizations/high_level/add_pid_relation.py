@@ -95,18 +95,26 @@ class AddPIDRelation(Customization):
                 )
             case 2:
                 if relation_field:
-                    raise NotImplementedError(
-                        "Relations within nested arrays of objects are not supported yet.",
+                    # invenio can not handle 2 arrays with a relation field at the end
+                    # for that we use the arbitrary nested list relation that can do it
+                    # albeit with a bit less efficiency
+                    relations[self.name] = PIDArbitraryNestedListRelation(
+                        array_paths=array_paths,
+                        relation_field=relation_field,
+                        keys=self.keys,
+                        pid_field=self.pid_field,
+                        cache_key=self.cache_key,
+                        **self.kwargs,
                     )
-
-                relations[self.name] = PIDNestedListRelation(
-                    array_paths[0],
-                    relation_field=array_paths[1],
-                    keys=self.keys,
-                    pid_field=self.pid_field,
-                    cache_key=self.cache_key,
-                    **self.kwargs,
-                )
+                else:
+                    relations[self.name] = PIDNestedListRelation(
+                        array_paths[0],
+                        relation_field=array_paths[1],
+                        keys=self.keys,
+                        pid_field=self.pid_field,
+                        cache_key=self.cache_key,
+                        **self.kwargs,
+                    )
             case _:
                 relations[self.name] = PIDArbitraryNestedListRelation(
                     array_paths=array_paths,
