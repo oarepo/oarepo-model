@@ -364,13 +364,22 @@ def test_multilingual_labels_hints_help(test_ui_model):
                     "type": "keyword",
                     "label": {"cs": "Jméno", "en": "Name"},
                     "hint": {"cs": "Zadejte celé jméno", "en": "Enter full name"},
-                    "help": {"cs": "Musí být kratší než 50 znaků", "en": "Must be shorter than 50 chars"},
+                    "help": {
+                        "cs": "Musí být kratší než 50 znaků",
+                        "en": "Must be shorter than 50 chars",
+                    },
                 },
                 "addresses": {
                     "type": "array",
                     "label": {"cs": "Adresy", "en": "Addresses"},
-                    "hint": {"cs": "Můžete zadat více adres", "en": "You can enter multiple addresses"},
-                    "help": {"cs": "Klikněte na + pro přidání nové", "en": "Click + to add another"},
+                    "hint": {
+                        "cs": "Můžete zadat více adres",
+                        "en": "You can enter multiple addresses",
+                    },
+                    "help": {
+                        "cs": "Klikněte na + pro přidání nové",
+                        "en": "Click + to add another",
+                    },
                     "items": {
                         "type": "object",
                         "label": {"cs": "Adresa", "en": "Address"},
@@ -378,12 +387,18 @@ def test_multilingual_labels_hints_help(test_ui_model):
                             "street": {
                                 "type": "keyword",
                                 "label": {"cs": "Ulice", "en": "Street"},
-                                "hint": {"cs": "Zadejte název ulice", "en": "Enter street name"},
+                                "hint": {
+                                    "cs": "Zadejte název ulice",
+                                    "en": "Enter street name",
+                                },
                             },
                             "city": {
                                 "type": "keyword",
                                 "label": {"cs": "Město", "en": "City"},
-                                "help": {"cs": "Vyberte ze seznamu", "en": "Choose from list"},
+                                "help": {
+                                    "cs": "Vyberte ze seznamu",
+                                    "en": "Choose from list",
+                                },
                             },
                         },
                     },
@@ -393,7 +408,10 @@ def test_multilingual_labels_hints_help(test_ui_model):
     )
 
     assert ui_model["label"] == {"cs": "Osoba", "en": "Person"}
-    assert ui_model["hint"] == {"cs": "Vyplňte údaje o osobě", "en": "Fill in person details"}
+    assert ui_model["hint"] == {
+        "cs": "Vyplňte údaje o osobě",
+        "en": "Fill in person details",
+    }
     assert ui_model["help"] == {"cs": "Pomoc s formulářem", "en": "Form assistance"}
 
     name_field = ui_model["children"]["name"]
