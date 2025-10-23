@@ -18,7 +18,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, Protocol, cast, override
 
 from invenio_records_resources import __version__
-from oarepo_runtime.api import Export, Model
+from oarepo_runtime.api import Export, Import, Model
 from oarepo_runtime.config import build_config
 
 from oarepo_model.customizations import (
@@ -162,6 +162,10 @@ class ExtPreset(Preset):
                 return cast("list[Export]", runtime_dependencies.get("exports"))
 
             @property
+            def metadata_imports(self) -> list[Import]:
+                return cast("list[Import]", runtime_dependencies.get("imports"))
+
+            @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
                 return {
@@ -171,6 +175,7 @@ class ExtPreset(Preset):
                     "resource_config": self.records_resource.config,
                     "resource": self.records_resource,
                     "exports": self.metadata_exports,
+                    "imports": self.metadata_imports,
                 }
 
             def init_config(self, app: Flask) -> None:

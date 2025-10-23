@@ -24,7 +24,7 @@ from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
 from oarepo_runtime.services.records.mapping import update_all_records_mappings
 
-from oarepo_model.customizations import AddDefaultSearchFields, AddFacetGroup
+from oarepo_model.customizations import AddDefaultSearchFields, AddFacetGroup, AddMetadataImport
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
 log = logging.getLogger("tests")
@@ -117,6 +117,82 @@ def empty_model(model_types):
     log.info("Model created in %.2f seconds", t2 - t1)
 
     return empty_model
+
+
+@pytest.fixture(scope="session")
+def csv_imports_model(model_types):
+    import csv
+    import io
+    from typing import Any
+
+    from flask_resources.deserializers.base import DeserializerMixin
+
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.ui_links import ui_links_preset
+
+    class CSVRowToMetadataDeserializer(DeserializerMixin):
+        """Minimal CSV deserializer for one-record-per-CSV use case.
+
+        Assumptions:
+        - First line contains CSV headers that map directly to metadata fields.
+        - Only the first data row is used. (Extend for multi-record as needed.)
+        - Performs simple type casting: true/false -> bool, integer strings -> int.
+        """
+
+        def __init__(self, *, delimiter: str = ",") -> None:
+            self.delimiter = delimiter
+
+        def deserialize(self, data: Any) -> dict[str, Any]:
+            reader = csv.DictReader(io.StringIO(data.decode("utf-8")), delimiter=self.delimiter)
+            row = next(reader, None)
+            if row is None:
+                return {"metadata": {}, "files": {"enabled": True}}
+            metadata = {k: self._cast(v) for k, v in row.items()}
+            return {"metadata": metadata, "files": {"enabled": True}}
+
+        @staticmethod
+        def _cast(v: str | None) -> Any:
+            if v is None:
+                return None
+            s = v.strip()
+            if s == "":
+                return None
+            low = s.lower()
+            if low in ("true", "false"):
+                return low == "true"
+            # Simple int cast (extend with float/date as needed)
+            if low.isdigit() or (low.startswith("-") and low[1:].isdigit()):
+                try:
+                    return int(low)
+                except ValueError:
+                    pass
+            return s
+
+    t1 = time.time()
+
+    csv_imports_model = model(
+        name="csv_imports_test",
+        version="1.0.0",
+        presets=[records_resources_preset, ui_links_preset],
+        types=[model_types],
+        metadata_type="Metadata",
+        customizations=[
+            AddMetadataImport(
+                code="csv",
+                name=_("CSV"),
+                mimetype="text/csv",
+                deserializer=CSVRowToMetadataDeserializer(),
+                description=_("CSV import"),
+            )
+        ],
+    )
+    csv_imports_model.register()
+
+    t2 = time.time()
+    log.info("Model created in %.2f seconds", t2 - t1)
+
+    return csv_imports_model
 
 
 @pytest.fixture(scope="session")

@@ -111,6 +111,14 @@ def input_data_with_files_disabled(input_data):
     return data
 
 
+@pytest.fixture
+def csv_row_of_input_data_more_complex() -> bytes:
+    csv_text = """title,some_bool_val,height
+Test,True,123
+"""
+    return csv_text.encode("utf-8")
+
+
 class DefaultHeaders:
     """Default headers for requests."""
 
@@ -120,6 +128,9 @@ class DefaultHeaders:
     }
     ui: ClassVar[dict[str, str]] = {
         "accept": "application/vnd.inveniordm.v1+json",
+    }
+    csv: ClassVar[dict[str, str]] = {
+        "content-type": "text/csv",
     }
 
 
