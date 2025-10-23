@@ -10,10 +10,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from invenio_access.permissions import system_identity
-from invenio_drafts_resources.services.records.service import RecordService
 from invenio_pidstore.errors import PIDDoesNotExistError
 from invenio_rdm_records.requests.entity_resolvers import RDMRecordProxy
 from invenio_records_resources.references.entity_resolvers import RecordProxy as InvenioRecordProxy
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
+    from oarepo_model.presets.drafts.records.record_resolver import DraftRecordResolver
 
 
 # TODO: if used somewhere, get_needs is implemented in RDM but it will probably not work with workflows
@@ -87,14 +87,13 @@ class DraftRecordProxy(RDMRecordProxy):
         Supports checking whether the record is draft without published record that the find_many method fails to find.
         """
         # TODO: important!!! read_draft with system_identity has security implications on sensitive metadata
-        service = self._resolver.get_service()
-        if isinstance(service, RecordService):
-            try:
-                draft_dict = service.read_draft(system_identity, record["id"]).to_dict()
-                return self.pick_resolved_fields(system_identity, draft_dict)  # type: ignore[no-any-return]
-            except PIDDoesNotExistError:
-                return super().ghost_record(record)  # type: ignore[no-any-return]
-        return super().ghost_record(record)  # type: ignore[no-any-return]
+
+        service = cast("DraftRecordResolver", self._resolver).service
+        try:
+            draft_dict = service.read_draft(system_identity, record["id"]).to_dict()
+            return self.pick_resolved_fields(system_identity, draft_dict)  # type: ignore[no-any-return]
+        except PIDDoesNotExistError:
+            return super().ghost_record(record)  # type: ignore[no-any-return]
 
 
 class DraftRecordProxyPreset(Preset):
