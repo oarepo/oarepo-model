@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, override
 
 from invenio_records_resources.references.entity_resolvers.records import RecordProxy as InvenioRecordProxy
+from oarepo_runtime import current_runtime
 
 from oarepo_model.customizations import (
     AddClass,
@@ -24,7 +25,7 @@ from oarepo_model.presets import Preset
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from flask_principal import Identity
+    from flask_principal import Identity, ItemNeed, Need
     from invenio_records_resources.references.entity_resolvers.records import RecordProxy as TInvenioRecordProxy
 
     from oarepo_model.builder import InvenioModelBuilder
@@ -40,36 +41,25 @@ class RecordProxyMixin(TInvenioRecordProxy):
     Based on RDMRecordProxy, supports customizable record and draft classes.
     """
 
-    """
-    picked_fields = (
-        "title",
-         "creators",
-         "contributors",
-     )  # TODO: which fields do we actually want to use if any? should be configurable?
-
-     def set_field(result: dict[str, Any], resolved_dict: dict[str, Any], field_name: str) -> None:
-         from_metadata = resolved_dict.get("metadata", {}).get(field_name)
-         from_data = resolved_dict.get(field_name)
-
-         if from_metadata:
-             result.setdefault("metadata", {})[field_name] = from_metadata
-         if from_data:
-             result[field_name] = from_data
-
-    """
-
     @override
     def pick_resolved_fields(self, identity: Identity, resolved_dict: dict[str, Any]) -> dict[str, Any]:
         """Select which fields to return when resolving the reference."""
         resolved_fields: dict[str, Any] = super().pick_resolved_fields(identity, resolved_dict)
         resolved_fields["links"] = resolved_dict.get("links", {})
-
-        """
-        # for fld in self.picked_fields:
-        #     set_field(resolved_fields, resolved_dict, fld)
-        """
-
         return resolved_fields
+
+    def get_needs(self, ctx: Any = None) -> list[Need | ItemNeed]:
+        """Enrich request with record needs.
+
+        A user that can preview a record can also read its requests.
+        """
+        if ctx is None or "record_permission" not in ctx:
+            return []
+        record = self.resolve()
+        record_service = current_runtime.get_record_service_for_record(record)
+
+        record_permission = ctx["record_permission"]
+        return record_service.config.permission_policy_cls(record_permission, record=record).needs  # type: ignore[no-any-return]
 
 
 class RecordProxyPreset(Preset):

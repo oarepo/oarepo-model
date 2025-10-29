@@ -31,10 +31,9 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
+# RDMRecordResolver not subclassed because the implementation is inconvenient
 class DraftRecordResolver(InvenioRecordResolver):
     """Record resolver for OARepo records."""
-
-    # TODO: RDMRecordResolver inheritance for maintainability (not using it now because i don't like the implementation)
 
     @override
     def matches_entity(self, entity: Any) -> bool:
@@ -49,11 +48,6 @@ class DraftRecordResolver(InvenioRecordResolver):
     @cached_property
     def draft_cls(self) -> type[Draft]:
         """Get the draft class."""
-        # TODO: could retyping get what draft_cls is?
-        """
-        @property
-        def draft_cls(self): ...
-        """
         return self.service.draft_cls  # type: ignore[no-any-return]
 
 
