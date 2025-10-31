@@ -44,6 +44,8 @@ from .records.record import RecordPreset
 from .records.record_json_schema import RecordJSONSchemaPreset
 from .records.record_mapping import RecordMappingPreset
 from .records.record_metadata import RecordMetadataPreset
+from .records.record_proxy import RecordProxyPreset
+from .records.record_resolver import RecordResolverPreset
 from .records.record_with_relations import RecordWithRelationsPreset
 from .records.relations import RelationsPreset
 from .records.relations_dumper_ext import RelationsDumperExtPreset
@@ -100,6 +102,8 @@ records_preset: list[type[Preset]] = [
     RelationsPreset,
     RecordWithRelationsPreset,
     RelationsDumperExtPreset,
+    RecordProxyPreset,
+    RecordResolverPreset,
     # service layer
     RecordFacetsPreset,
     MetadataFacetsPreset,
