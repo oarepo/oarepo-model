@@ -17,8 +17,8 @@ from invenio_pidstore.errors import PIDDoesNotExistError, PIDUnregistered
 from sqlalchemy.exc import NoResultFound
 
 from oarepo_model.customizations import (
-    ChangeBase,
-    Customization, AddMixins,
+    AddMixins,
+    Customization,
 )
 from oarepo_model.presets import Preset
 
@@ -26,11 +26,11 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
     from invenio_drafts_resources.records.api import Record
+    from invenio_records_resources.references.entity_resolvers.records import RecordProxy as InvenioRecordProxy
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
     from oarepo_model.presets.drafts.records.record_resolver import DraftRecordResolver
-    from invenio_records_resources.references.entity_resolvers.records import RecordProxy as InvenioRecordProxy
 else:
     InvenioRecordProxy = object
 
