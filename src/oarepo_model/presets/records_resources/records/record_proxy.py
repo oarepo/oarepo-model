@@ -48,6 +48,14 @@ class RecordProxyMixin(TInvenioRecordProxy):
         resolved_fields["links"] = resolved_dict.get("links", {})
         return resolved_fields
 
+    def ghost_record(self, record: dict[str, str]) -> dict[str, Any]:
+        """Ghost representation of a record.
+
+        Drafts at the moment cannot be resolved, service.read_many() is searching on
+        public records, thus the `ghost_record` method will always kick in!
+        """
+        return record
+
     def get_needs(self, ctx: Any = None) -> list[Need | ItemNeed]:
         """Enrich request with record needs.
 

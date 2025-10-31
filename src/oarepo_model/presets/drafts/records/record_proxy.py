@@ -14,13 +14,11 @@ from typing import TYPE_CHECKING, Any, cast, override
 
 from invenio_access.permissions import system_identity
 from invenio_pidstore.errors import PIDDoesNotExistError, PIDUnregistered
-from invenio_rdm_records.requests.entity_resolvers import RDMRecordProxy
-from invenio_records_resources.references.entity_resolvers import RecordProxy as InvenioRecordProxy
 from sqlalchemy.exc import NoResultFound
 
 from oarepo_model.customizations import (
     ChangeBase,
-    Customization,
+    Customization, AddMixins,
 )
 from oarepo_model.presets import Preset
 
@@ -32,16 +30,19 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
     from oarepo_model.presets.drafts.records.record_resolver import DraftRecordResolver
+    from invenio_records_resources.references.entity_resolvers.records import RecordProxy as InvenioRecordProxy
+else:
+    InvenioRecordProxy = object
 
 
-class DraftRecordProxy(RDMRecordProxy):
+class DraftRecordProxyMixin(InvenioRecordProxy):
     """Resolver proxy for a OARepo record entity.
 
     Based on RDMRecordProxy, supports customizable record and draft classes.
     """
 
     def _get_record(self, pid_value: str) -> Record:
-        return cast("DraftRecordResolver", self._resolver).service.record_cls.pid.resolve(pid_value)
+        return cast("DraftRecordResolver", self._resolver).service.record_cls.pid.resolve(pid_value)  # type: ignore[reportReturnType]
 
     def _resolve(self) -> Record:
         pid_value = self._parse_ref_dict_id()
@@ -89,8 +90,7 @@ class DraftRecordProxyPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield ChangeBase(
+        yield AddMixins(
             "RecordProxy",
-            old_base_class=InvenioRecordProxy,
-            new_base_class=DraftRecordProxy,
+            DraftRecordProxyMixin,
         )

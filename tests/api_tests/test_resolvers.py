@@ -105,7 +105,7 @@ def test_published_record(
     _proxy_test(proxy, tested_record, tested_item, identity_simple)
 
     ghost_record = proxy.ghost_record({"id": tested_item.id})
-    assert ghost_record == {"id": {"id": tested_item.id}}  # produced by invenio
+    assert ghost_record == {"id": tested_item.id}
 
 
 def test_model_without_drafts(
@@ -138,7 +138,8 @@ def test_model_without_drafts(
     proxy = resolver.get_entity_proxy(reference)
     _proxy_test(proxy, tested_record, tested_item, identity_simple)
 
-    # TODO: base RecordProxy has no ghost_record
+    ghost_record = proxy.ghost_record({"id": tested_item.id})
+    assert ghost_record == {"id": tested_item.id}
 
 
 def test_not_matching(
