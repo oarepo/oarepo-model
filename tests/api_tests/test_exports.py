@@ -20,9 +20,11 @@ def test_exports(
     client,
     headers,
 ):
-    assert {x.code for x in empty_model.exports} == {"json", "ui_json"}
+    assert {x.code for x in empty_model.exports} == {"json", "lset", "jsonlset", "ui_json"}
 
     assert empty_model.RecordResourceConfig().response_handlers.keys() == {
         "application/json",
+        "application/linkset",
+        "application/linkset+json",
         "application/vnd.inveniordm.v1+json",
     }
