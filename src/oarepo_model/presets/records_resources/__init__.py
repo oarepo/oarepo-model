@@ -59,6 +59,7 @@ from .resources.records.register_ui_json_serializer import (
 )
 from .resources.records.resource import RecordResourcePreset
 from .resources.records.resource_config import RecordResourceConfigPreset
+from .resources.records.signposting import SignpostingPreset
 from .resources.records.ui_json_serializer import JSONUISerializerPreset
 from .services.files.file_record_service_components import (
     FileRecordServiceComponentsPreset,
@@ -120,6 +121,7 @@ records_preset: list[type[Preset]] = [
     MetadataUISchemaPreset,
     # resource layer
     ExportsPreset,
+    SignpostingPreset,
     ImportsPreset,
     JSONDeserializerPreset,
     RecordResourcePreset,
