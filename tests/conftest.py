@@ -24,7 +24,7 @@ from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
 from oarepo_runtime.services.records.mapping import update_all_records_mappings
 
-from oarepo_model.customizations import AddDefaultSearchFields, AddFacetGroup, AddMetadataImport
+from oarepo_model.customizations import AddDefaultSearchFields, AddFacetGroup, AddMetadataExport, AddMetadataImport
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
 log = logging.getLogger("tests")
@@ -52,8 +52,8 @@ def model_types_in_json():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_json("tests/data_types_in_json_dict.json"),
-        from_json("tests/data_types_in_json_list.json"),
+        from_json(str(Path(__file__).parent / "data_types_in_json_dict.json")),
+        from_json(str(Path(__file__).parent / "data_types_in_json_list.json")),
     ]
 
 
@@ -62,8 +62,8 @@ def model_types_in_yaml():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_yaml("tests/data_types_in_yaml_list.yaml"),
-        from_yaml("tests/data_types_in_yaml_dict.yaml"),
+        from_yaml(str(Path(__file__).parent / "data_types_in_yaml_list.yaml")),
+        from_yaml(str(Path(__file__).parent / "data_types_in_yaml_dict.yaml")),
     ]
 
 
@@ -72,8 +72,8 @@ def model_types_in_json_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_json("data_types_in_json_dict.json", origin="tests/data_types_in_json_dict.json"),
-        from_json("data_types_in_json_list.json", origin="tests/data_types_in_json_list.json"),
+        from_json("data_types_in_json_dict.json", origin=str(Path(__file__).parent / "data_types_in_json_dict.json")),
+        from_json("data_types_in_json_list.json", origin=str(Path(__file__).parent / "data_types_in_json_list.json")),
     ]
 
 
@@ -82,8 +82,8 @@ def model_types_in_yaml_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_yaml("data_types_in_yaml_list.yaml", origin="tests/data_types_in_yaml_list.yaml"),
-        from_yaml("data_types_in_yaml_dict.yaml", origin="tests/data_types_in_yaml_dict.yaml"),
+        from_yaml("data_types_in_yaml_list.yaml", origin=str(Path(__file__).parent / "data_types_in_yaml_list.yaml")),
+        from_yaml("data_types_in_yaml_dict.yaml", origin=str(Path(__file__).parent / "data_types_in_yaml_dict.yaml")),
     ]
 
 
@@ -193,6 +193,61 @@ def csv_imports_model(model_types):
     log.info("Model created in %.2f seconds", t2 - t1)
 
     return csv_imports_model
+
+
+@pytest.fixture(scope="session")
+def datacite_exports_model(model_types):
+    import json
+    from typing import Any
+
+    from flask_resources.serializers import BaseSerializer
+
+    from oarepo_model.api import model
+    from oarepo_model.presets.drafts import drafts_records_preset
+    from oarepo_model.presets.records_resources import records_preset
+    from oarepo_model.presets.ui import ui_preset
+    from oarepo_model.presets.ui_links import ui_links_preset
+
+    class DataciteSerializer(BaseSerializer):
+        """Minimal datacite serializer stub used in tests."""
+
+        def serialize_object(self, _obj) -> dict[str, Any]:
+            """Serialize a single object."""
+            with (Path(__file__).parent / "data/datacite_export.json").open() as f:
+                return json.load(f)
+
+    t1 = time.time()
+
+    datacite_exports_model = model(
+        name="datacite_export_test",
+        version="1.0.0",
+        presets=[
+            records_preset,
+            drafts_records_preset,
+            ui_links_preset,
+            ui_preset,
+        ],
+        types=[model_types],
+        metadata_type="Metadata",
+        customizations=[
+            AddMetadataExport(
+                code="datacite",
+                name=_("Datacite"),
+                mimetype="application/vnd.datacite.datacite+json",
+                serializer=DataciteSerializer(),
+                display=True,
+                oai_metadata_prefix=None,
+                oai_schema=None,
+                oai_namespace=None,
+            )
+        ],
+    )
+    datacite_exports_model.register()
+
+    t2 = time.time()
+    log.info("Model created in %.2f seconds", t2 - t1)
+
+    return datacite_exports_model
 
 
 @pytest.fixture(scope="session")
@@ -765,6 +820,7 @@ def extra_entry_points(
     vocabulary_model,
     multilingual_model,
     ui_links_model,
+    datacite_exports_model,
 ):
     return {
         "invenio_base.blueprints": [
