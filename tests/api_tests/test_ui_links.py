@@ -46,7 +46,7 @@ def app_with_bp(app):
         return "latest ok"
 
     @bp.route("/test-ui-links/records/<pid_value>/export/<export_format>", methods=["GET"])
-    def export(pid_value, export_format: str) -> str:
+    def record_export(pid_value, export_format: str) -> str:
         return "export ok"
 
     app.register_blueprint(bp)
