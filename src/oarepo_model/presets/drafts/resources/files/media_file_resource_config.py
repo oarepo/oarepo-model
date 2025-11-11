@@ -15,7 +15,7 @@ for accessing media files on published records.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, ClassVar, override
 
 from invenio_records_resources.resources import FileResourceConfig
 
@@ -48,6 +48,11 @@ class MediaFileResourceConfigPreset(Preset):
         class MediaFileResourceConfigMixin:
             blueprint_name = f"{model.base_name}_media_files"
             url_prefix = f"/{model.slug}/<pid_value>/media-files"
+
+            response_handlers: ClassVar[dict] = {
+                "application/vnd.inveniordm.v1+json": FileResourceConfig.response_handlers["application/json"],
+                **FileResourceConfig.response_handlers,
+            }
 
         yield AddClass("MediaFileResourceConfig", clazz=FileResourceConfig)
         yield AddMixins("MediaFileResourceConfig", MediaFileResourceConfigMixin)

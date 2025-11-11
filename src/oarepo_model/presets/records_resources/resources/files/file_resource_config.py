@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, ClassVar, override
 
 from invenio_records_resources.resources import FileResourceConfig
 
@@ -43,6 +43,11 @@ class FileResourceConfigPreset(Preset):
         class FileResourceConfigMixin:
             blueprint_name = f"{model.base_name}_files"
             url_prefix = f"/{model.slug}/<pid_value>"
+
+            response_handlers: ClassVar[dict] = {
+                "application/vnd.inveniordm.v1+json": FileResourceConfig.response_handlers["application/json"],
+                **FileResourceConfig.response_handlers,
+            }
 
         yield AddClass("FileResourceConfig", clazz=FileResourceConfig)
         yield AddMixins("FileResourceConfig", FileResourceConfigMixin)
