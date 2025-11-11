@@ -15,7 +15,7 @@ for managing regular files on draft records.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, ClassVar, override
 
 from invenio_records_resources.resources import FileResourceConfig
 
@@ -48,6 +48,11 @@ class DraftFileResourceConfigPreset(Preset):
         class DraftFileResourceConfigMixin:
             blueprint_name = f"{model.base_name}_draft_files"
             url_prefix = f"/{model.slug}/<pid_value>/draft"
+
+            response_handlers: ClassVar[dict] = {
+                "application/vnd.inveniordm.v1+json": FileResourceConfig.response_handlers["application/json"],
+                **FileResourceConfig.response_handlers,
+            }
 
         yield AddClass("DraftFileResourceConfig", clazz=FileResourceConfig)
         yield AddMixins("DraftFileResourceConfig", DraftFileResourceConfigMixin)
