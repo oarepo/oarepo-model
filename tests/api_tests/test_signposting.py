@@ -10,11 +10,50 @@
 
 from __future__ import annotations
 
+import pytest
+from flask import Blueprint
 from oarepo_runtime import current_runtime
 
 
+@pytest.fixture(scope="module")
+def app_with_bp(app):
+    bp = Blueprint("datacite_export_test_ui", __name__)
+
+    # mock UI resource
+    @bp.route("/preview/<pid_value>", methods=["GET"])
+    def preview(pid_value: str) -> str:
+        return "preview ok"
+
+    @bp.route("/", methods=["GET"])
+    def search() -> str:
+        return "search ok"
+
+    @bp.route("/uploads/<pid_value>", methods=["GET"])
+    def deposit_edit(pid_value: str) -> str:
+        return "deposit edit ok"
+
+    @bp.route("/uploads/new", methods=["GET"])
+    def deposit_create() -> str:
+        return "deposit create ok"
+
+    @bp.route("/records/<pid_value>")
+    def record_detail(pid_value) -> str:
+        return "detail ok"
+
+    @bp.route("/records/<pid_value>/latest", methods=["GET"])
+    def record_latest(pid_value: str) -> str:
+        return "latest ok"
+
+    @bp.route("/records/<pid_value>/export/<export_format>", methods=["GET"])
+    def record_export(pid_value, export_format: str) -> str:
+        return "export ok"
+
+    app.register_blueprint(bp)
+    return app
+
+
 def test_signposting_linksets(
-    app,
+    app_with_bp,
     test_datacite_service,
     file_service,
     identity_simple,
