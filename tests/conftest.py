@@ -241,6 +241,7 @@ def datacite_exports_model(model_types):
                 oai_namespace=None,
             )
         ],
+        configuration={"ui_blueprint_name": "datacite_export_test_ui"},
     )
     datacite_exports_model.register()
 

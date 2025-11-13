@@ -55,6 +55,7 @@ class UIExtPreset(Preset):
                 return {
                     **super().model_arguments,
                     "ui_model": builder.runtime_dependencies.get("ui_model"),
+                    "ui_blueprint_name": f"{model.configuration.get('ui_blueprint_name')}",
                 }
 
         yield AddMixins("Ext", ExtUIMixin)
