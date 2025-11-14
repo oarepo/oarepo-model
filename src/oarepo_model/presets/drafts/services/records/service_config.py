@@ -164,7 +164,7 @@ class DraftServiceConfigPreset(Preset):
                 ),
                 "versions": RecordEndpointLink(
                     f"{model.blueprint_base}.search_versions",
-                    when=has_permission("search_versions"),
+                    when=has_permission("read"),
                 ),
             },
         )
