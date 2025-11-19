@@ -26,10 +26,11 @@ def test_facet(
     facet_service.publish(identity_simple, id_)
 
     assert not hasattr(facet_model.facets, "metadata.c")
+    assert not hasattr(facet_model.facets, "metadata.jazyk")
+    assert not hasattr(facet_model.facets, "metadata.multi")
 
     assert hasattr(facet_model.facets, "metadata.vlastni")
     assert hasattr(facet_model.facets, "metadata.b")
-    assert hasattr(facet_model.facets, "metadata.jazyk")
     assert hasattr(facet_model.facets, "metadata.obyc_array")
 
     Record.index.refresh()

@@ -17,7 +17,10 @@ from typing import TYPE_CHECKING, Any, override
 
 from flask_resources.serializers import BaseSerializer
 from invenio_i18n import lazy_gettext as _
-from oarepo_runtime.resources.signposting import record_dict_to_json_linkset, record_dict_to_linkset
+from oarepo_runtime.resources.signposting import (
+    record_dict_to_json_linkset,
+    record_dict_to_linkset,
+)
 
 from oarepo_model.customizations import AddList, AddMetadataExport, Customization
 from oarepo_model.presets import Preset

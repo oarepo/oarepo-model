@@ -39,6 +39,18 @@ def test_model_metadata_registration_presets(
     assert m.oarepo_model_arguments["model_metadata"].record_type is None
     assert m.oarepo_model_arguments["model_metadata"].metadata_type == "RecordMetadata"
     assert m.oarepo_model_arguments["model_metadata"].types == {
+        "multilingual": {"type": "multilingual-type", "items": {"type": "i18n"}},
+        "i18n": {
+            "type": "object",
+            "properties": {
+                "lang": {
+                    "type": "vocabulary",
+                    "vocabulary-type": "languages",
+                    "searchable": False,
+                },
+                "value": {"type": "keyword", "searchable": False},
+            },
+        },
         "RecordMetadata": {"properties": {"title": {"type": "TitleType"}}},
         "TitleType": {"type": "fulltext+keyword"},
     }

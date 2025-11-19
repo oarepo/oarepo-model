@@ -47,6 +47,9 @@ class ImportsPreset(Preset):
             code="json",
             name=_("JSON"),
             mimetype="application/json",
-            deserializer=cast("JSONDeserializer", LazyProxy(lambda: runtime_dependencies.get("JSONDeserializer")())),
+            deserializer=cast(
+                "JSONDeserializer",
+                LazyProxy(lambda: runtime_dependencies.get("JSONDeserializer")()),
+            ),
             description=_("json import"),
         )

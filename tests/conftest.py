@@ -24,7 +24,12 @@ from invenio_vocabularies.records.models import VocabularyType
 from marshmallow_utils.fields import SanitizedHTML
 from oarepo_runtime.services.records.mapping import update_all_records_mappings
 
-from oarepo_model.customizations import AddDefaultSearchFields, AddFacetGroup, AddMetadataExport, AddMetadataImport
+from oarepo_model.customizations import (
+    AddDefaultSearchFields,
+    AddFacetGroup,
+    AddMetadataExport,
+    AddMetadataImport,
+)
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
 log = logging.getLogger("tests")
@@ -72,8 +77,14 @@ def model_types_in_json_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_json("data_types_in_json_dict.json", origin=str(Path(__file__).parent / "data_types_in_json_dict.json")),
-        from_json("data_types_in_json_list.json", origin=str(Path(__file__).parent / "data_types_in_json_list.json")),
+        from_json(
+            "data_types_in_json_dict.json",
+            origin=str(Path(__file__).parent / "data_types_in_json_dict.json"),
+        ),
+        from_json(
+            "data_types_in_json_list.json",
+            origin=str(Path(__file__).parent / "data_types_in_json_list.json"),
+        ),
     ]
 
 
@@ -82,8 +93,14 @@ def model_types_in_yaml_with_origin():
     """Model types fixture."""
     # Define the model types used in the tests
     return [
-        from_yaml("data_types_in_yaml_list.yaml", origin=str(Path(__file__).parent / "data_types_in_yaml_list.yaml")),
-        from_yaml("data_types_in_yaml_dict.yaml", origin=str(Path(__file__).parent / "data_types_in_yaml_dict.yaml")),
+        from_yaml(
+            "data_types_in_yaml_list.yaml",
+            origin=str(Path(__file__).parent / "data_types_in_yaml_list.yaml"),
+        ),
+        from_yaml(
+            "data_types_in_yaml_dict.yaml",
+            origin=str(Path(__file__).parent / "data_types_in_yaml_dict.yaml"),
+        ),
     ]
 
 
@@ -553,7 +570,6 @@ multilingual_model_types = {
         "properties": {
             "abstract": {
                 "type": "i18n",
-                "multilingual": {"lang_name": "jazyk", "value_name": "hodnotka"},
             },
             "title": {
                 "type": "i18n",
@@ -665,13 +681,14 @@ def vocabulary_model(empty_model):
 def multilingual_model(empty_model):
     from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
 
     t1 = time.time()
 
     multilingual_model = model(
         name="multilingual_test",
         version="1.0.0",
-        presets=[records_resources_preset],
+        presets=[records_resources_preset, relations_preset],
         types=[multilingual_model_types],
         metadata_type="Metadata",
         customizations=[],

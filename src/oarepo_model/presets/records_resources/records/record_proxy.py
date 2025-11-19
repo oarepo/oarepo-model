@@ -12,7 +12,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from invenio_records_resources.references.entity_resolvers.records import RecordProxy as InvenioRecordProxy
+from invenio_records_resources.references.entity_resolvers.records import (
+    RecordProxy as InvenioRecordProxy,
+)
 from oarepo_runtime import current_runtime
 
 from oarepo_model.customizations import (
@@ -26,7 +28,9 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
     from flask_principal import Identity, ItemNeed, Need
-    from invenio_records_resources.references.entity_resolvers.records import RecordProxy as TInvenioRecordProxy
+    from invenio_records_resources.references.entity_resolvers.records import (
+        RecordProxy as TInvenioRecordProxy,
+    )
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
