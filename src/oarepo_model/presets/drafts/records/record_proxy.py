@@ -26,7 +26,9 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
     from invenio_drafts_resources.records.api import Record
-    from invenio_records_resources.references.entity_resolvers.records import RecordProxy as InvenioRecordProxy
+    from invenio_records_resources.references.entity_resolvers.records import (
+        RecordProxy as InvenioRecordProxy,
+    )
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel

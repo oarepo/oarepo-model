@@ -40,7 +40,11 @@ if TYPE_CHECKING:
 class RecordResourceConfigPreset(Preset):
     """Preset for record resource config class."""
 
-    provides = ("RecordResourceConfig", "record_response_handlers", "record_request_body_parsers")
+    provides = (
+        "RecordResourceConfig",
+        "record_response_handlers",
+        "record_request_body_parsers",
+    )
 
     @override
     def apply(

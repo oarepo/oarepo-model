@@ -29,7 +29,10 @@ def _proxy_test(proxy, tested_record, tested_item, identity) -> None:
     assert len(resolved_fields) == 2
 
     needs = proxy.get_needs(ctx={"record_permission": "read"})
-    assert needs == {Need(method="system_role", value="any_user"), Need(method="system_role", value="system_process")}
+    assert needs == {
+        Need(method="system_role", value="any_user"),
+        Need(method="system_role", value="system_process"),
+    }
 
 
 def test_draft(
@@ -47,7 +50,10 @@ def test_draft(
     service = test_draft_service
     model = draft_model
     resolver = model.RecordResolver(
-        model.Record, service_id=service.id, type_key=service.id, proxy_cls=model.RecordProxy
+        model.Record,
+        service_id=service.id,
+        type_key=service.id,
+        proxy_cls=model.RecordProxy,
     )
 
     _resolver_test(service, tested_record, tested_item, resolver)
@@ -92,7 +98,10 @@ def test_published_record(
 
     tested_record = record_from_result(tested_item)
     resolver = model.RecordResolver(
-        model.Record, service_id=service.id, type_key=service.id, proxy_cls=model.RecordProxy
+        model.Record,
+        service_id=service.id,
+        type_key=service.id,
+        proxy_cls=model.RecordProxy,
     )
 
     _resolver_test(service, tested_record, tested_item, resolver)
@@ -126,7 +135,10 @@ def test_model_without_drafts(
     tested_item = test_service.create(identity_simple, input_data)
     tested_record = record_from_result(tested_item)
     resolver = model.RecordResolver(
-        model.Record, service_id=service.id, type_key=service.id, proxy_cls=model.RecordProxy
+        model.Record,
+        service_id=service.id,
+        type_key=service.id,
+        proxy_cls=model.RecordProxy,
     )
 
     _resolver_test(service, tested_record, tested_item, resolver)

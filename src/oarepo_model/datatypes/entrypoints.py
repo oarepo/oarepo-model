@@ -15,7 +15,7 @@ discovered and used by the OARepo model system through entry points registration
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .boolean import BooleanDataType
 from .collections import (
@@ -32,7 +32,7 @@ from .date import (
     EDTFTimeDataType,
     TimeDataType,
 )
-from .multilingual import I18nDataType, I18nDictDataType, MultilingualDataType
+from .multilingual import I18nDictDataType, MultilingualDataType
 from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataType
 from .polymorphic import PolymorphicDataType
 from .relations import PIDRelation
@@ -42,7 +42,7 @@ from .vocabularies import VocabularyDataType
 if TYPE_CHECKING:
     from .base import DataType
 
-DATA_TYPES: dict[str, type[DataType]] = {
+DATA_TYPES: dict[str, type[DataType] | dict[str, Any]] = {
     KeywordDataType.TYPE: KeywordDataType,
     FullTextDataType.TYPE: FullTextDataType,
     FulltextWithKeywordDataType.TYPE: FulltextWithKeywordDataType,
@@ -65,6 +65,22 @@ DATA_TYPES: dict[str, type[DataType]] = {
     I18nDictDataType.TYPE: I18nDictDataType,
     DynamicObjectDataType.TYPE: DynamicObjectDataType,
     PolymorphicDataType.TYPE: PolymorphicDataType,
-    I18nDataType.TYPE: I18nDataType,
-    MultilingualDataType.TYPE: MultilingualDataType,
+    "multilingual-type": MultilingualDataType,
+    "multilingual": {
+        "type": "multilingual-type",
+        "items": {
+            "type": "i18n",
+        },
+    },
+    "i18n": {
+        "type": "object",
+        "properties": {
+            "lang": {
+                "type": "vocabulary",
+                "vocabulary-type": "languages",
+                "searchable": False,
+            },
+            "value": {"type": "keyword", "searchable": False},
+        },
+    },
 }

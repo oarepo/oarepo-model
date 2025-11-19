@@ -3,3 +3,8 @@
     cs: Angličtina
     en: English
   type: languages
+- id: cs
+  title:
+    cs: Čeština
+    en: Czech
+  type: languages

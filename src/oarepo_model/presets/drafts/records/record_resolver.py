@@ -25,7 +25,9 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
     from invenio_drafts_resources.records import Draft
-    from invenio_drafts_resources.services.records.service import RecordService as DraftRecordService
+    from invenio_drafts_resources.services.records.service import (
+        RecordService as DraftRecordService,
+    )
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
