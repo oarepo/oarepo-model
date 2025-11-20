@@ -24,13 +24,13 @@ from oarepo_model.customizations import (
     AddMixins,
     Customization,
 )
+from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
     from oarepo_model.builder import InvenioModelBuilder
-    from oarepo_model.model import InvenioModel
 
 
 class DraftFileResourceConfigPreset(Preset):
@@ -48,6 +48,8 @@ class DraftFileResourceConfigPreset(Preset):
         class DraftFileResourceConfigMixin:
             blueprint_name = f"{model.base_name}_draft_files"
             url_prefix = f"/{model.slug}/<pid_value>/draft"
+            # Response handling
+            response_handlers = Dependency("file_response_handlers")
 
         yield AddClass("DraftFileResourceConfig", clazz=FileResourceConfig)
         yield AddMixins("DraftFileResourceConfig", DraftFileResourceConfigMixin)
