@@ -231,7 +231,7 @@ def datacite_exports_model(model_types):
         def serialize_object(self, _obj) -> dict[str, Any]:
             """Serialize a single object."""
             with (Path(__file__).parent / "data/datacite_export.json").open() as f:
-                return json.load(f)
+                return json.load(f)["data"]["attributes"]
 
     t1 = time.time()
 

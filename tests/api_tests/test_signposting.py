@@ -66,13 +66,7 @@ def test_signposting_linksets(
 ):
     item = test_datacite_service.create(identity_simple, input_data)
 
-    assert {x.code for x in datacite_exports_model.exports} == {
-        "json",
-        "lset",
-        "jsonlset",
-        "ui_json",
-        "datacite",
-    }
+    assert {x.code for x in datacite_exports_model.exports} == {"json", "lset", "jsonlset", "ui_json", "datacite"}
 
     assert datacite_exports_model.RecordResourceConfig().response_handlers.keys() == {
         "application/json",
@@ -135,12 +129,7 @@ def test_signposting_linksets_without_datacite(
 ):
     item = test_service.create(identity_simple, input_data)
 
-    assert {x.code for x in empty_model.exports} == {
-        "json",
-        "lset",
-        "jsonlset",
-        "ui_json",
-    }
+    assert {x.code for x in empty_model.exports} == {"json", "lset", "jsonlset", "ui_json"}
 
     assert empty_model.RecordResourceConfig().response_handlers.keys() == {
         "application/json",
@@ -150,5 +139,7 @@ def test_signposting_linksets_without_datacite(
     }
     linkset_export = current_runtime.models["test"].get_export_by_mimetype("application/linkset")
     json_linkset_export = current_runtime.models["test"].get_export_by_mimetype("application/linkset+json")
-    assert linkset_export.serializer.serialize_object(item.to_dict()) == ""
-    assert json_linkset_export.serializer.serialize_object(item.to_dict()) == {}
+    with pytest.raises(ValueError, match="No export found for the given mimetype or code"):
+        linkset_export.serializer.serialize_object(item.to_dict())
+    with pytest.raises(ValueError, match="No export found for the given mimetype or code"):
+        json_linkset_export.serializer.serialize_object(item.to_dict())
