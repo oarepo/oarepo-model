@@ -16,16 +16,17 @@ from invenio_records_resources.resources import FileResourceConfig
 
 from oarepo_model.customizations import (
     AddClass,
+    AddDictionary,
     AddMixins,
     Customization,
 )
+from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
     from oarepo_model.builder import InvenioModelBuilder
-    from oarepo_model.model import InvenioModel
 
 
 class FileResourceConfigPreset(Preset):
@@ -43,6 +44,13 @@ class FileResourceConfigPreset(Preset):
         class FileResourceConfigMixin:
             blueprint_name = f"{model.base_name}_files"
             url_prefix = f"/{model.slug}/<pid_value>"
+            # Response handling
+            response_handlers = Dependency("file_response_handlers")
 
         yield AddClass("FileResourceConfig", clazz=FileResourceConfig)
         yield AddMixins("FileResourceConfig", FileResourceConfigMixin)
+
+        yield AddDictionary(
+            "file_response_handlers",
+            {**FileResourceConfig.response_handlers},
+        )
