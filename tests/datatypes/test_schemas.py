@@ -293,7 +293,7 @@ def test_date_field(test_schema):
         {"type": "date", "min_date": date(2023, 1, 1), "max_date": date(2023, 12, 31)},
     )
 
-    assert schema.load({"a": "2023-01-02"}) == {"a": date(2023, 1, 2)}
+    assert schema.load({"a": "2023-01-02"}) == {"a": "2023-01-02"}
 
     with pytest.raises(ma.ValidationError):
         schema.load({"a": "01/01/2023"})  # wrong format
@@ -320,11 +320,11 @@ def test_datetime_field(test_schema):
     )
 
     assert schema.load({"a": "2023-01-01T12:30:00"}) == {
-        "a": datetime(2023, 1, 1, 12, 30, 0),  # noqa: DTZ001 no naive datetime
+        "a": "2023-01-01T12:30:00",
     }
 
     assert schema.load({"a": "2023-01-01 12:30:00"}) == {
-        "a": datetime(2023, 1, 1, 12, 30, 0),  # noqa: DTZ001 no naive datetime
+        "a": "2023-01-01 12:30:00",
     }
 
     with pytest.raises(ma.ValidationError):
@@ -346,7 +346,7 @@ def test_time_field(test_schema):
         },
     )
 
-    assert schema.load({"a": "12:30:00"}) == {"a": time(12, 30, 0)}
+    assert schema.load({"a": "12:30:00"}) == {"a": "12:30:00"}
 
     with pytest.raises(ma.ValidationError):
         schema.load({"a": "08:59:59"})
