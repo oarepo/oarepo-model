@@ -19,7 +19,7 @@ from __future__ import annotations
 import functools
 from datetime import datetime
 from types import MappingProxyType
-from typing import Any, override
+from typing import TYPE_CHECKING, Any, override
 
 import edtf
 import marshmallow.fields
@@ -29,13 +29,44 @@ from marshmallow_utils.fields.edtfdatestring import EDTFValidator
 
 from .base import DataType, FacetMixin
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+
+class KeepOriginalStringMixin(marshmallow.fields.Field):
+    """Mixin schema to keep the original string value."""
+
+    @override
+    def deserialize(
+        self,
+        value: Any,
+        attr: str | None = None,
+        data: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Deserialize the value and keep the original string."""
+        super().deserialize(value, attr, data, **kwargs)
+        return value  # return the original string if deserialization has not thrown an error
+
+
+class DateString(KeepOriginalStringMixin, marshmallow.fields.Date):
+    """Marshmallow field for date strings that keeps the original string."""
+
+
+class DateTimeString(KeepOriginalStringMixin, marshmallow.fields.DateTime):
+    """Marshmallow field for datetime strings that keeps the original string."""
+
+
+class TimeString(KeepOriginalStringMixin, marshmallow.fields.Time):
+    """Marshmallow field for time strings that keeps the original string."""
+
 
 class DateDataType(FacetMixin, DataType):
     """Data type for basic date values."""
 
     TYPE = "date"
 
-    marshmallow_field_class = marshmallow.fields.Date
+    marshmallow_field_class = DateString
     jsonschema_type = MappingProxyType({"type": "string", "format": "date"})
     mapping_type = MappingProxyType(
         {"type": "date", "format": "basic_date||strict_date"},
@@ -97,7 +128,7 @@ class DateTimeDataType(FacetMixin, DataType):
 
     TYPE = "datetime"
 
-    marshmallow_field_class = marshmallow.fields.DateTime
+    marshmallow_field_class = DateTimeString
     jsonschema_type = MappingProxyType({"type": "string", "format": "date-time"})
     mapping_type = MappingProxyType(
         {
@@ -165,7 +196,7 @@ class TimeDataType(FacetMixin, DataType):
 
     TYPE = "time"
 
-    marshmallow_field_class = marshmallow.fields.Time
+    marshmallow_field_class = TimeString
     jsonschema_type = MappingProxyType({"type": "string", "format": "time"})
     mapping_type = MappingProxyType(
         {
