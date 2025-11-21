@@ -30,11 +30,13 @@ from marshmallow_utils.fields.edtfdatestring import EDTFValidator
 from .base import DataType, FacetMixin
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Callable, Mapping
 
 
 class KeepOriginalStringMixin(marshmallow.fields.Field):
     """Mixin schema to keep the original string value."""
+
+    SERIALIZATION_FUNCS: dict[str, Callable] = {"iso": lambda val: val}  # noqa RUFF012
 
     @override
     def deserialize(
