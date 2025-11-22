@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Mirek Simek", email = "miroslav.simek@gmail.com" }
 ]
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.13,<3.15"
 dependencies = [
     "oarepo-runtime>=2.0.0dev5,<3.0.0",
     "graphlib",
