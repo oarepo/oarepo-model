@@ -30,9 +30,9 @@ from oarepo_model.customizations import (
     AddClass,
     AddDictionary,
     AddList,
-    AddMixins,
     AddToList,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
@@ -161,7 +161,7 @@ class RecordServiceConfigPreset(Preset):
         yield AddList("record_service_components", exists_ok=True)
 
         yield AddClass("RecordServiceConfig", clazz=RecordServiceConfig)
-        yield AddMixins("RecordServiceConfig", ServiceConfigMixin)
+        yield PrependMixin("RecordServiceConfig", ServiceConfigMixin)
 
         yield AddDictionary(
             "record_search_item_links",

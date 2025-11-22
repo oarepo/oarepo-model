@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 from oarepo_model.customizations import (
-    AddMixins,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 
@@ -48,4 +48,4 @@ class DraftSearchOptionsPreset(Preset):
 
         yield AddClass("DraftSearchOptions", clazz=SearchDraftsOptions)
 
-        yield AddMixins("DraftSearchOptions", DraftSearchOptionsMixin)
+        yield PrependMixin("DraftSearchOptions", DraftSearchOptionsMixin)

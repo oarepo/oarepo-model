@@ -25,8 +25,8 @@ from invenio_records_resources.records.systemfields import (
 )
 
 from oarepo_model.customizations import (
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 
@@ -66,7 +66,7 @@ class DraftWithMediaFilesPreset(Preset):
             media_bucket_id = ModelField(dump=False)
             media_bucket = ModelField(dump=False)
 
-        yield AddMixins(
+        yield PrependMixin(
             "Draft",
             DraftWithMediaFilesMixin,
         )

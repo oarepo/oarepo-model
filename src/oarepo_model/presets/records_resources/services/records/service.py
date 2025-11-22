@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_records_resources.services.records.service import RecordService
 from oarepo_runtime.services.config.components import ComponentsOrderingMixin
 
-from oarepo_model.customizations import AddClass, AddMixins, Customization
+from oarepo_model.customizations import AddClass, Customization, PrependMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -39,4 +39,4 @@ class RecordServicePreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         yield AddClass("RecordService", clazz=RecordService)
-        yield AddMixins("RecordService", ComponentsOrderingMixin)
+        yield PrependMixin("RecordService", ComponentsOrderingMixin)

@@ -18,8 +18,8 @@ from invenio_records_resources.records.systemfields import IndexField
 
 from oarepo_model.customizations import (
     AddClass,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
@@ -84,7 +84,7 @@ class RecordPreset(Preset):
             "Record",
             clazz=InvenioRecord,
         )
-        yield AddMixins(
+        yield PrependMixin(
             "Record",
             RecordMixin,
         )

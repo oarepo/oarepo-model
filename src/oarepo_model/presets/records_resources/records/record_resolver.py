@@ -16,8 +16,8 @@ from invenio_records_resources.references import RecordResolver as invenioRecord
 
 from oarepo_model.customizations import (
     AddClass,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 
@@ -49,7 +49,7 @@ class RecordResolverPreset(Preset):
             "RecordResolver",
             clazz=invenioRecordResolver,
         )
-        yield AddMixins(
+        yield PrependMixin(
             "RecordResolver",
             ResolverMixin,
         )

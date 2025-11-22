@@ -23,8 +23,8 @@ from invenio_records_resources.records.systemfields import FilesField
 
 from oarepo_model.customizations import (
     AddClass,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 
@@ -65,7 +65,7 @@ class DraftMediaFilesPreset(Preset):
             "DraftMediaFiles",
             clazz=dependencies["Draft"],
         )
-        yield AddMixins(
+        yield PrependMixin(
             "DraftMediaFiles",
             DraftMediaFilesMixin,
         )

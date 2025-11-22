@@ -17,8 +17,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, override
 
 from oarepo_model.customizations import (
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
@@ -58,4 +58,4 @@ class UIExtPreset(Preset):
                     "ui_blueprint_name": f"{model.configuration.get('ui_blueprint_name')}",
                 }
 
-        yield AddMixins("Ext", ExtUIMixin)
+        yield PrependMixin("Ext", ExtUIMixin)

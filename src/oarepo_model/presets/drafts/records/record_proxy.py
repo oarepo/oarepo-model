@@ -17,8 +17,8 @@ from invenio_pidstore.errors import PIDDoesNotExistError, PIDUnregistered
 from sqlalchemy.exc import NoResultFound
 
 from oarepo_model.customizations import (
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 
@@ -92,7 +92,7 @@ class DraftRecordProxyPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield AddMixins(
+        yield PrependMixin(
             "RecordProxy",
             DraftRecordProxyMixin,
         )

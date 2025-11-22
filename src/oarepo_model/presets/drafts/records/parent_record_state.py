@@ -24,7 +24,7 @@ from invenio_drafts_resources.records import (
 )
 
 from oarepo_model.customizations import (
-    AddBaseClasses,
+    AddBaseClass,
     AddClass,
     AddClassField,
     Customization,
@@ -56,11 +56,8 @@ class ParentRecordStatePreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         yield AddClass("ParentRecordState")
-        yield AddBaseClasses(
-            "ParentRecordState",
-            db.Model,
-            InvenioParentRecordStateMixin,
-        )
+        yield AddBaseClass("ParentRecordState", db.Model)
+        yield AddBaseClass("ParentRecordState", InvenioParentRecordStateMixin)
         yield AddClassField("ParentRecordState", "__record_model__", dependencies["RecordMetadata"])
         yield AddClassField("ParentRecordState", "__draft_model__", dependencies["DraftMetadata"])
         yield AddClassField(

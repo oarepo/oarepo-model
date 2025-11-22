@@ -22,8 +22,8 @@ from invenio_records_resources.resources import FileResourceConfig
 from oarepo_model.customizations import (
     AddClass,
     AddDictionary,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
@@ -53,7 +53,7 @@ class MediaFileResourceConfigPreset(Preset):
             response_handlers = Dependency("media_file_response_handlers")
 
         yield AddClass("MediaFileResourceConfig", clazz=FileResourceConfig)
-        yield AddMixins("MediaFileResourceConfig", MediaFileResourceConfigMixin)
+        yield PrependMixin("MediaFileResourceConfig", MediaFileResourceConfigMixin)
 
         yield AddDictionary(
             "media_file_response_handlers",

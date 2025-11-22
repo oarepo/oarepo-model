@@ -200,7 +200,7 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
         return InMemoryTraversable(parent_name, self._files, is_parent_dir)
 
     @override
-    def joinpath(self, *descendants: str) -> importlib.abc.Traversable:
+    def joinpath(self, *descendants: str) -> importlib.resources.abc.Traversable:
         """Join the descendants into a single path, beginning with this traversable."""
         pth = self
         for descendant in descendants:

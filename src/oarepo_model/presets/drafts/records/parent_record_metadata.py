@@ -21,7 +21,7 @@ from invenio_db import db
 from invenio_records.models import RecordMetadataBase
 
 from oarepo_model.customizations import (
-    AddBaseClasses,
+    AddBaseClass,
     AddClass,
     AddClassField,
     Customization,
@@ -53,4 +53,5 @@ class ParentRecordMetadataPreset(Preset):
             "__tablename__",
             f"{builder.model.base_name}_parent_metadata",
         )
-        yield AddBaseClasses("ParentRecordMetadata", db.Model, RecordMetadataBase)
+        yield AddBaseClass("ParentRecordMetadata", db.Model)
+        yield AddBaseClass("ParentRecordMetadata", RecordMetadataBase)

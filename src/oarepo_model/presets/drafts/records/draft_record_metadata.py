@@ -25,7 +25,7 @@ from invenio_drafts_resources.records import (
 )
 
 from oarepo_model.customizations import (
-    AddBaseClasses,
+    AddBaseClass,
     AddClass,
     AddClassField,
     Customization,
@@ -63,9 +63,6 @@ class DraftMetadataPreset(Preset):
             "__parent_record_model__",
             dependencies["ParentRecordMetadata"],
         )
-        yield AddBaseClasses(
-            "DraftMetadata",
-            db.Model,
-            DraftMetadataBase,
-            ParentRecordMixin,
-        )
+        yield AddBaseClass("DraftMetadata", db.Model)
+        yield AddBaseClass("DraftMetadata", DraftMetadataBase)
+        yield AddBaseClass("DraftMetadata", ParentRecordMixin)

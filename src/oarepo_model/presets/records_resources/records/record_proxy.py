@@ -19,8 +19,8 @@ from oarepo_runtime import current_runtime
 
 from oarepo_model.customizations import (
     AddClass,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 
@@ -90,7 +90,7 @@ class RecordProxyPreset(Preset):
             "RecordProxy",
             clazz=InvenioRecordProxy,
         )
-        yield AddMixins(
+        yield PrependMixin(
             "RecordProxy",
             RecordProxyMixin,
         )

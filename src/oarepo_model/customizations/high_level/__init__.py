@@ -19,17 +19,21 @@ from __future__ import annotations
 from .add_export import AddMetadataExport
 from .add_import import AddMetadataImport
 from .add_pid_relation import AddPIDRelation
-from .add_search_fields import AddDefaultSearchFields
-from .index_settings import IndexNestedFieldsLimit, IndexSettings, IndexTotalFieldsLimit
+from .add_search_fields import SetDefaultSearchFields
+from .index_settings import (
+    PatchIndexSettings,
+    SetIndexNestedFieldsLimit,
+    SetIndexTotalFieldsLimit,
+)
 from .set_permission_policy import SetPermissionPolicy
 
 __all__ = (
-    "AddDefaultSearchFields",
     "AddMetadataExport",
     "AddMetadataImport",
     "AddPIDRelation",
-    "IndexNestedFieldsLimit",
-    "IndexSettings",
-    "IndexTotalFieldsLimit",
+    "PatchIndexSettings",
+    "SetDefaultSearchFields",
+    "SetIndexNestedFieldsLimit",
+    "SetIndexTotalFieldsLimit",
     "SetPermissionPolicy",
 )

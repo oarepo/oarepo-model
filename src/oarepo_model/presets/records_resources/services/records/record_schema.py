@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, cast, override
 import marshmallow
 from invenio_records_resources.services.records.schema import BaseRecordSchema
 
-from oarepo_model.customizations import AddClass, AddMixins, Customization
+from oarepo_model.customizations import AddClass, Customization, PrependMixin
 from oarepo_model.datatypes.collections import ObjectDataType
 from oarepo_model.presets import Preset
 
@@ -46,13 +46,13 @@ class RecordSchemaPreset(Preset):
     ) -> Generator[Customization]:
         yield AddClass("RecordSchema", clazz=BaseRecordSchema)
 
-        yield AddMixins(
+        yield PrependMixin(
             "RecordSchema",
             SchemaMixin,
         )
 
         if model.record_type is not None:
-            yield AddMixins(
+            yield PrependMixin(
                 "RecordSchema",
                 get_marshmallow_schema(builder, model.record_type),
             )

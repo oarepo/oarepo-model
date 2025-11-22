@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_records_resources import __version__
 
 from oarepo_model.customizations import (
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol
@@ -53,4 +53,4 @@ class RelationsFeaturePreset(Preset):
                     },
                 }
 
-        yield AddMixins("Ext", RelationsFeatureMixin)
+        yield PrependMixin("Ext", RelationsFeatureMixin)

@@ -23,8 +23,8 @@ from invenio_records.systemfields import ConstantField
 
 from oarepo_model.customizations import (
     AddClass,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
@@ -74,7 +74,7 @@ class ParentRecordPreset(Preset):
             "ParentRecord",
             clazz=InvenioParentRecord,
         )
-        yield AddMixins(
+        yield PrependMixin(
             "ParentRecord",
             ParentRecordMixin,
         )

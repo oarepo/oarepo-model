@@ -23,8 +23,8 @@ from invenio_records_resources.resources.records.headers import etag_headers
 from oarepo_model.customizations import (
     AddClass,
     AddDictionary,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
@@ -64,7 +64,7 @@ class RecordResourceConfigPreset(Preset):
             request_body_parsers = Dependency("record_request_body_parsers", "imports", transform=_merge_with_imports)
 
         yield AddClass("RecordResourceConfig", clazz=RecordResourceConfig)
-        yield AddMixins("RecordResourceConfig", RecordResourceConfigMixin)
+        yield PrependMixin("RecordResourceConfig", RecordResourceConfigMixin)
 
         yield AddDictionary(
             "record_response_handlers",

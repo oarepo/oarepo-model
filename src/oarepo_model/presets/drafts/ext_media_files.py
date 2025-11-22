@@ -20,9 +20,9 @@ from typing import TYPE_CHECKING, Any, override
 from oarepo_runtime.config import build_config
 
 from oarepo_model.customizations import (
-    AddMixins,
     AddToList,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
@@ -98,7 +98,7 @@ class ExtMediaFilesPreset(Preset):
                     "media_file_service": self.media_files_service,
                 }
 
-        yield AddMixins("Ext", ExtMediaFilesMixin)
+        yield PrependMixin("Ext", ExtMediaFilesMixin)
 
         yield AddToList(
             "services_registry_list",

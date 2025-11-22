@@ -24,10 +24,10 @@ from oarepo_runtime.config import build_config
 from oarepo_model.customizations import (
     AddClass,
     AddEntryPoint,
-    AddMixins,
     AddToDictionary,
     AddToList,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
@@ -182,7 +182,7 @@ class ExtPreset(Preset):
                 super().init_config(app)
 
         yield AddClass("Ext", clazz=ExtBase)
-        yield AddMixins("Ext", ServicesResourcesExtMixin)
+        yield PrependMixin("Ext", ServicesResourcesExtMixin)
 
         yield AddEntryPoint("invenio_base.apps", model.base_name, "Ext")
         yield AddEntryPoint("invenio_base.api_apps", model.base_name, "Ext")
@@ -271,7 +271,7 @@ class FilesFeaturePreset(Preset):
                     },
                 }
 
-        yield AddMixins("Ext", FilesFeatureMixin)
+        yield PrependMixin("Ext", FilesFeatureMixin)
 
 
 class RecordsFeaturePreset(Preset):
@@ -299,4 +299,4 @@ class RecordsFeaturePreset(Preset):
                     },
                 }
 
-        yield AddMixins("Ext", RecordsFeatureMixin)
+        yield PrependMixin("Ext", RecordsFeatureMixin)

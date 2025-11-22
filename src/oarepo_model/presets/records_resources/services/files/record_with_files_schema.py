@@ -17,7 +17,7 @@ from marshmallow_utils.fields import (
     NestedAttribute,
 )
 
-from oarepo_model.customizations import AddMixins, Customization
+from oarepo_model.customizations import Customization, PrependMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -59,4 +59,4 @@ class RecordWithFilesSchemaPreset(Preset):
         class RecordWithFilesMixin(ma.Schema):
             files = NestedAttribute(FilesSchema)
 
-        yield AddMixins("RecordSchema", RecordWithFilesMixin)
+        yield PrependMixin("RecordSchema", RecordWithFilesMixin)

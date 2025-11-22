@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_drafts_resources.records.api import DraftRecordIdProviderV2
 from invenio_pidstore.providers.recordid_v2 import RecordIdProviderV2
 
-from oarepo_model.customizations import ChangeBase, Customization
+from oarepo_model.customizations import Customization, ReplaceBaseClass
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ class PIDProviderPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield ChangeBase(
+        yield ReplaceBaseClass(
             "PIDProvider",
             RecordIdProviderV2,
             DraftRecordIdProviderV2,

@@ -23,8 +23,8 @@ from invenio_drafts_resources.resources import (
 from invenio_records_resources.resources.records.config import RecordResourceConfig
 
 from oarepo_model.customizations import (
-    ChangeBase,
     Customization,
+    ReplaceBaseClass,
 )
 from oarepo_model.presets import Preset
 
@@ -47,7 +47,7 @@ class DraftResourceConfigPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield ChangeBase(
+        yield ReplaceBaseClass(
             "RecordResourceConfig",
             RecordResourceConfig,
             DraftResourceConfig,

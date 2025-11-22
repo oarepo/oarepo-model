@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 from oarepo_model.customizations import (
     AddDictionary,
-    AddMixins,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 
@@ -49,4 +49,4 @@ class RecordSearchOptionsPreset(Preset):
 
         yield AddClass("RecordSearchOptions", clazz=SearchOptions)
 
-        yield AddMixins("RecordSearchOptions", RecordSearchOptionsMixin)
+        yield PrependMixin("RecordSearchOptions", RecordSearchOptionsMixin)

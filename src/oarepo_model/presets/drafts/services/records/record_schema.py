@@ -21,7 +21,7 @@ from invenio_drafts_resources.services.records.schema import RecordSchema
 from invenio_records_resources.services.records.schema import BaseRecordSchema
 from marshmallow_utils.fields import NestedAttribute
 
-from oarepo_model.customizations import AddMixins, ChangeBase, Customization
+from oarepo_model.customizations import Customization, PrependMixin, ReplaceBaseClass
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -49,5 +49,5 @@ class DraftRecordSchemaPreset(Preset):
         class ParentRecordSchemaMixin:
             parent = NestedAttribute(dependencies["ParentRecordSchema"])
 
-        yield ChangeBase("RecordSchema", BaseRecordSchema, RecordSchema)
-        yield AddMixins("RecordSchema", ParentRecordSchemaMixin)
+        yield ReplaceBaseClass("RecordSchema", BaseRecordSchema, RecordSchema)
+        yield PrependMixin("RecordSchema", ParentRecordSchemaMixin)

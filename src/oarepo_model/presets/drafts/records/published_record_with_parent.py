@@ -23,7 +23,7 @@ from invenio_rdm_records.records.systemfields import HasDraftCheckField
 from invenio_records_resources.records import Record as RecordBase
 from oarepo_runtime.records.systemfields import PublicationStatusSystemField
 
-from oarepo_model.customizations import AddMixins, ChangeBase, Customization
+from oarepo_model.customizations import Customization, PrependMixin, ReplaceBaseClass
 from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
@@ -58,5 +58,5 @@ class RecordWithParentPreset(Preset):
 
             publication_status = PublicationStatusSystemField()
 
-        yield ChangeBase("Record", RecordBase, DraftBase, subclass=True)
-        yield AddMixins("Record", ParentRecordMixin)
+        yield ReplaceBaseClass("Record", RecordBase, DraftBase, subclass=True)
+        yield PrependMixin("Record", ParentRecordMixin)

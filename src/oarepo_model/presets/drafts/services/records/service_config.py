@@ -44,11 +44,11 @@ from oarepo_runtime.services.config import (
 
 from oarepo_model.customizations import (
     AddDictionary,
-    AddMixins,
     AddToDictionary,
     AddToList,
-    ChangeBase,
     Customization,
+    PrependMixin,
+    ReplaceBaseClass,
 )
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
@@ -117,8 +117,8 @@ class DraftServiceConfigPreset(Preset):
                 }
                 return {k: v for k, v in links.items() if v is not None}
 
-        yield ChangeBase("RecordServiceConfig", RecordServiceConfig, DraftServiceConfig)
-        yield AddMixins("RecordServiceConfig", DraftServiceConfigMixin)
+        yield ReplaceBaseClass("RecordServiceConfig", RecordServiceConfig, DraftServiceConfig)
+        yield PrependMixin("RecordServiceConfig", DraftServiceConfigMixin)
 
         self_links = {
             "self": ConditionalLink(

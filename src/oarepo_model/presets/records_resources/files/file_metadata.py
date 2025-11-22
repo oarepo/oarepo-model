@@ -23,7 +23,7 @@ from invenio_records.models import RecordMetadataBase
 from invenio_records_resources.records.models import FileRecordModelMixin
 
 from oarepo_model.customizations import (
-    AddBaseClasses,
+    AddBaseClass,
     AddClass,
     AddClassField,
     Customization,
@@ -57,9 +57,6 @@ class FileMetadataPreset(Preset):
         yield AddClass("FileMetadata")
         yield AddClassField("FileMetadata", "__tablename__", f"{builder.model.base_name}_files")
         yield AddClassField("FileMetadata", "__record_model_cls__", dependencies.get("RecordMetadata"))
-        yield AddBaseClasses(
-            "FileMetadata",
-            db.Model,
-            RecordMetadataBase,
-            FileRecordModelMixin,
-        )
+        yield AddBaseClass("FileMetadata", db.Model)
+        yield AddBaseClass("FileMetadata", RecordMetadataBase)
+        yield AddBaseClass("FileMetadata", FileRecordModelMixin)

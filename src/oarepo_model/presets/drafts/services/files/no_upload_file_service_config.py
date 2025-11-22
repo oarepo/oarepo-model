@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from oarepo_model.customizations import AddMixins, Customization
+from oarepo_model.customizations import Customization, PrependMixin
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
@@ -42,4 +42,4 @@ class NoUploadFileServiceConfigPreset(Preset):
         class NoUploadFileServiceConfigMixin(ModelMixin):
             allow_upload = False
 
-        yield AddMixins("FileServiceConfig", NoUploadFileServiceConfigMixin)
+        yield PrependMixin("FileServiceConfig", NoUploadFileServiceConfigMixin)

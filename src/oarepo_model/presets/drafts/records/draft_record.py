@@ -24,8 +24,8 @@ from oarepo_runtime.records.systemfields import PublicationStatusSystemField
 
 from oarepo_model.customizations import (
     AddClass,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
@@ -101,7 +101,7 @@ class DraftPreset(Preset):
             "Draft",
             clazz=InvenioDraft,
         )
-        yield AddMixins(
+        yield PrependMixin(
             "Draft",
             DraftMixin,
         )

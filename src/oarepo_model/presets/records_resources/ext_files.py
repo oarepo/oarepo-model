@@ -21,9 +21,9 @@ from oarepo_runtime.config import build_config
 
 import oarepo_model
 from oarepo_model.customizations import (
-    AddMixins,
     AddToList,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
@@ -111,7 +111,7 @@ class ExtFilesPreset(Preset):
                     "file_service": self.files_service,
                 }
 
-        yield AddMixins("Ext", ExtFilesMixin)
+        yield PrependMixin("Ext", ExtFilesMixin)
 
         yield AddToList(
             "services_registry_list",
