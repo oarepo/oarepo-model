@@ -21,7 +21,7 @@ from invenio_records_resources.services import (
     FileServiceConfig,
 )
 
-from oarepo_model.customizations import AddClass, AddMixins, AddToList, Customization
+from oarepo_model.customizations import AddClass, AddToList, Customization, PrependMixin
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
@@ -51,7 +51,7 @@ class DraftMediaFileServiceConfigPreset(Preset):
             allow_upload = False
 
         yield AddClass("DraftMediaFileServiceConfig", clazz=FileServiceConfig)
-        yield AddMixins("DraftMediaFileServiceConfig", DraftMediaFileServiceConfigMixin)
+        yield PrependMixin("DraftMediaFileServiceConfig", DraftMediaFileServiceConfigMixin)
 
         yield AddToList(
             "primary_record_service",

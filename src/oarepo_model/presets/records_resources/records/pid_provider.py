@@ -16,7 +16,7 @@ from invenio_pidstore.providers.recordid_v2 import RecordIdProviderV2
 from invenio_records_resources.records.systemfields.pid import PIDField, PIDFieldContext
 from oarepo_runtime.records.pid_providers import UniversalPIDMixin
 
-from oarepo_model.customizations import AddClass, AddMixins, Customization
+from oarepo_model.customizations import AddClass, Customization, PrependMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -50,7 +50,8 @@ class PIDProviderPreset(Preset):
             )
 
         yield AddClass("PIDProvider", clazz=RecordIdProviderV2)
-        yield AddMixins("PIDProvider", UniversalPIDMixin, PIDProviderMixin)
+        yield PrependMixin("PIDProvider", PIDProviderMixin)
+        yield PrependMixin("PIDProvider", UniversalPIDMixin)
 
         yield AddClass("PIDField", clazz=PIDField)
         yield AddClass("PIDFieldContext", clazz=PIDFieldContext)

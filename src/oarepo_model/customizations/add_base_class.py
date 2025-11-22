@@ -9,7 +9,7 @@
 
 """Customization for adding base classes to OARepo model components.
 
-This module provides the AddBaseClasses customization that allows adding base classes
+This module provides the AddBaseClass customization that allows adding base classes
 to existing classes in an OARepo model during the building process.
 """
 
@@ -24,22 +24,22 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
-class AddBaseClasses(Customization):
-    """Customization to add a base class to the model.
+class AddBaseClass(Customization):
+    """Customization to add base classes to a model class.
 
-    This customization allows you to add a base class to the model
-    with a specified name and class type.
+    This customization allows you to add one or more base classes to an existing
+    class in the model with a specified name and class types.
     """
 
-    def __init__(self, name: str, *clazz: type) -> None:
-        """Initialize the AddBaseClasses customization.
+    def __init__(self, name: str, clazz: type) -> None:
+        """Initialize the AddBaseClass customization.
 
-        :param name: The name of the base class to be added.
-        :param clazz: The class type to be added.
+        :param name: The name of the class to add base classes to.
+        :param clazz: The base class type(s) to be added.
         """
         super().__init__(name)
         self.clazz = clazz
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-        builder.get_class(self.name).base_classes.extend(self.clazz)
+        builder.get_class(self.name).base_classes.append(self.clazz)

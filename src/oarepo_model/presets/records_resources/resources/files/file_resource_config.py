@@ -17,8 +17,8 @@ from invenio_records_resources.resources import FileResourceConfig
 from oarepo_model.customizations import (
     AddClass,
     AddDictionary,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
@@ -48,7 +48,7 @@ class FileResourceConfigPreset(Preset):
             response_handlers = Dependency("file_response_handlers")
 
         yield AddClass("FileResourceConfig", clazz=FileResourceConfig)
-        yield AddMixins("FileResourceConfig", FileResourceConfigMixin)
+        yield PrependMixin("FileResourceConfig", FileResourceConfigMixin)
 
         yield AddDictionary(
             "file_response_handlers",

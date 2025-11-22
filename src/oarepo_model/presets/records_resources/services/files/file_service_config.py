@@ -20,7 +20,7 @@ from invenio_records_resources.services.records.links import (
     RecordEndpointLink,
 )
 
-from oarepo_model.customizations import AddClass, AddMixins, AddToList, Customization
+from oarepo_model.customizations import AddClass, AddToList, Customization, PrependMixin
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
@@ -75,7 +75,7 @@ class FileServiceConfigPreset(Preset):
             }
 
         yield AddClass("FileServiceConfig", clazz=FileServiceConfig)
-        yield AddMixins("FileServiceConfig", FileServiceConfigMixin)
+        yield PrependMixin("FileServiceConfig", FileServiceConfigMixin)
 
         yield AddToList(
             "primary_record_service",

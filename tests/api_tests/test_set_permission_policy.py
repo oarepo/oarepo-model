@@ -11,7 +11,7 @@ from __future__ import annotations
 from invenio_records_permissions.policies.records import RecordPermissionPolicy
 
 from oarepo_model.api import model
-from oarepo_model.customizations import AddMixins, SetPermissionPolicy
+from oarepo_model.customizations import PrependMixin, SetPermissionPolicy
 from oarepo_model.presets.records_resources import records_resources_preset
 
 
@@ -34,7 +34,7 @@ def test_set_permission_policy(
             records_resources_preset,
         ],
         customizations=[
-            AddMixins("PermissionPolicy", MyMixin),
+            PrependMixin("PermissionPolicy", MyMixin),
             SetPermissionPolicy(MyPermissionPolicy),
         ],
     )
@@ -49,7 +49,7 @@ def test_set_permission_policy(
             records_resources_preset,
         ],
         customizations=[
-            AddMixins("PermissionPolicy", MyMixin),
+            PrependMixin("PermissionPolicy", MyMixin),
             SetPermissionPolicy(MyPermissionPolicy, keep_mixins=True),
         ],
     )

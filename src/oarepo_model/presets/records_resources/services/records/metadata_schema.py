@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, override
 
 import marshmallow
 
-from oarepo_model.customizations import AddClass, AddMixins, Customization
+from oarepo_model.customizations import AddClass, Customization, PrependMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -54,4 +54,4 @@ class MetadataSchemaPreset(Preset):
                     metadata={"description": "Metadata of the record."},
                 )
 
-            yield AddMixins("RecordSchema", RecordWithMetadataMixin)
+            yield PrependMixin("RecordSchema", RecordWithMetadataMixin)

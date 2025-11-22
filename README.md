@@ -1,13 +1,25 @@
-# OARepo model customizations and builders
+# OARepo Model
 
-This package provides a way of building an Invenio model with user customizations.
-It allows you to add mixins, classes to components, routes, and other customizations
-to the model while ensuring that the model remains consistent, functional and upgradable.
+Model customizations and builders for [Invenio](https://inveniosoftware.org/) framework.
+
+## Overview
+
+This package provides a way of building an Invenio model with user customizations. It allows you to add mixins, classes to components, routes, and other customizations to the model while ensuring that the model remains consistent, functional and upgradable.
+
+## Installation
+
+```bash
+pip install oarepo-model
+```
+
+### Requirements
+
+- Python 3.13+
+- Invenio 14.x
 
 ## High-level API
 
-At first, create a model using the `model` function from `oarepo_model.api` and
-include the necessary presets.
+First, create a model using the `model` function from `oarepo_model.api` and include the necessary presets.
 
 ```python
 # mymodel.py
@@ -21,8 +33,8 @@ my_model = model(
     "my_model",
     version="1.0.0",
     presets=[
-    records_resources_preset,
-    drafts_preset,
+        records_resources_preset,
+        drafts_preset,
     ],
     customizations=[
     ],
@@ -50,13 +62,17 @@ of the `model` function. The following customizations are available, importable 
 | ---- | ----------- |
 | **classes** |      |
 | `AddClass(name)` | Adds a new class to the model. |
-| `AddBaseClasses(name, *base_classes)` | Adds a base class to a model class. |
-| `AddMixins(name, *mixins)` | Adds mixins to the model. |
-| `ChangeBase(name, old_base, new_base)` | Changes the base class of the model. |
+| `AddBaseClass(name, base_class)` | Adds a single base class to a model class. Call multiple times to add multiple base classes in order. |
+| `AddClassField(name, field_name, field_value)` | Adds a field (attribute, method, or property) to an existing class. |
+| `PrependMixin(name, mixin)` | Prepends a single mixin to a model class (adds it as the first parent). Call multiple times in reverse order for multiple mixins. |
+| `ReplaceBaseClass(name, old_base, new_base)` | Replaces one base class with another in a model class. |
 | **modules** |      |
 | `AddModule(name, exists_ok=False)` | Adds a module to the model. |
 | `AddToModule(module_name, property_name, value, exists_ok=False)` | Adds a property to a module in the model. |
-| `AddFileToModule` | Adds a file to the module. |
+| `AddFileToModule(symbolic_name, module_name, file_path, payload, exists_ok=False)` | Adds a file to the module with specified content. |
+| `AddJSONFile(symbolic_name, module_name, file_path, payload, exists_ok=False)` | Adds a JSON file to the module (automatically serializes dictionary to JSON). |
+| `CopyFile(source_symbolic_name, target_symbolic_name, target_module_name, target_file_path, exists_ok=False)` | Copies content from one symbolic file location to another. |
+| `PatchJSONFile(symbolic_name, payload)` | Patches/modifies an existing JSON file by merging new data with existing content. |
 | **lists** |      |
 | `AddList(name, exists_ok=False)` | Adds a new list to the model. |
 | `AddClassList(name, exists_ok=False)` | Adds a new class list to the model. A class list keeps an MRO-consistent order of classes and can be used later as bases for a generated class. If this ordering functionality is not required, use `AddList`. |
@@ -65,31 +81,38 @@ of the `model` function. The following customizations are available, importable 
 | `AddDictionary(name, default=None, exists_ok=False)` | Adds a dictionary to the model. |
 | `AddToDictionary(name, {..}...)` or `AddToDictionary(name, key=..., value=..., patch=False)` | Adds entries to a dictionary in the model (optionally merge with `patch=True`). |
 | **entry points** |      |
-| `AddEntryPoint` | Adds an entry point to the model. |
+| `AddEntryPoint(group, name, module_path)` | Adds an entry point to the model. |
+| **facets** |      |
+| `AddFacetGroup(name, facets, exists_ok=False)` | Adds a facet group to the model for search result filtering. |
 | **high-level** |       |
-| `AddMetadataExport(**export)` | Adds a serializer for metadata exports. |
+| `AddMetadataExport(code, name, mimetype, serializer, ...)` | Adds a serializer for metadata exports. |
+| `AddMetadataImport(code, name, mimetype, deserializer, ...)` | Adds a deserializer for metadata imports. |
 | `AddPIDRelation(name, path, keys, pid_field, ...)` | Declares a PID relation system field based on a path (supports list and nested-list relations). |
+| `SetDefaultSearchFields(*search_fields)` | Specifies a set of default search fields for the index. |
+| `PatchIndexSettings(settings)` | Patches/modifies OpenSearch/Elasticsearch index settings. |
+| `SetIndexTotalFieldsLimit(limit)` | Sets the `index.mapping.total_fields.limit` setting. |
+| `SetIndexNestedFieldsLimit(limit)` | Sets the `index.mapping.nested_fields.limit` setting. |
 | `SetPermissionPolicy(policy_class)` | Sets the permission policy for the model. |
 
 ### Extending class with a mixin
 
-To add a mixin to a class in the model, you can use the `AddMixins` customization.
+To add a mixin to a class in the model, you can use the `PrependMixin` customization.
 Mixins are prepended to the class, so they take precedence in the MRO. If the resulting
 MRO would be inconsistent, it is automatically reordered to a consistent order.
 
 ```python
-from oarepo_model.customizations import AddMixins
+from oarepo_model.customizations import PrependMixin
 from my_mixins import BaseMixin
 
 my_model = model(
     "my_model",
     version="1.0.0",
     presets=[
-    records_resources_preset,
-    drafts_preset,
+        records_resources_preset,
+        drafts_preset,
     ],
     customizations=[
-    AddMixins("Record", BaseMixin),
+        PrependMixin("Record", BaseMixin),
     ],
 )
 ```
@@ -149,29 +172,28 @@ When the model is created, the following steps are performed:
 1. An instance of `InvenioModel` is created. This instance holds the basic configuration
    of the model, such as its name, version, api and ui slugs.
 
-2. An instance of  an `InvenioModelBuilder` is created.
+2. An instance of an `InvenioModelBuilder` is created.
 
 3. All presets are collected and sorted according to their dependencies.
 
-4. For each preset
+4. For each preset:
    1. Dependencies of the preset are collected, including those that were passed
-      as `customizations` to the model. If the dependency has not yet been build,
-      it is at this moment.
-   2. the `apply` method is called with the builder and the model. The method returns
+      as `customizations` to the model. If the dependency has not yet been built,
+      it is built at this moment.
+   2. The `apply` method is called with the builder and the model. The method returns
       a list of customizations that are applied to the model.
 
-5. If there are an unapplied customizations, they are applied to the model.
+5. If there are any unapplied customizations, they are applied to the model.
 
-6. During the applications of the customizations, instances of `Partial` are created
+6. During the application of the customizations, instances of `Partial` are created
    within the builder, such as `BuilderClass`, `BuilderList`, `BuilderModule`. These
    instances provide a recipe for a part of the final model. The part is built either
    if it is needed by a preset/customization or at the end of the model building process.
 
-7. The result of the model building process is transformed into a SimpleNamespace
-   and returned to the caller.
-    The returned object also provides helpers:
-    - `register()` / `unregister()` — to register the in-memory model for import/entry points
-    - `get_resources()` — to retrieve the in-memory files as a `{path: content}` mapping
+7. The result of the model building process is transformed into a `SimpleNamespace`
+   and returned to the caller. The returned object also provides helpers:
+   - `register()` / `unregister()` — to register the in-memory model for import/entry points
+   - `get_resources()` — to retrieve the in-memory files as a `{path: content}` mapping
 
 ## Registering the model
 
@@ -181,24 +203,23 @@ entry points via registering a new importer to `sys.meta_path`. This allows
 Invenio to find model components in the entry points and use them during the
 initialization process.
 
-The call needs to be done before Invenio is initialized, so that's why the best place
+The call needs to be done before Invenio is initialized, which is why the best place
 to do it is in the `invenio.cfg` file.
 
 ## Design decisions
 
 ### Late binding
 
-
 The classes within the model should be as loosely coupled as possible. This is implemented
-by using dependency injection, wherever possible.
+by using dependency injection wherever possible.
 
 #### Dependency descriptor
 
 A dependency descriptor makes sure that the class is loaded from the model during runtime.
-This allows to add for example circular dependencies between classes.
+This allows adding circular dependencies between classes, for example.
 
 **Note:** This does not work with Invenio's system fields, as these are handled in
-a special way by Invenio and are skipped. For example, `pid` field on a record might
+a special way by Invenio and are skipped. For example, a `pid` field on a record might
 not be created in this way.
 
 ```python
@@ -209,9 +230,9 @@ class A:
 
 #### `builder.get_runtime_dependencies()`
 
-This call returns an object that can return resolved dependencies during the runtime via
-its `get` method. This is useful for example when you want to access model artefact from
-within a function or a method. This can not be used in static initialization.
+This call returns an object that can return resolved dependencies during runtime via
+its `get` method. This is useful, for example, when you want to access a model artifact from
+within a function or a method. This cannot be used in static initialization.
 
 ```python
 
@@ -232,8 +253,8 @@ receive special injections automatically.
 
 ### Early binding (for system fields and similar)
 
-In system fields, due to the nature they are initialized in Invenio, we can not use
-late binding. This means that we need to use the classes directly in the system fields
+In system fields, due to the way they are initialized in Invenio, we cannot use
+late binding. This means that we need to use the classes directly in the system fields,
 and they have to be built before the system fields are declared. This is done via reordering
 the presets and customizations so that the system fields' classes are built before the classes
 that use them.
@@ -255,20 +276,43 @@ class MyPreset(Preset):
     depends_on = ["Record"]
 
     def apply(self, builder, model, dependencies):
-        # built_dependencies is a dict of classes that were built during the model building process
+        # dependencies is a dict of classes that were built during the model building process
         class MyClass(metaclass=MetaThatNeedsToHaveBProperty):
-            # 
             b = dependencies["Record"]  # The Record has been built at this point and is a valid class
         yield AddClass("MyClass", MyClass)
 ```
 
-## Internal
+## Development
 
-### Adding license headers
+### Setup
 
 ```bash
-uv pip install licenseheaders
+# Clone repository
+git clone https://github.com/oarepo/oarepo-model.git
+cd oarepo-model
 
-( cd src; licenseheaders -t ../.licenseheaders.tmpl -y 2025 -o "CESNET z.s.p.o" -n oarepo-model -u http://github.com/oarepo/oarepo-model )
-
+./run.sh venv
 ```
+
+### Running Tests
+
+```bash
+./run.sh test
+```
+
+## License
+
+Copyright (c) 2025 CESNET z.s.p.o.
+
+OARepo Model is free software; you can redistribute it and/or modify it under the terms of the MIT License. See [LICENSE](LICENSE) file for more details.
+
+## Links
+
+- Documentation: <https://github.com/oarepo/oarepo-model>
+- PyPI: <https://pypi.org/project/oarepo-model/>
+- Issues: <https://github.com/oarepo/oarepo-model/issues>
+- OARepo Project: <https://github.com/oarepo>
+
+## Acknowledgments
+
+This project builds upon [Invenio Framework](https://inveniosoftware.org/) and is developed as part of the OARepo ecosystem.

@@ -16,7 +16,7 @@ from invenio_db import db
 from invenio_records.models import RecordMetadataBase
 
 from oarepo_model.customizations import (
-    AddBaseClasses,
+    AddBaseClass,
     AddClass,
     AddClassField,
     AddEntryPoint,
@@ -44,7 +44,8 @@ class RecordMetadataPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         yield AddClass("RecordMetadata")
-        yield AddBaseClasses("RecordMetadata", db.Model, RecordMetadataBase)
+        yield AddBaseClass("RecordMetadata", db.Model)
+        yield AddBaseClass("RecordMetadata", RecordMetadataBase)
         yield AddClassField("RecordMetadata", "__tablename__", f"{builder.model.base_name}_metadata")
         yield AddClassField("RecordMetadata", "__versioned__", {})
 

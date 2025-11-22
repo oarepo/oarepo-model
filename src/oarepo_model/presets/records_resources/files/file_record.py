@@ -21,8 +21,8 @@ from invenio_records_resources.records.api import FileRecord as InvenioFileRecor
 
 from oarepo_model.customizations import (
     AddClass,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
@@ -55,7 +55,7 @@ class FileRecordPreset(Preset):
             "FileRecord",
             clazz=InvenioFileRecord,
         )
-        yield AddMixins(
+        yield PrependMixin(
             "FileRecord",
             FileRecordMixin,
         )

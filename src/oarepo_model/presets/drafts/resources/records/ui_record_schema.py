@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from oarepo_model.customizations import AddMixins, Customization
+from oarepo_model.customizations import Customization, PrependMixin
 from oarepo_model.datatypes.boolean import FormatBoolean
 from oarepo_model.presets import Preset
 
@@ -49,4 +49,4 @@ class DraftsRecordUISchemaPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield AddMixins("RecordUISchema", DraftRecordUISchemaMixin)
+        yield PrependMixin("RecordUISchema", DraftRecordUISchemaMixin)

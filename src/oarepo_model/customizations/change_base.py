@@ -6,9 +6,9 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
-"""Customization for changing base classes of model classes.
+"""Customization for replacing base classes of model classes.
 
-This module provides the ChangeBase customization that allows replacing one
+This module provides the ReplaceBaseClass customization that allows replacing one
 base class with another in a model class's inheritance hierarchy. It supports
 exact matching or subclass matching and can optionally fail silently if the
 target base class is not found.
@@ -27,11 +27,11 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
-class ChangeBase(Customization):
-    """Customization to change the base class of a model.
+class ReplaceBaseClass(Customization):
+    """Customization to replace one base class with another in a model class.
 
-    This customization allows you to change the base class of a model
-    with a specified name and class type.
+    This customization allows you to replace an existing base class with a new one
+    in a model class's inheritance hierarchy.
     """
 
     def __init__(
@@ -42,10 +42,13 @@ class ChangeBase(Customization):
         fail: bool = True,
         subclass: bool = False,
     ) -> None:
-        """Initialize the ChangeBase customization.
+        """Initialize the ReplaceBaseClass customization.
 
-        :param name: The name of the mixin to be added.
-        :param clazz: The class type to be added.
+        :param name: The name of the class to modify.
+        :param old_base_class: The base class to be replaced.
+        :param new_base_class: The new base class to use.
+        :param fail: Whether to raise an error if the old base class is not found.
+        :param subclass: Whether to match subclasses of old_base_class.
         """
         super().__init__(name)
         self.old_base_class = old_base_class

@@ -15,13 +15,13 @@ from typing import Any
 from ..patch_json_file import PatchJSONFile
 
 
-class IndexSettings(PatchJSONFile):
-    """Customization to change index settings."""
+class PatchIndexSettings(PatchJSONFile):
+    """Customization to patch/modify index settings."""
 
     modifies = ("record-mapping",)
 
     def __init__(self, settings: dict[str, Any]):
-        """Initialize the customization with search fields to add."""
+        """Initialize the customization with settings to patch."""
         self._settings = settings
         super().__init__("record-mapping", self._add_to_mapping)
 
@@ -44,17 +44,17 @@ class IndexSettings(PatchJSONFile):
         return previous_data
 
 
-class IndexTotalFieldsLimit(IndexSettings):
-    """Customization to change index.mapping.total_fields.limit setting."""
+class SetIndexTotalFieldsLimit(PatchIndexSettings):
+    """Customization to set the index.mapping.total_fields.limit setting."""
 
     def __init__(self, limit: int):
-        """Initialize the customization with search fields to add."""
+        """Initialize the customization with the total fields limit."""
         super().__init__({"index.mapping.total_fields.limit": limit})
 
 
-class IndexNestedFieldsLimit(IndexSettings):
-    """Customization to change index.mapping.nested_fields.limit setting."""
+class SetIndexNestedFieldsLimit(PatchIndexSettings):
+    """Customization to set the index.mapping.nested_fields.limit setting."""
 
     def __init__(self, limit: int):
-        """Initialize the customization with search fields to add."""
+        """Initialize the customization with the nested fields limit."""
         super().__init__({"index.mapping.nested_fields.limit": limit})

@@ -33,7 +33,7 @@ from invenio_rdm_records.resources.serializers.ui.schema import (
 from marshmallow import fields
 from marshmallow_utils.fields import FormatDate
 
-from oarepo_model.customizations import AddClass, AddMixins, Customization
+from oarepo_model.customizations import AddClass, Customization, PrependMixin
 from oarepo_model.datatypes.collections import ObjectDataType
 from oarepo_model.presets import Preset
 
@@ -82,7 +82,7 @@ class RecordUISchemaPreset(Preset):
         yield AddClass("RecordUISchema", clazz=InvenioRecordUISchema)
 
         if model.record_type is not None:
-            yield AddMixins(
+            yield PrependMixin(
                 "RecordUISchema",
                 get_ui_marshmallow_schema(builder, model.record_type),
             )

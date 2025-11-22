@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_drafts_resources.services import RecordService as DraftService
 from invenio_records_resources.services import RecordService
 
-from oarepo_model.customizations import ChangeBase, Customization
+from oarepo_model.customizations import Customization, ReplaceBaseClass
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -41,4 +41,4 @@ class DraftServicePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield ChangeBase("RecordService", RecordService, DraftService)
+        yield ReplaceBaseClass("RecordService", RecordService, DraftService)

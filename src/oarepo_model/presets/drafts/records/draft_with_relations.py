@@ -21,8 +21,8 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_records.systemfields.relations import MultiRelationsField
 
 from oarepo_model.customizations import (
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 
@@ -57,7 +57,7 @@ class DraftWithRelationsPreset(Preset):
                 **dependencies["relations"],
             )
 
-        yield AddMixins(
+        yield PrependMixin(
             "Draft",
             DraftWithRelationsMixin,
         )

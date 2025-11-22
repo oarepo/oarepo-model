@@ -22,8 +22,8 @@ from invenio_records_resources.records.systemfields import (
 )
 
 from oarepo_model.customizations import (
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 
@@ -58,7 +58,7 @@ class DraftWithFilesPreset(Preset):
             bucket_id = ModelField(dump=False)
             bucket = ModelField(dump=False)
 
-        yield AddMixins(
+        yield PrependMixin(
             "Draft",
             DraftWithFilesMixin,
         )

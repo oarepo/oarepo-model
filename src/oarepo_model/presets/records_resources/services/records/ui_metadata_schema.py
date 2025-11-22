@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Any, override
 
 import marshmallow
 
-from oarepo_model.customizations import AddMixins, Customization
+from oarepo_model.customizations import Customization, PrependMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -106,4 +106,4 @@ class MetadataUISchemaPreset(Preset):
 
                     return data
 
-            yield AddMixins("RecordUISchema", RecordMetadataUIMixin)
+            yield PrependMixin("RecordUISchema", RecordMetadataUIMixin)

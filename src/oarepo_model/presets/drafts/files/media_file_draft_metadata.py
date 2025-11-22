@@ -23,7 +23,7 @@ from invenio_records.models import RecordMetadataBase
 from invenio_records_resources.records.models import FileRecordModelMixin
 
 from oarepo_model.customizations import (
-    AddBaseClasses,
+    AddBaseClass,
     AddClass,
     AddClassField,
     Customization,
@@ -65,9 +65,6 @@ class MediaFileDraftMetadataPreset(Preset):
             "__record_model_cls__",
             dependencies.get("DraftMetadata"),
         )
-        yield AddBaseClasses(
-            "MediaFileDraftMetadata",
-            db.Model,
-            RecordMetadataBase,
-            FileRecordModelMixin,
-        )
+        yield AddBaseClass("MediaFileDraftMetadata", db.Model)
+        yield AddBaseClass("MediaFileDraftMetadata", RecordMetadataBase)
+        yield AddBaseClass("MediaFileDraftMetadata", FileRecordModelMixin)

@@ -20,8 +20,8 @@ from typing import TYPE_CHECKING
 from invenio_drafts_resources import __version__
 
 from oarepo_model.customizations import (
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 
 if TYPE_CHECKING:
@@ -62,7 +62,7 @@ class DraftsFilesFeaturePreset(Preset):
                     "features": {"drafts-files": {"version": __version__}},
                 }
 
-        yield AddMixins("Ext", DraftsFilesFeatureMixin)
+        yield PrependMixin("Ext", DraftsFilesFeatureMixin)
 
 
 class DraftsRecordsFeaturePreset(Preset):
@@ -90,4 +90,4 @@ class DraftsRecordsFeaturePreset(Preset):
                     },
                 }
 
-        yield AddMixins("Ext", DraftsRecordsFeatureMixin)
+        yield PrependMixin("Ext", DraftsRecordsFeatureMixin)

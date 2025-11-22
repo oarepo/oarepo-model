@@ -24,8 +24,8 @@ from invenio_drafts_resources.services.records.config import (
 from oarepo_model.customizations import (
     AddClass,
     AddClassList,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
@@ -84,7 +84,7 @@ class MediaFilesRecordServiceConfigPreset(Preset):
         yield AddClassList("media_files_record_service_components", exists_ok=True)
 
         yield AddClass("MediaFilesRecordServiceConfig", clazz=RecordServiceConfig)
-        yield AddMixins(
+        yield PrependMixin(
             "MediaFilesRecordServiceConfig",
             MediaFilesRecordServiceConfigMixin,
         )

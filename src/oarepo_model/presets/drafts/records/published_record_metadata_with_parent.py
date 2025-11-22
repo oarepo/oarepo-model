@@ -23,9 +23,9 @@ from invenio_drafts_resources.records import (
 from sqlalchemy.orm import declared_attr
 
 from oarepo_model.customizations import (
-    AddBaseClasses,
-    AddMixins,
+    AddBaseClass,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 
@@ -54,5 +54,5 @@ class RecordMetadataWithParentPreset(Preset):
             def __parent_record_model__(cls):  # noqa declared attr is a class method
                 return dependencies["ParentRecordMetadata"]
 
-        yield AddBaseClasses("RecordMetadata", ParentRecordMixin)
-        yield AddMixins("RecordMetadata", ParentRecordModelMixin)
+        yield AddBaseClass("RecordMetadata", ParentRecordMixin)
+        yield PrependMixin("RecordMetadata", ParentRecordModelMixin)

@@ -20,7 +20,7 @@ from oarepo_model.customizations import (
     AddToDictionary,
     AddToList,
     AddToModule,
-    IndexSettings,
+    PatchIndexSettings,
 )
 
 
@@ -93,12 +93,12 @@ def test_index_customizations():
     builder = InvenioModelBuilder(model, type_registry)
     AddModule("blah").apply(builder, model)
     AddJSONFile("record-mapping", "blah", "blah.json", {}, exists_ok=True).apply(builder, model)
-    IndexSettings({"a": 1, "b": [1, 2], "c": {"d": 4, "e": 5}, "f": "blah"}).apply(builder, model)
+    PatchIndexSettings({"a": 1, "b": [1, 2], "c": {"d": 4, "e": 5}, "f": "blah"}).apply(builder, model)
     assert json.loads(builder.get_file("record-mapping").content) == {
         "settings": {"a": 1, "b": [1, 2], "c": {"d": 4, "e": 5}, "f": "blah"}
     }
 
-    IndexSettings({"a": 5, "b": [4], "c": {"d": 1, "e": None}, "f": "abc"}).apply(builder, model)
+    PatchIndexSettings({"a": 5, "b": [4], "c": {"d": 1, "e": None}, "f": "abc"}).apply(builder, model)
     assert json.loads(builder.get_file("record-mapping").content) == {
         "settings": {
             "a": 5,
@@ -107,7 +107,7 @@ def test_index_customizations():
             "f": "abc",
         }
     }
-    IndexSettings({"a": 1}).apply(builder, model)
+    PatchIndexSettings({"a": 1}).apply(builder, model)
     assert json.loads(builder.get_file("record-mapping").content) == {
         "settings": {
             "a": 5,

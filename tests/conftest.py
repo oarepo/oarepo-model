@@ -25,10 +25,10 @@ from marshmallow_utils.fields import SanitizedHTML
 from oarepo_runtime.services.records.mapping import update_all_records_mappings
 
 from oarepo_model.customizations import (
-    AddDefaultSearchFields,
     AddFacetGroup,
     AddMetadataExport,
     AddMetadataImport,
+    SetDefaultSearchFields,
 )
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
@@ -284,7 +284,7 @@ def draft_model(model_types):
         types=[model_types],
         metadata_type="Metadata",
         customizations=[
-            AddDefaultSearchFields("title"),
+            SetDefaultSearchFields("title"),
         ],
     )
     draft_model.register()
@@ -649,8 +649,8 @@ def drafts_cf_model(model_types):
 def vocabulary_model(empty_model):
     from oarepo_model.api import model
     from oarepo_model.customizations import (
-        IndexNestedFieldsLimit,
-        IndexTotalFieldsLimit,
+        SetIndexNestedFieldsLimit,
+        SetIndexTotalFieldsLimit,
     )
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
@@ -665,8 +665,8 @@ def vocabulary_model(empty_model):
         types=[vocabulary_model_types],
         metadata_type="Metadata",
         customizations=[
-            IndexTotalFieldsLimit(2000),
-            IndexNestedFieldsLimit(1000),
+            SetIndexTotalFieldsLimit(2000),
+            SetIndexNestedFieldsLimit(1000),
         ],
     )
     vocabulary_model.register()

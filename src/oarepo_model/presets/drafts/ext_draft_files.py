@@ -20,9 +20,9 @@ from typing import TYPE_CHECKING, Any, cast, override
 from oarepo_runtime.config import build_config
 
 from oarepo_model.customizations import (
-    AddMixins,
     AddToList,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
@@ -111,7 +111,7 @@ class ExtDraftFilesPreset(Preset):
                     "files_service": self.files_service,
                 }
 
-        yield AddMixins("Ext", ExtDraftFilesMixin)
+        yield PrependMixin("Ext", ExtDraftFilesMixin)
 
         yield AddToList(
             "services_registry_list",

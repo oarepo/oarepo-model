@@ -17,8 +17,8 @@ from oarepo_runtime.services.results import RecordItem, RecordList, ResultCompon
 from oarepo_model.customizations import (
     AddClass,
     AddList,
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 
@@ -87,7 +87,7 @@ class RecordResultItemPreset(Preset):
                 raise AttributeError("can't set attribute")  # pragma: no cover
 
         yield AddClass("RecordItem", clazz=RecordItem)
-        yield AddMixins("RecordItem", RecordItemMixin)
+        yield PrependMixin("RecordItem", RecordItemMixin)
 
 
 class RecordResultListPreset(Preset):
@@ -122,4 +122,4 @@ class RecordResultListPreset(Preset):
                 raise AttributeError("can't set attribute")  # pragma: no cover
 
         yield AddClass("RecordList", clazz=RecordList)
-        yield AddMixins("RecordList", RecordListMixin)
+        yield PrependMixin("RecordList", RecordListMixin)

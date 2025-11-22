@@ -14,8 +14,8 @@ import importlib
 from typing import TYPE_CHECKING, Any, override
 
 from oarepo_model.customizations import (
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol
@@ -57,4 +57,4 @@ class UILinksFeaturePreset(Preset):
                     },
                 }
 
-        yield AddMixins("Ext", UILinksFeatureMixin)
+        yield PrependMixin("Ext", UILinksFeatureMixin)

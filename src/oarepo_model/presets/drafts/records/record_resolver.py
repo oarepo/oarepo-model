@@ -16,8 +16,8 @@ from typing import TYPE_CHECKING, Any, cast, override
 from invenio_records_resources.references import RecordResolver as InvenioRecordResolver
 
 from oarepo_model.customizations import (
-    ChangeBase,
     Customization,
+    ReplaceBaseClass,
 )
 from oarepo_model.presets import Preset
 
@@ -65,7 +65,7 @@ class DraftRecordResolverPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield ChangeBase(
+        yield ReplaceBaseClass(
             "RecordResolver",
             old_base_class=InvenioRecordResolver,
             new_base_class=DraftRecordResolver,

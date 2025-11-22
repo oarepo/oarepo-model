@@ -19,8 +19,8 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_records.systemfields import DictField
 
 from oarepo_model.customizations import (
-    AddMixins,
     Customization,
+    PrependMixin,
 )
 from oarepo_model.presets import Preset
 
@@ -50,4 +50,4 @@ class DraftWithCustomFieldsPreset(Preset):
             #: Custom fields system field.
             custom_fields = DictField(clear_none=True, create_if_missing=True)
 
-        yield AddMixins("Draft", DraftWithCustomFieldsMixin)
+        yield PrependMixin("Draft", DraftWithCustomFieldsMixin)

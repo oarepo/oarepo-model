@@ -10,10 +10,10 @@
 
 from __future__ import annotations
 
-from .index_settings import IndexSettings
+from .index_settings import PatchIndexSettings
 
 
-class AddDefaultSearchFields(IndexSettings):
+class SetDefaultSearchFields(PatchIndexSettings):
     """Customization to specify a set of search fields."""
 
     modifies = ("record-mapping",)

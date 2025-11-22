@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_drafts_resources.resources import RecordResource as DraftResource
 from invenio_records_resources.resources.records.resource import RecordResource
 
-from oarepo_model.customizations import ChangeBase, Customization
+from oarepo_model.customizations import Customization, ReplaceBaseClass
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -42,4 +42,4 @@ class DraftResourcePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield ChangeBase("RecordResource", RecordResource, DraftResource)
+        yield ReplaceBaseClass("RecordResource", RecordResource, DraftResource)
