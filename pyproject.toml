@@ -42,6 +42,8 @@ oarepo14=[
 [project.entry-points."oarepo_model.datatypes"]
 oarepo_model = "oarepo_model.datatypes.entrypoints:DATA_TYPES"
 
+[project.entry-points."oarepo.cli"]
+oarepo_model = "oarepo_model.cli:model"
 
 [tool.hatch.version]
 path = "src/oarepo_model/__init__.py"
