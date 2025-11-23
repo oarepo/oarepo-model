@@ -112,6 +112,7 @@ class ExtPreset(Preset):
                 return {
                     "records_alias_enabled": model.configuration.get("records_alias_enabled", True),
                     "features": {"records": {"version": __version__}},
+                    "namespace": builder.ns,
                     **runtime_dependencies.get("oarepo_model_arguments"),
                 }
 
