@@ -57,9 +57,13 @@ class DraftsFilesFeaturePreset(Preset):
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
+                parent_model_args = super().model_arguments
                 return {
-                    **super().model_arguments,
-                    "features": {"drafts-files": {"version": __version__}},
+                    **parent_model_args,
+                    "features": {
+                        **parent_model_args.get("features", {}),
+                        "drafts-files": {"version": __version__},
+                    },
                 }
 
         yield PrependMixin("Ext", DraftsFilesFeatureMixin)
