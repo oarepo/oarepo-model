@@ -201,6 +201,7 @@ def csv_imports_model(model_types):
                 mimetype="text/csv",
                 deserializer=CSVRowToMetadataDeserializer(),
                 description=_("CSV import"),
+                oai_name=("test-namespace", "test-csv"),
             )
         ],
     )
