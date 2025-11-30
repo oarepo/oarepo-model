@@ -33,13 +33,14 @@ class AddMetadataImport(Customization):
 
     modifies = ("imports",)
 
-    def __init__(
+    def __init__(  # noqa: PLR0913  # too many arguments
         self,
         code: str,
         name: LazyString,
         mimetype: str,
         deserializer: DeserializerMixin,
         description: LazyString,
+        oai_name: tuple[str, str] | None = None,
         **kwargs: Any,
     ):
         """Initialize the AddMetadataImport customization.
@@ -49,6 +50,8 @@ class AddMetadataImport(Customization):
         :param description: Description of the import format, human-readable.
         :param mimetype: MIME type of the import format.
         :param deserializer: Deserializer used to deserialize from the import format into record.
+        :param oai_name: Optional tuple specifying the OAI-PMH namespace and local name of the
+                 metadata element of oai-pmh xml record.
         """
         super().__init__("AddMetadataImport")
         self._code = code
@@ -57,6 +60,7 @@ class AddMetadataImport(Customization):
         self._deserializer = deserializer
         self._description = description
         self._kwargs = kwargs
+        self._oai_name = oai_name
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
@@ -68,5 +72,6 @@ class AddMetadataImport(Customization):
                 mimetype=self._mimetype,
                 description=self._description,
                 deserializer=self._deserializer,
+                oai_name=self._oai_name,
             )
         )

@@ -37,3 +37,15 @@ def test_imports(
     assert res.status_code == 201, res.get_data(as_text=True)
 
     assert res.json["metadata"] == input_data_more_complex["metadata"]
+
+
+def test_oai_name(
+    app,
+    csv_imports_model,
+):
+    import_names = {imp.code: imp for imp in csv_imports_model.imports}
+
+    assert "csv" in import_names
+    csv_import = import_names["csv"]
+    assert hasattr(csv_import, "oai_name")
+    assert csv_import.oai_name == ("test-namespace", "test-csv")
