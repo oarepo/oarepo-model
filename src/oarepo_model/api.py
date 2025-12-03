@@ -21,6 +21,7 @@ from functools import partial
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from types import SimpleNamespace
 
     from .customizations import Customization
@@ -144,8 +145,8 @@ def model(  # noqa: PLR0913 too many arguments
     description: str = "",
     version: str = "0.1.0",
     configuration: dict[str, Any] | None = None,
-    customizations: list[Customization] | None = None,
-    types: list[dict[str, Any]] | None = None,
+    customizations: Sequence[Customization] | None = None,
+    types: Sequence[dict[str, Any]] | None = None,
     metadata_type: str | None = None,
     record_type: str | None = None,
 ) -> SimpleNamespace:
