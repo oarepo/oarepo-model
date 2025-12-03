@@ -20,6 +20,7 @@ from .add_export import AddMetadataExport
 from .add_import import AddMetadataImport
 from .add_pid_relation import AddPIDRelation
 from .add_search_fields import SetDefaultSearchFields
+from .add_service_component import AddServiceComponent
 from .index_settings import (
     PatchIndexSettings,
     SetIndexNestedFieldsLimit,
@@ -31,6 +32,7 @@ __all__ = (
     "AddMetadataExport",
     "AddMetadataImport",
     "AddPIDRelation",
+    "AddServiceComponent",
     "PatchIndexSettings",
     "SetDefaultSearchFields",
     "SetIndexNestedFieldsLimit",
