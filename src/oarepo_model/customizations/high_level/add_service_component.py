@@ -31,7 +31,7 @@ class AddServiceComponent(Customization):
     modifies = ("record_service_components",)
 
     def __init__(self, component_cls: type[ServiceComponent]):
-        """Initialize the SetPermissionPolicy customization."""
+        """Initialize the AddServiceComponent customization."""
         super().__init__("AddServiceComponent")
         self._component_cls = component_cls
 
