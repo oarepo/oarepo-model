@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
+from aiohttp.web_fileresponse import extension
 from flask_resources.serializers import BaseSerializer
 from invenio_i18n import lazy_gettext as _
 from oarepo_runtime.resources.signposting import (
@@ -81,6 +82,7 @@ class SignpostingPreset(Preset):
             oai_metadata_prefix=None,
             oai_schema=None,
             oai_namespace=None,
+            extension=".txt"
         )
         yield AddMetadataExport(
             code="jsonlset",
@@ -91,4 +93,5 @@ class SignpostingPreset(Preset):
             oai_metadata_prefix=None,
             oai_schema=None,
             oai_namespace=None,
+            extension=".json"
         )

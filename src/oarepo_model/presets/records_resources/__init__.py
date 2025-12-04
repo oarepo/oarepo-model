@@ -51,9 +51,11 @@ from .records.relations import RelationsPreset
 from .records.relations_dumper_ext import RelationsDumperExtPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
+from .resources.records.default_rdm_ui_json_serializer import DefaultRDMUISerializerPreset
 from .resources.records.exports import ExportsPreset
 from .resources.records.imports import ImportsPreset
 from .resources.records.json_deserializer import JSONDeserializerPreset
+from .resources.records.register_default_rdm_ui_json_serializer import RegisterDefaultRDMUISerializerPreset
 from .resources.records.register_ui_json_serializer import (
     RegisterJSONUISerializerPreset,
 )
@@ -127,7 +129,9 @@ records_preset: list[type[Preset]] = [
     RecordResourcePreset,
     RecordResourceConfigPreset,
     JSONUISerializerPreset,
+    DefaultRDMUISerializerPreset,
     RegisterJSONUISerializerPreset,
+    RegisterDefaultRDMUISerializerPreset,
     # extension
     ExtPreset,
     ProxyPreset,
