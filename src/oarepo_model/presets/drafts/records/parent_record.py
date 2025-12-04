@@ -41,9 +41,9 @@ class ParentRecordPreset(Preset):
     provides = ("ParentRecord",)
 
     depends_on = (
-        "PIDField",
-        "PIDProvider",
-        "PIDFieldContext",
+        "ParentPIDField",
+        "ParentPIDProvider",
+        "ParentPIDFieldContext",
     )
 
     @override
@@ -63,9 +63,9 @@ class ParentRecordPreset(Preset):
                 "local://records/parent-v3.0.0.json",
             )
 
-            pid = dependencies["PIDField"](
-                provider=dependencies["PIDProvider"],
-                context_cls=dependencies["PIDFieldContext"],
+            pid = dependencies["ParentPIDField"](
+                provider=dependencies["ParentPIDProvider"],
+                context_cls=dependencies["ParentPIDFieldContext"],
                 create=True,
                 delete=True,
             )

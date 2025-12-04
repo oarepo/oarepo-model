@@ -45,6 +45,7 @@ from .records.draft_mapping import DraftMappingPreset
 from .records.draft_record import DraftPreset
 from .records.draft_record_metadata import DraftMetadataPreset
 from .records.draft_with_relations import DraftWithRelationsPreset
+from .records.parent_pid_provider import ParentPIDProviderPreset
 from .records.parent_record import ParentRecordPreset
 from .records.parent_record_metadata import ParentRecordMetadataPreset
 from .records.parent_record_state import ParentRecordStatePreset
@@ -107,6 +108,7 @@ drafts_records_preset: list[type[Preset]] = [
     RecordWithParentPreset,
     DraftPreset,
     PIDProviderPreset,
+    ParentPIDProviderPreset,
     DraftMappingPreset,
     DraftWithRelationsPreset,
     DraftRecordResolverPreset,
