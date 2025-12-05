@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
+from oarepo_model.datatypes.base import DataType
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -435,3 +437,7 @@ def test_multilingual_labels_hints_help(test_ui_model):
     city = child["children"]["city"]
     assert city["label"]["en"] == "City"
     assert "Vyberte" in city["help"]["cs"]
+
+
+def test_empty_path():
+    assert DataType("").create_ui_model("a", None) == {}

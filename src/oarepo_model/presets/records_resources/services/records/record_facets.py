@@ -46,7 +46,7 @@ class RecordFacetsPreset(Preset):
         yield AddDictionary("RecordFacets", {})
 
         if model.record_type is not None:
-            facets = get_facets(builder, model.metadata_type)
+            facets = get_facets(builder, model.record_type)
             search_options_facets = {}
 
             for f in facets:

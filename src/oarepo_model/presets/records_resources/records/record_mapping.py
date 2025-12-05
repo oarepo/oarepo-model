@@ -38,7 +38,7 @@ class RecordMappingPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        mapping = get_mapping(builder, model.record_type) if model.record_type is not None else {}
+        mapping = {"mappings": get_mapping(builder, model.record_type)} if model.record_type is not None else {}
 
         mapping = always_merger.merge(
             {
@@ -77,16 +77,18 @@ class RecordMappingPreset(Preset):
 
 def get_mapping(builder: InvenioModelBuilder, schema_type: Any) -> dict[str, Any]:
     """Get the mapping for the given schema type."""
-    base_schema: dict[str, Any]
+    base_mapping: dict[str, Any]
     if isinstance(schema_type, (str, dict)):
         datatype = builder.type_registry.get_type(schema_type)
-        base_schema = cast("Any", datatype).create_mapping(
+        base_mapping = cast("Any", datatype).create_mapping(
             {} if isinstance(schema_type, str) else schema_type,
         )
     elif isinstance(schema_type, ObjectDataType):
-        base_schema = schema_type.create_mapping({})
+        base_mapping = schema_type.create_mapping({})
     else:
         raise TypeError(
             f"Invalid schema type: {schema_type}. Expected str, dict or None.",
         )
-    return base_schema
+    base_mapping_copy = {**base_mapping}
+    base_mapping_copy.pop("type", None)
+    return base_mapping_copy
