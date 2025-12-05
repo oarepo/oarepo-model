@@ -308,8 +308,9 @@ def facet_model(model_types):
         name="facet_test",
         version="1.0.0",
         presets=[records_preset, drafts_records_preset],
-        types=[facet_model_types],
+        types=[facet_model_types, record_model_types],
         metadata_type="Metadata",
+        record_type="Record",
         customizations=[
             AddFacetGroup("curator", ["b", "jazyk", "vlastni"]),
             AddFacetGroup("default", ["b", "jazyk"]),
@@ -457,6 +458,7 @@ facet_model_types = {
         }
     }
 }
+record_model_types = {"Record": {"properties": {"modifiers": {"type": "keyword"}}}}
 relation_model_types = {
     "Metadata": {
         "properties": {
