@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock
 
+import marshmallow as ma
 import pytest
 from invenio_records_resources.services.records.components import ServiceComponent
 
@@ -24,6 +25,7 @@ from oarepo_model.customizations import (
     AddToList,
     AddToModule,
     PatchIndexSettings,
+    PrependMixin,
 )
 from oarepo_model.presets.records_resources import records_resources_preset
 
@@ -140,3 +142,24 @@ def test_add_service_component():
 
     # ideally check whether the component actually ends in the service components list after app init
     assert len([c for c in m.record_service_components if issubclass(c, TestServiceComponent)]) == 1
+
+
+def test_metadata_add_mixin(model_types):
+    class TestMixin:
+        height = ma.fields.Float()
+
+    m = model(
+        name="metadata_mixin_test",
+        version="1.0.0",
+        presets=[
+            records_resources_preset,
+        ],
+        types=[model_types],
+        customizations=[
+            PrependMixin("MetadataSchema", TestMixin),
+        ],
+        metadata_type="Metadata",
+    )
+    metadata_schema_cls = m.RecordSchema().fields["metadata"].nested()
+    assert issubclass(metadata_schema_cls, TestMixin)
+    assert isinstance(metadata_schema_cls().fields["height"], ma.fields.Float)
