@@ -40,6 +40,7 @@ class MetadataSchemaPreset(Preset):
         if model.metadata_type is not None:
             from .record_schema import get_marshmallow_schema
 
+            runtime_dependencies = builder.get_runtime_dependencies()
             metadata_base_schema = get_marshmallow_schema(builder, model.metadata_type)
 
             yield AddClass("MetadataSchema", clazz=metadata_base_schema)
@@ -48,7 +49,7 @@ class MetadataSchemaPreset(Preset):
                 """Metadata schema for records."""
 
                 metadata = marshmallow.fields.Nested(
-                    metadata_base_schema,
+                    lambda: runtime_dependencies.get("MetadataSchema"),
                     required=True,
                     allow_none=False,
                     metadata={"description": "Metadata of the record."},
