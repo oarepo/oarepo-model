@@ -6,11 +6,7 @@
 # oarepo-model is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 #
-"""High-level customization for setting models' permission policy.
-
-This module provides the SetPermissionPolicy customization that sets the permission policy
-for a given model.
-"""
+"""High-level customization for adding item link to service config."""
 
 from __future__ import annotations
 
