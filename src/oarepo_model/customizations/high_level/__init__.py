@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from .add_export import AddMetadataExport
 from .add_import import AddMetadataImport
+from .add_link import AddLink
 from .add_pid_relation import AddPIDRelation
 from .add_search_fields import SetDefaultSearchFields
 from .add_service_component import AddServiceComponent
@@ -29,6 +30,7 @@ from .index_settings import (
 from .set_permission_policy import SetPermissionPolicy
 
 __all__ = (
+    "AddLink",
     "AddMetadataExport",
     "AddMetadataImport",
     "AddPIDRelation",

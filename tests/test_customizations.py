@@ -13,6 +13,7 @@ from unittest.mock import MagicMock
 
 import marshmallow as ma
 import pytest
+from invenio_records_resources.services import ExternalLink
 from invenio_records_resources.services.records.components import ServiceComponent
 
 from oarepo_model.api import model
@@ -27,6 +28,7 @@ from oarepo_model.customizations import (
     PatchIndexSettings,
     PrependMixin,
 )
+from oarepo_model.customizations.high_level.add_link import AddLink
 from oarepo_model.presets.records_resources import records_resources_preset
 
 
@@ -163,3 +165,21 @@ def test_metadata_add_mixin(model_types):
     metadata_schema_cls = m.RecordSchema().fields["metadata"].nested()
     assert issubclass(metadata_schema_cls, TestMixin)
     assert isinstance(metadata_schema_cls().fields["height"], ma.fields.Float)
+
+
+def test_add_link():
+    tested_link = ExternalLink("/not/a/link")
+
+    m = model(
+        name="test_add_link",
+        version="1.0.0",
+        presets=[
+            records_resources_preset,
+        ],
+        customizations=[
+            AddLink("test_link", tested_link),
+        ],
+    )
+
+    assert "test_link" in m.record_links_item
+    assert m.record_links_item["test_link"] == tested_link
