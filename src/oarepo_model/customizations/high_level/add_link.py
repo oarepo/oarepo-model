@@ -15,7 +15,11 @@ from typing import TYPE_CHECKING, override
 from ..base import Customization
 
 if TYPE_CHECKING:
-    from invenio_records_resources.services import ConditionalLink, EndpointLink, ExternalLink
+    from invenio_records_resources.services import (
+        ConditionalLink,
+        EndpointLink,
+        ExternalLink,
+    )
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
