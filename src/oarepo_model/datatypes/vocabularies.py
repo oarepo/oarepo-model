@@ -43,7 +43,8 @@ class VocabularyDataType(PIDRelation):
 
     TYPE = "vocabulary"
 
-    def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+    def _resolve_keys(self, element: dict[str, Any]) -> dict[str, Any]:  # noqa: C901
+        ret: dict[str, Any] = {}
         keys = element.setdefault("keys", [])
         known_keys = set()
         for key in keys:
@@ -67,6 +68,18 @@ class VocabularyDataType(PIDRelation):
             for key, value in prop.items():
                 if key not in known_keys:
                     keys.append({key: value})
+        for k in element["keys"]:
+            ret.update(k)
+
+        if "id" not in ret:
+            ret["id"] = {"type": "keyword"}
+        # if @v is not in keys, add it as a keyword field, set marshmallow as dump only
+        if "@v" not in ret:
+            ret["@v"] = {"type": "keyword", "skip_marshmallow": True}
+        return ret
+
+    def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+        self._resolve_keys(element)
 
         return super()._get_properties(element)
 
@@ -106,7 +119,7 @@ class VocabularyDataType(PIDRelation):
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],
     ) -> list[str]:
-        return sorted(self._get_properties(element).keys())
+        return sorted(self._resolve_keys(element).keys())
 
     @override
     def _pid_field(
