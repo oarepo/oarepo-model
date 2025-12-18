@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, ClassVar, override
 
 from invenio_records_resources.resources import FileResourceConfig
 
@@ -46,6 +46,11 @@ class FileResourceConfigPreset(Preset):
             url_prefix = f"/{model.slug}/<pid_value>"
             # Response handling
             response_handlers = Dependency("file_response_handlers")
+
+            response_handlers: ClassVar[dict] = {
+                "application/vnd.inveniordm.v1+json": FileResourceConfig.response_handlers["application/json"],
+                **FileResourceConfig.response_handlers,
+            }
 
         yield AddClass("FileResourceConfig", clazz=FileResourceConfig)
         yield PrependMixin("FileResourceConfig", FileResourceConfigMixin)
