@@ -40,7 +40,7 @@ def sort_presets(presets: list[Preset]) -> list[Preset]:
     sorted_preset_ids = list(ts.static_order())
     sorted_presets = [presets_by_id[preset_id] for preset_id in sorted_preset_ids]
 
-    if log.isEnabledFor(logging.DEBUG):
+    if log.isEnabledFor(logging.DEBUG):  # pragma: no cover
         log.debug("Sorted presets:")
         for p in sorted_presets:
             dump_str = []

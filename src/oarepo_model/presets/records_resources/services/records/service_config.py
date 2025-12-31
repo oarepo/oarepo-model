@@ -88,7 +88,10 @@ class RecordServiceConfigPreset(Preset):
 
             schema = cast("type[ma.Schema]", Dependency("RecordSchema"))
 
-            search = cast("type[SearchOptions]", Dependency("RecordSearchOptions"))
+            search = cast(
+                "type[SearchOptions]",
+                Dependency("RecordSearchOptions", transform=lambda x: x()),
+            )
 
             record_cls = cast("type[Record]", Dependency("Record"))
 

@@ -312,9 +312,9 @@ def facet_model(model_types):
         metadata_type="Metadata",
         record_type="Record",
         customizations=[
-            AddFacetGroup("curator", ["b", "jazyk", "vlastni"]),
-            AddFacetGroup("default", ["b", "jazyk"]),
-            AddFacetGroup("owner", ["jazyk", "b"]),
+            AddFacetGroup("curator", ["metadata.b", "metadata.jej.c", "metadata.vlastni"]),
+            AddFacetGroup("default", ["metadata.b", "metadata.jej.c"]),
+            AddFacetGroup("owner", ["metadata.jej.c", "metadata.b"]),
         ],
     )
 

@@ -22,6 +22,7 @@ from invenio_drafts_resources.services import (
     RecordServiceConfig as DraftServiceConfig,
 )
 from invenio_drafts_resources.services.records.config import (
+    SearchDraftsOptions,
     is_record,
 )
 from invenio_records_resources.services import (
@@ -90,6 +91,11 @@ class DraftServiceConfigPreset(Preset):
     ) -> Generator[Customization]:
         class DraftServiceConfigMixin(ModelMixin, DraftRecordServiceConfig):
             draft_cls = cast("type[Draft]", Dependency("Draft"))
+
+            search_drafts = cast(
+                "type[SearchDraftsOptions]",
+                Dependency("DraftSearchOptions", transform=lambda x: x()),
+            )
 
             @property
             def links_search_drafts(  # type: ignore[reportIncompatibleVariableOverride]
