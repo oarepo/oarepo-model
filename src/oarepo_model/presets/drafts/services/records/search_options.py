@@ -13,6 +13,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, override
 
 from invenio_drafts_resources.services.records.config import SearchDraftsOptions
+from invenio_records_resources.services.records.params.facets import FacetsParam
+from oarepo_runtime.services.facets.params import GroupedFacetsParam
 
 from oarepo_model.customizations import AddClass, Customization
 from oarepo_model.presets import Preset
@@ -22,6 +24,7 @@ if TYPE_CHECKING:
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
+
 
 from oarepo_model.customizations import (
     PrependMixin,
@@ -45,6 +48,21 @@ class DraftSearchOptionsPreset(Preset):
         class DraftSearchOptionsMixin(ModelMixin):
             facets = Dependency("RecordFacets")
             facet_groups = Dependency("FacetGroups")
+
+            @property
+            def params_interpreters_cls(self) -> Any:
+                interpreter_classes = super().params_interpreters_cls  # type: ignore[reportAttributeAccessIssue]
+                # make a copy of the list
+                interpreter_classes = list(interpreter_classes)
+                # replace FacetsParam with GroupedFacetsParam
+                for idx, clazz in enumerate(interpreter_classes):
+                    if issubclass(clazz, FacetsParam):
+                        interpreter_classes[idx] = GroupedFacetsParam
+                        break
+                else:
+                    # could not find, insert at the start
+                    interpreter_classes.insert(0, GroupedFacetsParam)
+                return interpreter_classes
 
         yield AddClass("DraftSearchOptions", clazz=SearchDraftsOptions)
 

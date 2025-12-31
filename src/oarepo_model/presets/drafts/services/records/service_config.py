@@ -22,6 +22,7 @@ from invenio_drafts_resources.services import (
     RecordServiceConfig as DraftServiceConfig,
 )
 from invenio_drafts_resources.services.records.config import (
+    SearchDraftsOptions,
     is_record,
 )
 from invenio_records_resources.services import (
@@ -91,6 +92,11 @@ class DraftServiceConfigPreset(Preset):
         class DraftServiceConfigMixin(ModelMixin, DraftRecordServiceConfig):
             draft_cls = cast("type[Draft]", Dependency("Draft"))
 
+            search_drafts = cast(
+                "type[SearchDraftsOptions]",
+                Dependency("DraftSearchOptions", transform=lambda x: x()),
+            )
+
             @property
             def links_search_drafts(  # type: ignore[reportIncompatibleVariableOverride]
                 self,
@@ -117,7 +123,9 @@ class DraftServiceConfigPreset(Preset):
                 }
                 return {k: v for k, v in links.items() if v is not None}
 
-        yield ReplaceBaseClass("RecordServiceConfig", RecordServiceConfig, DraftServiceConfig)
+        yield ReplaceBaseClass(
+            "RecordServiceConfig", RecordServiceConfig, DraftServiceConfig
+        )
         yield PrependMixin("RecordServiceConfig", DraftServiceConfigMixin)
 
         self_links = {
@@ -142,7 +150,9 @@ class DraftServiceConfigPreset(Preset):
                     f"{model.blueprint_base}.read",
                     params=["pid_value"],
                     when=is_record,
-                    vars=lambda record, variables: variables.update({"pid_value": record.parent.pid.pid_value}),
+                    vars=lambda record, variables: variables.update(
+                        {"pid_value": record.parent.pid.pid_value}
+                    ),
                 ),
                 "latest": RecordEndpointLink(
                     f"{model.blueprint_base}.read_latest",
@@ -152,7 +162,9 @@ class DraftServiceConfigPreset(Preset):
                 # published record if the record has a draft record
                 "draft": RecordEndpointLink(
                     f"{model.blueprint_base}.read_draft",
-                    when=is_published_record() & has_draft() & has_draft_permission("read_draft"),
+                    when=is_published_record()
+                    & has_draft()
+                    & has_draft_permission("read_draft"),
                 ),
                 "record": RecordEndpointLink(
                     f"{model.blueprint_base}.read",
