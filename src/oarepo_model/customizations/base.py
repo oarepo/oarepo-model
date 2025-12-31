@@ -35,8 +35,10 @@ class Customization:
 
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         """Apply the customization to the given model."""
-        raise NotImplementedError("Subclasses must implement this method.")
+        raise NotImplementedError(  # pragma: no cover
+            "Subclasses must implement this method."
+        )
 
     @override
     def __repr__(self):
-        return f"<Customization {self.__class__.__name__}>"
+        return f"<Customization {self.__class__.__name__}>"  # pragma: no cover

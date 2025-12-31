@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import TYPE_CHECKING, Any, override
 
 from invenio_records_resources.services.records.config import SearchOptions
@@ -51,12 +52,12 @@ class RecordSearchOptionsPreset(Preset):
 
             @property
             def params_interpreters_cls(self) -> Any:
-                interpreter_classes = super().params_interpreters_cls  # type: ignore[reportAttributeAccessIssue]
+                interpreter_classes = super().params_interpreters_cls  # type: ignore[misc]
                 # make a copy of the list
                 interpreter_classes = list(interpreter_classes)
                 # replace FacetsParam with GroupedFacetsParam
                 for idx, clazz in enumerate(interpreter_classes):
-                    if issubclass(clazz, FacetsParam):
+                    if inspect.isclass(clazz) and issubclass(clazz, FacetsParam):
                         interpreter_classes[idx] = GroupedFacetsParam
                         break
                 else:
