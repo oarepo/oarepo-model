@@ -22,6 +22,7 @@ from .add_link import AddLink
 from .add_pid_relation import AddPIDRelation
 from .add_search_fields import SetDefaultSearchFields
 from .add_service_component import AddServiceComponent
+from .index_mapping import PatchIndexMapping, PatchIndexPropertyMapping
 from .index_settings import (
     PatchIndexSettings,
     SetIndexNestedFieldsLimit,
@@ -35,6 +36,8 @@ __all__ = (
     "AddMetadataImport",
     "AddPIDRelation",
     "AddServiceComponent",
+    "PatchIndexMapping",
+    "PatchIndexPropertyMapping",
     "PatchIndexSettings",
     "SetDefaultSearchFields",
     "SetIndexNestedFieldsLimit",
