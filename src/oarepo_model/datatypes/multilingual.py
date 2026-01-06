@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_vocabularies.services.schema import i18n_strings
 from marshmallow import ValidationError
 
-from .base import FacetMixin
 from .collections import ArrayDataType, ObjectDataType
 
 if TYPE_CHECKING:
@@ -39,7 +38,7 @@ def multilingual_validator(data: list) -> None:
             raise ValidationError(f"Duplicated language code {lang}.")
 
 
-class MultilingualDataType(ArrayDataType, FacetMixin):
+class MultilingualDataType(ArrayDataType):
     """A data type for multilingual dictionaries."""
 
     TYPE = "multilingual"

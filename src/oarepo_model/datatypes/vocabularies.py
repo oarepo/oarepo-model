@@ -19,6 +19,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast, override
 
+from invenio_vocabularies.services.facets import VocabularyLabels
+
+from .base import FacetMixin
 from .relations import PIDRelation
 
 if TYPE_CHECKING:
@@ -27,7 +30,7 @@ if TYPE_CHECKING:
     from marshmallow import Schema
 
 
-class VocabularyDataType(PIDRelation):
+class VocabularyDataType(FacetMixin, PIDRelation):
     """A reference to a controlled vocabulary.
 
     Usage:
@@ -158,6 +161,31 @@ class VocabularyDataType(PIDRelation):
         path: list[tuple[str, dict[str, Any]]],
     ) -> str | None:
         return super()._cache_key(element, path) or element["vocabulary-type"]
+
+    @override
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any],
+        facets: dict[str, list],
+        path_suffix: str = "",
+    ) -> Any:
+        return super().get_facet(
+            path,
+            element,
+            nested_facets,
+            facets,
+            path_suffix=path_suffix or ".id",
+        )
+
+    @override
+    def _get_facet_kwargs(
+        self,
+        path: str,
+        element: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {"value_labels": VocabularyLabels(element["vocabulary-type"])}
 
 
 default_vocabulary_fields_in_relations: dict[str, list[dict[str, Any]]] = {
