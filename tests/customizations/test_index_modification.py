@@ -15,8 +15,11 @@ from oarepo_model.builder import InvenioModelBuilder
 from oarepo_model.customizations import (
     AddJSONFile,
     AddModule,
+    PatchIndexMapping,
+    PatchIndexPropertyMapping,
     PatchIndexSettings,
 )
+from oarepo_model.customizations.high_level.index_mapping import recursively_remove_none
 
 
 def test_index_customizations():
@@ -47,4 +50,138 @@ def test_index_customizations():
             "c": {"d": 1},
             "f": "abc",
         }
+    }
+
+
+def test_index_mapping_customizations():
+    model = MagicMock()
+    type_registry = MagicMock()
+    builder = InvenioModelBuilder(model, type_registry)
+    AddModule("blah").apply(builder, model)
+    AddJSONFile(
+        "record-mapping",
+        "blah",
+        "blah.json",
+        {
+            "mappings": {
+                "properties": {
+                    "a": {"type": "integer"},
+                    "b": {"ignore_above": 100},
+                    "c": {
+                        "properties": {
+                            "d": {"type": "float"},
+                            "e": {"index": False, "type": "object"},
+                        },
+                    },
+                    "f": {"type": "keyword"},
+                }
+            }
+        },
+        exists_ok=True,
+    ).apply(builder, model)
+    PatchIndexMapping(
+        {
+            "properties": {
+                "a": {"type": "keyword"},
+                "b": {"type": "text"},
+                "c": {"properties": {"d": {"type": "integer"}, "e": {"type": "keyword"}}},
+                "f": None,
+            }
+        }
+    ).apply(builder, model)
+    assert json.loads(builder.get_file("record-mapping").content) == {
+        "mappings": {
+            "properties": {
+                "a": {"type": "keyword"},
+                "b": {"type": "text", "ignore_above": 100},
+                "c": {
+                    "properties": {
+                        "d": {"type": "integer"},
+                        "e": {"type": "keyword", "index": False},
+                    }
+                },
+            }
+        }
+    }
+
+
+def test_patch_index_property_mapping():
+    model = MagicMock()
+    type_registry = MagicMock()
+    builder = InvenioModelBuilder(model, type_registry)
+    AddModule("blah").apply(builder, model)
+    AddJSONFile(
+        "record-mapping",
+        "blah",
+        "blah.json",
+        {
+            "mappings": {
+                "properties": {
+                    "a": {"type": "integer"},
+                    "b": {"ignore_above": 100},
+                    "c": {
+                        "properties": {
+                            "d": {"type": "float"},
+                            "e": {"index": False, "type": "object"},
+                        },
+                    },
+                    "f": {"type": "keyword"},
+                }
+            }
+        },
+        exists_ok=True,
+    ).apply(builder, model)
+    PatchIndexPropertyMapping("a", {"type": "keyword"}).apply(builder, model)
+    PatchIndexPropertyMapping("c.d", {"type": "float"}).apply(builder, model)
+    PatchIndexPropertyMapping("c.e", None).apply(builder, model)
+    assert json.loads(builder.get_file("record-mapping").content) == {
+        "mappings": {
+            "properties": {
+                "a": {
+                    "type": "keyword",
+                },
+                "b": {
+                    "ignore_above": 100,
+                },
+                "c": {
+                    "properties": {
+                        "d": {
+                            "type": "float",
+                        },
+                    },
+                },
+                "f": {
+                    "type": "keyword",
+                },
+            }
+        }
+    }
+
+
+def test_recursively_remove_none():
+    data = {
+        "a": 1,
+        "b": None,
+        "c": {
+            "d": 2,
+            "e": None,
+            "f": {
+                "g": None,
+                "h": 3,
+            },
+            "z": [1, None, 2, {"x": None, "y": 3}],
+        },
+        "i": [1, None, 2, {"j": None, "k": 4}],
+    }
+    recursively_remove_none(data)
+    assert data == {
+        "a": 1,
+        "c": {
+            "d": 2,
+            "f": {
+                "h": 3,
+            },
+            "z": [1, 2, {"y": 3}],
+        },
+        "i": [1, 2, {"k": 4}],
     }
