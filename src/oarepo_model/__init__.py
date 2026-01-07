@@ -18,5 +18,5 @@ from __future__ import annotations
 
 from .datatypes.registry import from_json, from_yaml
 
-__version__ = "0.1.0dev45"
+__version__ = "0.1.0dev46"
 __all__ = ["__version__", "from_json", "from_yaml"]
