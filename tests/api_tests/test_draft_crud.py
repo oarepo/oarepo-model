@@ -50,6 +50,10 @@ def test_simple_flow(
     assert first_hit["metadata"] == read_item.data["metadata"]
     assert first_hit["links"].items() <= read_item.links.items()
 
+    # test that search with illegal syntax does not raise error
+    res = test_draft_service.search_drafts(identity_simple, q="a/b/c illegal syntax", size=25, page=1)
+    assert res.total == 0
+
     # Update it
     data = read_item.data
     data["metadata"]["title"] = "New title"
