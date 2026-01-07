@@ -44,6 +44,10 @@ def test_simple_flow(
     assert res.total == 1
     assert next(iter(res.hits)) == read_item.data
 
+    # test that search with illegal syntax does not raise error
+    res = test_service.search(identity_simple, q="a/b/c illegal syntax", size=25, page=1)
+    assert res.total == 0
+
     # Scan it
     res = test_service.scan(identity_simple, q=f"id:{id_}")
     assert res.total is None

@@ -15,7 +15,11 @@ from typing import TYPE_CHECKING, Any, override
 
 from invenio_records_resources.services.records.config import SearchOptions
 from invenio_records_resources.services.records.params.facets import FacetsParam
+from invenio_records_resources.services.records.queryparser import QueryParser
 from oarepo_runtime.services.facets.params import GroupedFacetsParam
+from oarepo_runtime.services.queryparsers.transformer import (
+    SearchQueryValidator,
+)
 
 from oarepo_model.customizations import AddClass, Customization
 from oarepo_model.presets import Preset
@@ -64,6 +68,12 @@ class RecordSearchOptionsPreset(Preset):
                     # could not find, insert at the start
                     interpreter_classes.insert(0, GroupedFacetsParam)
                 return interpreter_classes
+
+            query_parser_cls = staticmethod(
+                QueryParser.factory(
+                    tree_transformer_cls=SearchQueryValidator,
+                )
+            )
 
         yield AddClass("RecordSearchOptions", clazz=SearchOptions)
 
