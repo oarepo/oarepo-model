@@ -20,7 +20,6 @@ from typing import Any, override
 
 import marshmallow.fields
 import marshmallow.validate
-from oarepo_runtime.services.facets.utils import get_basic_facet
 
 from .base import DataType, FacetMixin
 
@@ -96,15 +95,23 @@ class FullTextDataType(KeywordDataType):
         },
     )
 
+    @override
     def get_facet(
         self,
         path: str,
         element: dict[str, Any],
         nested_facets: list[Any],
         facets: dict[str, list],
+        path_suffix: str = "",
     ) -> Any:
-        """Create facets for the data type."""
-        _, _, _, _ = path, element, nested_facets, facets
+        """Do not create facets for the fulltext data type."""
+        _, _, _, _, _ = (
+            path,
+            element,
+            nested_facets,
+            facets,
+            path_suffix,
+        )  # to avoid unused variable warning
         return facets
 
 
@@ -127,20 +134,20 @@ class FulltextWithKeywordDataType(KeywordDataType):
         }
     )
 
+    @override
     def get_facet(
         self,
         path: str,
         element: dict[str, Any],
         nested_facets: list[Any],
         facets: dict[str, list],
+        path_suffix: str = "",
     ) -> Any:
-        """Create facets for the data type."""
-        if element.get("searchable", True):
-            return get_basic_facet(
-                facets,
-                element.get("facet-def"),
-                path + ".keyword",
-                nested_facets,
-                self.facet_name,
-            )
-        return facets
+        """Create facets for the .keyword part of the fulltext+keyword type."""
+        return super().get_facet(
+            path,
+            element,
+            nested_facets,
+            facets,
+            path_suffix=path_suffix or ".keyword",
+        )

@@ -24,7 +24,7 @@ from invenio_i18n import gettext as _
 
 from oarepo_model.utils import MultiFormatField, convert_to_python_identifier
 
-from .base import ARRAY_ITEM_PATH, DataType
+from .base import ARRAY_ITEM_PATH, DataType, FacetMixin
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -131,8 +131,10 @@ class ObjectDataType(DataType):
         element: dict[str, Any],
         nested_facets: list[Any],
         facets: dict[str, list],
+        path_suffix: str = "",
     ) -> Any:
         """Create facets for the data type."""
+        _ = path_suffix  # path suffix is not used for objects
         if "properties" in element:
             properties = self._get_properties(element)
             for key, value in properties.items():
@@ -252,8 +254,10 @@ class NestedDataType(ObjectDataType):
         element: dict[str, Any],
         nested_facets: list[Any],
         facets: dict[str, list],
+        path_suffix: str = "",
     ) -> Any:
         """Create facets for the data type."""
+        _ = path_suffix  # path suffix is not used for nested objects
         if "properties" in element:
             properties = self._get_properties(element)
             for key, value in properties.items():
@@ -287,7 +291,7 @@ def unique_validator(value: list[Any]) -> None:
         )
 
 
-class ArrayDataType(DataType):
+class ArrayDataType(FacetMixin, DataType):
     """A data type representing an array in the Oarepo model.
 
     This class can be extended to create custom array data types.
@@ -412,8 +416,10 @@ class ArrayDataType(DataType):
         element: dict[str, Any],
         nested_facets: list[Any],
         facets: dict[str, list],
+        path_suffix: str = "",
     ) -> Any:
         """Create facets for the data type."""
+        _ = path_suffix  # path suffix is not used for arrays
         value = element.get("items", element)
         facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
         return facets

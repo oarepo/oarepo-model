@@ -101,9 +101,10 @@ class DataType:
         element: dict[str, Any],
         nested_facets: list[Any],
         facets: dict[str, list],
+        path_suffix: str = "",
     ) -> Any:
         """Create facets for the data type."""
-        _, _, _, _ = path, element, nested_facets, facets
+        _, _, _, _, _ = path, element, nested_facets, facets, path_suffix
 
         return facets
 
@@ -244,13 +245,14 @@ class DataType:
         return ret
 
 
-class FacetMixin:
-    """Mixin for basic facet generation."""
+if TYPE_CHECKING:
+    FacetMixinBase = DataType
+else:
+    FacetMixinBase = object
 
-    @property
-    def facet_name(self) -> str:
-        """Define facet class."""
-        return "invenio_records_resources.services.records.facets.TermsFacet"
+
+class FacetMixin(FacetMixinBase):
+    """Mixin for basic facet generation."""
 
     def get_facet(
         self,
@@ -258,8 +260,26 @@ class FacetMixin:
         element: dict[str, Any],
         nested_facets: list[Any],
         facets: dict[str, list],
+        path_suffix: str = "",
     ) -> Any:
         """Create facets for the data type."""
         if element.get("searchable", True):
-            return get_basic_facet(facets, element.get("facet-def"), path, nested_facets, self.facet_name)
+            return get_basic_facet(
+                facets=facets,
+                facet_def=element.get("facet-def"),
+                facet_name=path,
+                facet_path=path + path_suffix,
+                content=nested_facets,
+                facet_class=self.facet_name,
+                facet_kwargs=self._get_facet_kwargs(path, element),
+            )
         return facets
+
+    def _get_facet_kwargs(
+        self,
+        path: str,
+        element: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Get extra kwargs for facet constructor."""
+        _, _ = path, element
+        return {}

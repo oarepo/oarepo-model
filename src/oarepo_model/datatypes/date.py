@@ -464,7 +464,8 @@ class EDTFIntervalType(DataType):
         element: dict[str, Any],
         nested_facets: list[Any] | None = None,
         facets: dict[str, list] | None = None,
+        path_suffix: str = "",
     ) -> Any:
         """Create facets for the data type."""
-        _, _, _, _ = path, element, nested_facets, facets
+        _, _, _, _, _ = path, element, nested_facets, facets, path_suffix
         return facets
