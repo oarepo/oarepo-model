@@ -159,8 +159,10 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
             raise FileNotFoundError(f"{self._name} does not exist")
         return self._files[self._name]
 
+    # The real signature is (child: StrPath) -> InMemoryTraversable but StrPath is not exported
+    # in importlib.resources.abc
     @override
-    def __truediv__(self, child: str) -> InMemoryTraversable:
+    def __truediv__(self, child: str) -> InMemoryTraversable:  # type: ignore[reportIncompatibleMethodOverride]
         """Navigate to a child path using the / operator."""
         if self.is_file():
             raise NotADirectoryError(f"{self._name} is not a directory")
@@ -199,8 +201,10 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
 
         return InMemoryTraversable(parent_name, self._files, is_parent_dir)
 
+    # The real signature is (*descendants: StrPath) -> InMemoryTraversable but StrPath is not exported
+    # in importlib.resources.abc
     @override
-    def joinpath(self, *descendants: str) -> importlib.resources.abc.Traversable:
+    def joinpath(self, *descendants: str) -> importlib.resources.abc.Traversable:  # type: ignore[reportIncompatibleMethodOverride]
         """Join the descendants into a single path, beginning with this traversable."""
         pth = self
         for descendant in descendants:

@@ -19,8 +19,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, override
 
 from invenio_drafts_resources.records import Record as DraftBase
+from invenio_pidstore.models import PIDStatus
 from invenio_rdm_records.records.systemfields import HasDraftCheckField
 from invenio_records_resources.records import Record as RecordBase
+from invenio_records_resources.records.systemfields import (
+    PIDStatusCheckField,
+)
 from oarepo_runtime.records.systemfields import PublicationStatusSystemField
 
 from oarepo_model.customizations import Customization, PrependMixin, ReplaceBaseClass
@@ -57,6 +61,11 @@ class RecordWithParentPreset(Preset):
             has_draft = HasDraftCheckField(dependencies["Draft"])
 
             publication_status = PublicationStatusSystemField()
+
+            # This system field originates in invenio-rdm-records and is used on
+            # both published records and drafts. On the published side, it
+            # returns True if the record is not a tombstone
+            is_published = PIDStatusCheckField(status=PIDStatus.REGISTERED, dump=True)
 
         yield ReplaceBaseClass("Record", RecordBase, DraftBase, subclass=True)
         yield PrependMixin("Record", ParentRecordMixin)

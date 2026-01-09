@@ -62,6 +62,7 @@ class DraftMappingPreset(Preset):
                     },
                     "has_draft": {"type": "boolean"},
                     "publication_status": {"type": "keyword"},
+                    "is_published": {"type": "boolean"},
                     "pid": {
                         "properties": {
                             "obj_type": {"type": "keyword", "index": False},
