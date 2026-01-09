@@ -17,9 +17,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, override
 
 from invenio_drafts_resources.records import Draft as InvenioDraft
+from invenio_pidstore.models import PIDStatus
 from invenio_rdm_records.records.systemfields import HasDraftCheckField
 from invenio_records.systemfields import ConstantField
-from invenio_records_resources.records.systemfields import IndexField
+from invenio_records_resources.records.systemfields import (
+    IndexField,
+    PIDStatusCheckField,
+)
 from oarepo_runtime.records.systemfields import PublicationStatusSystemField
 
 from oarepo_model.customizations import (
@@ -96,6 +100,13 @@ class DraftPreset(Preset):
             has_draft = HasDraftCheckField()
 
             publication_status = PublicationStatusSystemField()
+
+            # This system field originates in invenio-rdm-records and is used on
+            # both published records and drafts. On the draft side, it allows
+            # the draft record to expose whether its PID is in a "published"
+            # (REGISTERED) state, so that search/indexing and services can
+            # consistently filter by publication status across both record types.
+            is_published = PIDStatusCheckField(status=PIDStatus.REGISTERED, dump=True)
 
         yield AddClass(
             "Draft",
