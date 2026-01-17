@@ -140,7 +140,7 @@ type PresetList = (
 
 def model(  # noqa: PLR0913 too many arguments
     name: str,
-    presets: PresetList | None = None,
+    presets: PresetList,
     *,
     description: str = "",
     version: str = "0.1.0",
@@ -160,8 +160,11 @@ def model(  # noqa: PLR0913 too many arguments
     :param customizations: Customizations for the model.
     :return: An instance of InvenioModel.
     """
+    if not presets:
+        raise ValueError("At least one preset must be provided to create a model.")
+
     # shallow-copy the lists to avoid modifying the caller's lists
-    presets = list(presets or [])
+    presets = list(presets)
     types = list(types or [])
     customizations = list(customizations or [])
 
