@@ -155,10 +155,12 @@ class DraftServiceConfigPreset(Preset):
                     when=has_permission("read"),
                 ),
                 # Note: semantics change from oarepo v12: this link is only on a
-                # published record if the record has a draft record
+                # published record if the record has a draft record or if user
+                # has edit permission (POST will then create the draft)
                 "draft": RecordEndpointLink(
                     f"{model.blueprint_base}.read_draft",
-                    when=is_published_record() & has_draft() & has_draft_permission("read_draft"),
+                    when=is_published_record()
+                    & (has_draft() & has_draft_permission("read_draft") | has_permission("edit")),
                 ),
                 "record": RecordEndpointLink(
                     f"{model.blueprint_base}.read",
