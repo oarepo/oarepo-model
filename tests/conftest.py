@@ -361,6 +361,7 @@ facet_model_types = {
                     }
                 },
             },
+            "languages[]": {"type": "keyword"},
             "multi": {"type": "multilingual"},
             "jazyk": {"type": "i18n"},
             "b": {
@@ -426,6 +427,17 @@ facet_model_types = {
                             },
                         }
                     },
+                },
+            },
+            "kckckc": {
+                "type": "object",
+                "properties": {
+                    "tttttt[]": {
+                        "items": {
+                            "type": "object",
+                            "properties": {"c": {"type": "keyword"}},
+                        },
+                    }
                 },
             },
             "arrnes": {

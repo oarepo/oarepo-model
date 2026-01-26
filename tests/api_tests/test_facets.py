@@ -29,6 +29,9 @@ def test_facet(
     assert not hasattr(facet_model.facets, "metadata.jazyk")
     assert not hasattr(facet_model.facets, "metadata.multi")
 
+    assert hasattr(facet_model.facets, "metadata.languages")
+    assert not hasattr(facet_model.facets, "metadata.languages[]")
+
     assert hasattr(facet_model.facets, "metadata.vlastni")
     assert hasattr(facet_model.facets, "metadata.b")
     assert hasattr(facet_model.facets, "metadata.obyc_array")
