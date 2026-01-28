@@ -56,7 +56,7 @@ class AddToDictionary(Customization):
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         d = builder.add_dictionary(self.name, exists_ok=True)
         for value in self.values:
-            d.update(value)
+            always_merger.merge(d, value)
         if self.key is not None:
             if self.key in d and not self.exists_ok:
                 if not self.patch:
