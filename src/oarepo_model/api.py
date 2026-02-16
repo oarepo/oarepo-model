@@ -172,8 +172,23 @@ def model(  # noqa: PLR0913 too many arguments
 
     # passing locals here so that functional presets can modify the parameters
     # before the model is created
-    FunctionalPreset.call(functional_presets, "before_invenio_model", params=locals())
+    params = locals()
+    FunctionalPreset.call(functional_presets, "before_invenio_model", params=params)
+    return _internal_model(**params)
 
+def _internal_model(  # noqa: PLR0913 too many arguments
+            name: str,
+            presets: PresetList,
+            *,
+            description: str = "",
+            version: str = "0.1.0",
+            configuration: dict[str, Any] | None = None,
+            customizations: Sequence[Customization] | None = None,
+            types: Sequence[dict[str, Any]] | None = None,
+            metadata_type: str | None = None,
+            record_type: str | None = None,
+            **kwargs: Any
+    ) -> SimpleNamespace:
     flattened_presets, functional_presets = flatten_presets(presets)
 
     # now capturing the current state of locals for the rest of the calls
