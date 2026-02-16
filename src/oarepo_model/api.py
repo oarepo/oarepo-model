@@ -256,10 +256,7 @@ def _internal_model(  # noqa: PLR0913 too many arguments
         params=params,
     )
 
-    if customizations is None:
-        user_customizations: list[Customization] = []
-    else:
-        user_customizations = [*customizations]
+    user_customizations: list[Customization] = list(customizations or ())
 
     preset_idx = 0
     while preset_idx < len(sorted_presets):
