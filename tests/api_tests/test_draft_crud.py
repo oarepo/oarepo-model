@@ -68,7 +68,8 @@ def test_simple_flow(
 
     # Retrieve it - deleted so cannot
     # - db
-    pytest.raises(PIDDoesNotExistError, test_draft_service.read, identity_simple, id_)
+    with pytest.raises(PIDDoesNotExistError):
+        test_draft_service.read_draft(identity_simple, id_)
     # - search
     res = test_draft_service.search(identity_simple, q=f"id:{id_}", size=25, page=1)
     assert res.total == 0
@@ -196,7 +197,8 @@ def test_simple_flow_with_files(
 
     # Retrieve it - deleted so cannot
     # - db
-    pytest.raises(PIDDeletedError, draft_service_with_files.read, identity_simple, id_)
+    with pytest.raises(PIDDeletedError):
+        draft_service_with_files.read(identity_simple, id_)
     # - search
     res = draft_service_with_files.search(
         identity_simple,

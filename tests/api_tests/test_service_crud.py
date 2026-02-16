@@ -127,7 +127,8 @@ def test_simple_flow(
 
     # Retrieve it - deleted so cannot
     # - db
-    pytest.raises(PIDDeletedError, test_service.read, identity_simple, id_)
+    with pytest.raises(PIDDeletedError):
+        test_service.read(identity_simple, id_)
     # - search
     res = test_service.search(identity_simple, q=f"id:{id_}", size=25, page=1)
     assert res.total == 0
