@@ -28,7 +28,7 @@ def test_set_permission_policy(
     search_clear,
 ):
     m = model(
-        name="test_permission_policy_without_mixins",
+        name="pp_without_mixins",
         version="1.0.0",
         presets=[
             records_resources_preset,
@@ -43,7 +43,7 @@ def test_set_permission_policy(
     assert not issubclass(m.PermissionPolicy, MyMixin)
 
     m = model(
-        name="test_permission_policy_with_mixins",
+        name="pp_with_mixins",
         version="1.0.0",
         presets=[
             records_resources_preset,

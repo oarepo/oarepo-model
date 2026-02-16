@@ -19,7 +19,7 @@ def test_model_metadata_registration_presets(
     app,
 ):
     m = model(
-        name="metadata_load_test_with_model_metadata_registration_presets",
+        name="metadata_registration_presets",
         version="1.0.0",
         presets=[
             ModelRegistrationPreset,
