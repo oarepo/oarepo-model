@@ -189,6 +189,7 @@ def _internal_model(  # noqa: PLR0913 too many arguments
             record_type: str | None = None,
             **kwargs: Any
     ) -> SimpleNamespace:
+    """Create an internal model with the given name, version, and presets."""
     flattened_presets, functional_presets = flatten_presets(presets)
 
     # now capturing the current state of locals for the rest of the calls

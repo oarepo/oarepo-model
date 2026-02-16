@@ -189,7 +189,7 @@ def csv_imports_model(model_types):
     t1 = time.time()
 
     csv_imports_model = model(
-        name="csv_imports_test",
+        name="csv_imports",
         version="1.0.0",
         presets=[records_resources_preset, ui_links_preset],
         types=[model_types],
@@ -237,7 +237,7 @@ def datacite_exports_model(model_types):
     t1 = time.time()
 
     datacite_exports_model = model(
-        name="datacite_export_test",
+        name="dc_export",
         version="1.0.0",
         presets=[
             records_preset,
@@ -335,7 +335,7 @@ def draft_model_with_files(model_types):
     t1 = time.time()
 
     draft_model = model(
-        name="draft_with_files",
+        name="draft_wf",
         version="1.0.0",
         presets=[records_resources_preset, drafts_preset],
         types=[model_types],
@@ -701,7 +701,7 @@ def multilingual_model(empty_model):
     t1 = time.time()
 
     multilingual_model = model(
-        name="multilingual_test",
+        name="mult_test",
         version="1.0.0",
         presets=[records_resources_preset, relations_preset],
         types=[multilingual_model_types],
