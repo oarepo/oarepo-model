@@ -23,7 +23,7 @@ class TestServiceComponent(ServiceComponent):
 
 def test_add_service_component():
     m = model(
-        name="test_add_service_component",
+        name="test_add_sc",
         version="1.0.0",
         presets=[
             records_resources_preset,
