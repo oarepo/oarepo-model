@@ -74,7 +74,7 @@ class BuilderClass(Partial):
         self.class_name = class_name
         self.mixins = list(mixins) if mixins else []
         self.base_classes = list(base_classes) if base_classes else []
-        self.fields = fields if fields else {}
+        self.fields = fields or {}
 
     def add_base_classes(self, *classes: type) -> None:
         """Add base classes to the class."""

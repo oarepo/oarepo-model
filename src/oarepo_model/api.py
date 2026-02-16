@@ -172,8 +172,25 @@ def model(  # noqa: PLR0913 too many arguments
 
     # passing locals here so that functional presets can modify the parameters
     # before the model is created
-    FunctionalPreset.call(functional_presets, "before_invenio_model", params=locals())
+    params = locals()
+    FunctionalPreset.call(functional_presets, "before_invenio_model", params=params)
+    return _internal_model(**params)
 
+
+def _internal_model(  # noqa: PLR0913 too many arguments
+    name: str,
+    presets: PresetList,
+    *,
+    description: str = "",
+    version: str = "0.1.0",
+    configuration: dict[str, Any] | None = None,
+    customizations: Sequence[Customization] | None = None,
+    types: Sequence[dict[str, Any]] | None = None,
+    metadata_type: str | None = None,
+    record_type: str | None = None,
+    **kwargs: Any,
+) -> SimpleNamespace:
+    """Create an internal model with the given name, version, and presets."""
     flattened_presets, functional_presets = flatten_presets(presets)
 
     # now capturing the current state of locals for the rest of the calls
@@ -198,7 +215,7 @@ def model(  # noqa: PLR0913 too many arguments
         params=params,
     )
 
-    type_registry = populate_type_registry(types)
+    type_registry = populate_type_registry(list(types) if types is not None else None)
 
     FunctionalPreset.call(
         functional_presets,
@@ -239,7 +256,7 @@ def model(  # noqa: PLR0913 too many arguments
         params=params,
     )
 
-    user_customizations = [*(customizations)]
+    user_customizations: list[Customization] = list(customizations or ())
 
     preset_idx = 0
     while preset_idx < len(sorted_presets):

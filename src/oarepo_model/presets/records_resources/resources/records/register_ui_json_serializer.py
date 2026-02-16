@@ -60,6 +60,6 @@ class RegisterJSONUISerializerPreset(Preset):
             mimetype="application/vnd.inveniordm.v1+json",
             serializer=cast(
                 "BaseSerializer",
-                LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),
+                LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),  # noqa: PLW0108
             ),
         )
