@@ -87,6 +87,13 @@ class DraftsUILinksPreset(Preset):
                 ),
                 when=has_draft() & has_permission("read_draft"),
             ),
+            # TODO: for some reason they are using record_html in preview handler
+            # https://github.com/inveniosoftware/invenio-rdm-records/blob/5052c102b3acf2cbdcda21f9d15efc89a194ca22/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/state/actions/deposit.js#L285
+            # I think this is just mainly an omission on their end, but unfortunately, we need it here too for now
+            # https://github.com/inveniosoftware/invenio-rdm-records/blob/5052c102b3acf2cbdcda21f9d15efc89a194ca22/invenio_rdm_records/services/config.py#L779
+            "record_html": RecordEndpointLink(
+                f"{ui_blueprint_name}.record_detail", when=has_draft() & has_permission("read_draft")
+            ),
             "latest_html": RecordEndpointLink(
                 f"{ui_blueprint_name}.record_latest",
                 when=has_permission("read"),
