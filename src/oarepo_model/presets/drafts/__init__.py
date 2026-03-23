@@ -54,8 +54,6 @@ from .records.published_record_metadata_with_parent import (
     RecordMetadataWithParentPreset,
 )
 from .records.published_record_with_parent import RecordWithParentPreset
-from .records.record_proxy import DraftRecordProxyPreset
-from .records.record_resolver import DraftRecordResolverPreset
 from .resources.files.draft_file_resource import DraftFileResourcePreset
 from .resources.files.draft_file_resource_config import DraftFileResourceConfigPreset
 from .resources.files.draft_media_file_resource import DraftMediaFileResourcePreset
@@ -111,8 +109,6 @@ drafts_records_preset: list[type[Preset]] = [
     ParentPIDProviderPreset,
     DraftMappingPreset,
     DraftWithRelationsPreset,
-    DraftRecordResolverPreset,
-    DraftRecordProxyPreset,
     # service layer
     DraftServiceConfigPreset,
     DraftServicePreset,
