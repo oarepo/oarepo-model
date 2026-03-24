@@ -14,9 +14,6 @@ dependencies = [
     "deepmerge>=2.0",
     "dotenv>=0.9.9",
     "marshmallow-i18n-messages>=0.1.0",
-
-    # invenio dependencies
-    "invenio-rdm-records>=28.0.0,<29.0.0",
 ]
 
 [project.urls]
