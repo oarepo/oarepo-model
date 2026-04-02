@@ -1,6 +1,6 @@
 [project]
 name = "oarepo-model"
-version = "1.0.0"
+version = "1.0.1"
 description = "Dynamic models for InvenioRDM"
 readme = "README.md"
 authors = [
