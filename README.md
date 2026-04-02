@@ -14,7 +14,7 @@ pip install oarepo-model
 
 ### Requirements
 
-- Python 3.13+
+- Python 3.14+
 - Invenio 14.x
 
 ## High-level API
