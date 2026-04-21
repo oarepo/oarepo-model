@@ -62,7 +62,8 @@ class AddToDictionary(Customization):
                 always_merger.merge(d, value)
             else:
                 for k, new_value in value.items():
-                    d[k] = d.get(k, new_value)
+                    if k not in d:
+                        d[k] = new_value
         if self.key is not None:
             if self.key in d and not self.exists_ok:
                 if not self.patch:
