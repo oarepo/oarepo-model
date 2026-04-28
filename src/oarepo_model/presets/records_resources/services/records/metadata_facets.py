@@ -45,7 +45,7 @@ class MetadataFacetsPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         if model.metadata_type is not None:
-            facets = get_facets(builder, model.metadata_type)
+            facets = get_facets(builder, model.metadata_type, prefix="metadata")
             search_options_facets = {}
             for f in facets:
                 yield AddToModule("facets", f, build_facet(facets[f]))
