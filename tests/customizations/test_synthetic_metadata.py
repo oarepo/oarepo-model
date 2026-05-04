@@ -118,6 +118,7 @@ def test_metadata_field_wraps_dict_in_proxy_on_access():
     assert isinstance(md, MetadataProxy)
     assert md["titles"] == ["title_1", "title_2"]
     assert md["title"] == "title_1"
+    assert md == {"titles": ["title_1", "title_2"]}
 
 
 # ---------------------------------------------------------------------------
