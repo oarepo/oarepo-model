@@ -34,7 +34,7 @@ class MetadataProxy(ObjectProxy):
     """Object proxy that allows to add synthetic metadata.
 
     The data are returned only through direct substribt access, otherwise the object is treated as a dict without them.
-    This is done to avoid dumping modification to the original metadata, ie. so the synthetic data are not dumped into
+    This is done to avoid modification to the original metadata, ie. so the synthetic data are not dumped into
     the database.
     """
 
