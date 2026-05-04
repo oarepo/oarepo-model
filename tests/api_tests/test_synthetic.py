@@ -57,4 +57,5 @@ def test_synthetic_data_not_saved_after_access(
     record.metadata["title_upper"]  # synthetic value shouldn't propagate to the record dict when initialized
     with UnitOfWork(db.session) as uow:
         uow.register(RecordCommitOp(record, indexer=synthetic_metadata_service.indexer))
-    assert "title_upper" not in Record.model_cls.query.one().json["metadata"]
+    record = Record.pid.resolve(item.id)
+    assert "title_upper" not in record.model.json["metadata"]
