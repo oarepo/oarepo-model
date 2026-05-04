@@ -9,7 +9,14 @@
 from __future__ import annotations
 
 
-def test_parent_model_field(identity_simple, model_types, draft_model, draft_model_with_files, location, search_clear):
+def test_parent_model_field(
+    identity_simple,
+    model_types,
+    draft_model,
+    draft_model_with_files,
+    location,
+    search_clear,
+):
     draft_model.proxies.current_service.create(identity_simple, data={})
     draft_model_with_files.proxies.current_service.create(identity_simple, data={"files": {"enabled": True}})
 

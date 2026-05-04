@@ -54,6 +54,10 @@ class ParentRecordMetadataPreset(Preset):
             "__tablename__",
             f"{builder.model.base_name}_parent_metadata",
         )
-        yield AddClassField("ParentRecordMetadata", "model", db.Column(String, default=builder.model.base_name))
+        yield AddClassField(
+            "ParentRecordMetadata",
+            "model",
+            db.Column(String, default=builder.model.base_name),
+        )
         yield AddBaseClass("ParentRecordMetadata", db.Model)
         yield AddBaseClass("ParentRecordMetadata", RecordMetadataBase)
