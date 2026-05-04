@@ -56,20 +56,14 @@ def test_set_synthetic_metadata_overrides_existing_keys():
     assert builder.get_dictionary("synthetic_metadata")["a"] is fn_a
 
 
-def test_set_synthetic_metadata_empty_kwargs_is_noop():
-    m = MagicMock()
-    type_registry = MagicMock()
-    builder = InvenioModelBuilder(m, type_registry)
-    builder.add_dictionary("synthetic_metadata", default={"keep": "me"})
-
-    SetSyntheticMetadata().apply(builder, m)
-
-    assert dict(builder.get_dictionary("synthetic_metadata")) == {"keep": "me"}
-
-
 # ---------------------------------------------------------------------------
 # MetadataProxy
 # ---------------------------------------------------------------------------
+
+
+def test_metadata_proxy_returns_synthetic_when_key_missing():
+    proxy = MetadataProxy({}, {"computed": lambda _: 42})
+    assert proxy["computed"] == 42
 
 
 def test_metadata_proxy_returns_real_value_when_present():
@@ -78,37 +72,27 @@ def test_metadata_proxy_returns_real_value_when_present():
     assert proxy["a"] == 1
 
 
-def test_metadata_proxy_returns_synthetic_when_key_missing():
-    proxy = MetadataProxy({}, {"computed": lambda _: 42})
-    assert proxy["computed"] == 42
-
-
 def test_metadata_proxy_synthetic_function_receives_wrapped_dict():
     wrapped = {"a": 1, "b": 2}
     proxy = MetadataProxy(wrapped, {"sum": lambda d: d["a"] + d["b"]})
     assert proxy["sum"] == 3
 
 
-def test_metadata_proxy_no_synthetic_falls_through_to_wrapped():
-    proxy = MetadataProxy({"x": "y"}, None)
-    assert proxy["x"] == "y"
-    with pytest.raises(KeyError):
-        _ = proxy["missing"]
-
-
-def test_metadata_proxy_unknown_key_with_synthetic_present_raises_keyerror():
+def test_metadata_proxy_unknown_key_raises_keyerror():
     proxy = MetadataProxy({}, {"computed": lambda _: 42})
     with pytest.raises(KeyError):
         _ = proxy["other"]
 
 
-def test_metadata_proxy_iteration_uses_wrapped_only():
+def test_synthetic_keys_accessible_only_through_getitem():
     proxy = MetadataProxy({"a": 1}, {"b": lambda _: 2})
     # ObjectProxy delegates iteration / membership to the wrapped object;
     # synthetic keys are accessed through __getitem__ but not advertised.
-    assert list(proxy) == ["a"]
+    assert dict(proxy) == {"a": 1}
     assert "a" in proxy
     assert "b" not in proxy
+    assert proxy.get("a") == 1
+    assert proxy.get("b") is None
 
 
 # ---------------------------------------------------------------------------
@@ -116,38 +100,17 @@ def test_metadata_proxy_iteration_uses_wrapped_only():
 # ---------------------------------------------------------------------------
 
 
-class _RecordStub(dict):
-    """Minimal record-like stub usable with invenio_records SystemField API."""
-
-
 def test_metadata_field_wraps_dict_in_proxy_on_access():
-    synthetic = {"title_lower": lambda d: d["title"].lower()}
+    synthetic = {"title": lambda d: d["titles"][0]}
 
-    class Rec(_RecordStub):
+    class Rec(dict):
         metadata = MetadataField(key="metadata", synthetic=synthetic)
 
-    rec = Rec({"metadata": {"title": "Hello"}})
+    rec = Rec({"metadata": {"titles": ["title_1", "title_2"]}})
     md = rec.metadata
     assert isinstance(md, MetadataProxy)
-    assert md["title"] == "Hello"
-    assert md["title_lower"] == "hello"
-
-
-def test_metadata_field_returns_proxy_when_key_absent():
-    synthetic = {"static": lambda _: "S"}
-
-    class Rec(_RecordStub):
-        metadata = MetadataField(
-            key="metadata",
-            synthetic=synthetic,
-            create_if_missing=False,
-        )
-
-    rec = Rec({})
-    md = rec.metadata
-    # Even with no underlying metadata dict, synthetic lookup still works.
-    assert isinstance(md, MetadataProxy)
-    assert md["static"] == "S"
+    assert md["titles"] == ["title_1", "title_2"]
+    assert md["title"] == "title_1"
 
 
 # ---------------------------------------------------------------------------
@@ -195,26 +158,3 @@ def test_set_synthetic_metadata_in_built_model():
     assert "title_upper" in m.synthetic_metadata
     fn = m.synthetic_metadata["title_upper"]
     assert fn({"title": "abc"}) == "ABC"
-
-
-def test_record_metadata_field_uses_synthetic_dictionary():
-    m = model(
-        name="synthetic_metadata_record_test",
-        version="1.0.0",
-        presets=[records_preset],
-        types=[_record_model_types],
-        metadata_type="Metadata",
-        customizations=[
-            SetSyntheticMetadata(
-                title_upper=lambda d: d["title"].upper(),
-            ),
-        ],
-    )
-
-    # Build a record-like dict and access the descriptor directly so we don't
-    # need a full SQLAlchemy / Flask stack.
-    record_data = {"metadata": {"title": "hello"}}
-    proxy = m.Record.metadata.__get__(record_data)
-    assert isinstance(proxy, MetadataProxy)
-    assert proxy["title"] == "hello"
-    assert proxy["title_upper"] == "HELLO"

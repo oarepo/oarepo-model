@@ -31,9 +31,12 @@ if TYPE_CHECKING:
 
 
 class MetadataProxy(ObjectProxy):
-    """Object proxy that allows to add synthetic metadata."""
+    """Object proxy that allows to add synthetic metadata.
 
-    def __init__(self, wrapped: dict[str, Any], synthetic: dict[str, Callable[[dict], Any]]):
+    The data are returned only through direct substribt access, otherwise the object is treated as a dict without them.
+    """
+
+    def __init__(self, wrapped: dict[str, Any], synthetic: dict[str, Callable[[dict[str, Any]], Any]] | None = None):
         """Construct."""
         super().__init__(wrapped)
         self._self_synthetic = synthetic or {}
@@ -49,7 +52,7 @@ class MetadataProxy(ObjectProxy):
 class MetadataField(DictField):
     """Dictionary field supporting synthetic metadata."""
 
-    def __init__(self, *args: Any, synthetic: dict[str, Callable[[dict], Any]], **kwargs: Any):
+    def __init__(self, *args: Any, synthetic: dict[str, Callable[[dict[str, Any]], Any]], **kwargs: Any):
         """Construct."""
         super().__init__(*args, **kwargs)
         self.synthetic = synthetic
