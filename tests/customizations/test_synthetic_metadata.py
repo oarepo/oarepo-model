@@ -99,13 +99,20 @@ def test_synthetic_keys_accessible_only_through_getitem():
 # MetadataField
 # ---------------------------------------------------------------------------
 
+synthetic = {"title": lambda d: d["titles"][0]}
+
+
+class Rec(dict):
+    """Test pseudo-record class."""
+
+    metadata = MetadataField(key="metadata", synthetic=synthetic)
+
+
+def test_return_self():
+    assert isinstance(Rec.metadata, MetadataField)
+
 
 def test_metadata_field_wraps_dict_in_proxy_on_access():
-    synthetic = {"title": lambda d: d["titles"][0]}
-
-    class Rec(dict):
-        metadata = MetadataField(key="metadata", synthetic=synthetic)
-
     rec = Rec({"metadata": {"titles": ["title_1", "title_2"]}})
     md = rec.metadata
     assert isinstance(md, MetadataProxy)
