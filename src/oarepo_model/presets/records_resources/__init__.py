@@ -47,6 +47,7 @@ from .records.record_metadata import RecordMetadataPreset
 from .records.record_with_relations import RecordWithRelationsPreset
 from .records.relations import RelationsPreset
 from .records.relations_dumper_ext import RelationsDumperExtPreset
+from .records.synthetic_metadata import SyntheticMetadataPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
 from .resources.records.exports import ExportsPreset
@@ -101,6 +102,7 @@ records_preset: list[type[Preset]] = [
     RelationsPreset,
     RecordWithRelationsPreset,
     RelationsDumperExtPreset,
+    SyntheticMetadataPreset,
     # service layer
     RecordFacetsPreset,
     MetadataFacetsPreset,
