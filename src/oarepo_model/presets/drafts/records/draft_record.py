@@ -112,7 +112,10 @@ class DraftPreset(Preset):
             # consistently filter by publication status across both record types.
             is_published = PIDStatusCheckField(status=PIDStatus.REGISTERED, dump=True)
 
-            metadata = MetadataField(key="metadata", synthetic=dependencies["synthetic_metadata"])
+            if dependencies.get("synthetic_metadata"):
+                metadata = MetadataField(key="metadata", synthetic=dependencies["synthetic_metadata"])
+            else:
+                metadata = InvenioDraft.metadata
 
         yield AddClass(
             "Draft",
