@@ -154,6 +154,7 @@ class PolymorphicDataType(DataType):
             field_name: field_class(
                 discriminator=discriminator,
                 alternatives=alternative_fields,
+                preserve_discriminator=False,
             ),
         }
 
@@ -239,6 +240,7 @@ class PolymorphicField(ma.fields.Field):
         discriminator: str,
         alternatives: dict[str, ma.fields.Field],
         *args: Any,
+        preserve_discriminator: bool = True,
         **kwargs: Any,
     ):
         """Initialize a PolymorphicField for handling discriminated union types.
@@ -250,10 +252,16 @@ class PolymorphicField(ma.fields.Field):
             A mapping from discriminator values (e.g. person/organization)
             to marshmallow field instances. Each field handles validation and
             serialization for its corresponding object variant. Defaults to empty dict.
+        :param preserve_discriminator:
+            When True (default), the discriminator key is re-added to the
+            serialized output after the sub-schema dumps, ensuring round-trip
+            fidelity for data schemas.  Set to False for UI schemas where only
+            UI-transformed fields should appear in the output.
         """
         super().__init__(*args, **kwargs)
         self.discriminator = discriminator
         self.alternatives = alternatives
+        self.preserve_discriminator = preserve_discriminator
 
     def get_discriminator_value(self, obj: Any) -> str:
         """Get the discriminator value from the object."""
@@ -281,16 +289,25 @@ class PolymorphicField(ma.fields.Field):
             return value
 
         discriminator_value = self.get_discriminator_value(value)
-        if discriminator_value in self.alternatives:
-            schema_field = self.alternatives[discriminator_value]
-            return schema_field._serialize(  # noqa: SLF001 private access
-                value,
-                attr,
-                obj,
-                **kwargs,
-            )
+        if discriminator_value not in self.alternatives:
+            return value
 
-        return value
+        schema_field = self.alternatives[discriminator_value]
+        serialized = schema_field._serialize(  # noqa: SLF001 private access
+            value,
+            attr,
+            obj,
+            **kwargs,
+        )
+
+        # Re-add the discriminator: the sub-schema only dumps its declared fields
+        # and would otherwise silently drop it, breaking round-trips.
+        # For UI schemas (preserve_discriminator=False) this step is intentionally
+        # skipped — only UI-transformed fields should appear in the output.
+        if isinstance(serialized, dict) and self.preserve_discriminator:
+            serialized[self.discriminator] = discriminator_value
+
+        return serialized
 
     @override
     def _deserialize(
@@ -304,12 +321,29 @@ class PolymorphicField(ma.fields.Field):
         discriminator_value = self.get_discriminator_value(value)
 
         if discriminator_value not in self.alternatives:
-            self.fail("unknown_type", type=discriminator_value)
+            raise ma.ValidationError(
+                f"Unknown type {discriminator_value!r}. "
+                f"Valid types are: {list(self.alternatives)}",
+            )
+
+        # Strip the discriminator before handing off to the sub-schema.
+        # The sub-schema has unknown=RAISE and does not declare the discriminator
+        # field, so passing the full dict causes ValidationError: Unknown field.
+        value_without_discriminator = {
+            k: v for k, v in value.items() if k != self.discriminator
+        }
 
         schema_field = self.alternatives[discriminator_value]
-        return schema_field._deserialize(  # noqa: SLF001 private access
-            value,
+        result = schema_field._deserialize(  # noqa: SLF001 private access
+            value_without_discriminator,
             attr,
             data,
             **kwargs,
         )
+
+        # Put the discriminator back into the deserialized result so that
+        # _serialize can find it and round-trips are lossless.
+        if isinstance(result, dict):
+            result[self.discriminator] = discriminator_value
+
+        return result
