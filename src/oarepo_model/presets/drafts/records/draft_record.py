@@ -40,6 +40,8 @@ from oarepo_model.presets.records_resources.records.synthetic_metadata import (
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+    from invenio_records_resources.records.api import Record
+
     from oarepo_model.builder import InvenioModelBuilder
 
 
@@ -116,6 +118,18 @@ class DraftPreset(Preset):
                 metadata = MetadataField(key="metadata", synthetic=dependencies["synthetic_metadata"])
             else:
                 metadata = InvenioDraft.metadata
+
+            @classmethod
+            def edit(cls, record: Record) -> InvenioDraft:
+                # invenio-drafts-resources' Draft.edit undelete branch wipes
+                # the draft JSON via undelete() without re-running ConstantField
+                # pre_init hooks, so $schema is missing on the first edit after
+                # publish. Re-inject it from the class-level ConstantField.
+                draft = super().edit(record)  # type: ignore[misc]
+                schema_value = getattr(cls.schema, "value", None)  # type: ignore[attr-defined]
+                if schema_value and "$schema" not in draft:
+                    draft["$schema"] = schema_value
+                return draft
 
         yield AddClass(
             "Draft",
