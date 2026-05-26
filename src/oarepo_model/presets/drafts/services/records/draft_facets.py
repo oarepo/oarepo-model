@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
+from invenio_i18n import lazy_gettext as _
 from oarepo_runtime.services.facets.utils import build_facet
 
 from oarepo_model.customizations import (
@@ -46,6 +47,7 @@ class DraftFacetsPreset(Preset):
                 {
                     "facet": "invenio_records_resources.services.records.facets.TermsFacet",
                     "field": "is_published",
+                    "value_labels": {"true": _("Published"), "false": _("Unpublished")},
                 }
             ],
         }
