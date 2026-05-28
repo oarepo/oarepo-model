@@ -19,10 +19,9 @@ resource response handlers. It includes:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_i18n import lazy_gettext as _
-from werkzeug.local import LocalProxy
 
 from oarepo_model.customizations import (
     AddMetadataExport,
@@ -33,8 +32,6 @@ from oarepo_model.presets import Preset
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from flask_resources.serializers import BaseSerializer
-
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
 
@@ -42,7 +39,7 @@ if TYPE_CHECKING:
 class RegisterJSONUISerializerPreset(Preset):
     """Preset for registering JSON UI Serializer."""
 
-    depends_on = ("JSONUISerializer",)
+    depends_on = ("JSONUISerializer", "RecordUISchema")
     modifies = ("exports",)
 
     @override
@@ -52,14 +49,12 @@ class RegisterJSONUISerializerPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        runtime_deps = builder.get_runtime_dependencies()
+        json_ui_serializer_cls = dependencies["JSONUISerializer"]
+        record_ui_schema_cls = dependencies["RecordUISchema"]
 
         yield AddMetadataExport(
             code="ui_json",
             name=_("UI JSON"),
             mimetype="application/vnd.inveniordm.v1+json",
-            serializer=cast(
-                "BaseSerializer",
-                LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),  # noqa: PLW0108
-            ),
+            serializer=json_ui_serializer_cls(object_schema_cls=record_ui_schema_cls),
         )
