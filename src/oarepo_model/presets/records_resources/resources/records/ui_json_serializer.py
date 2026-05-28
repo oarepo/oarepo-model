@@ -45,16 +45,14 @@ class JSONUISerializerPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        runtime_dependencies = builder.get_runtime_dependencies()
-
         class JSONUISerializer(MarshmallowSerializer):
             """UI JSON serializer."""
 
-            def __init__(self):
+            def __init__(self, object_schema_cls: type):
                 """Initialise Serializer."""
                 super().__init__(
                     format_serializer_cls=JSONSerializer,
-                    object_schema_cls=runtime_dependencies.get("RecordUISchema"),
+                    object_schema_cls=object_schema_cls,
                     list_schema_cls=BaseListSchema,
                     schema_context={"object_key": "ui"},
                 )
