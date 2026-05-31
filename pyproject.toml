@@ -1,6 +1,6 @@
 [project]
 name = "oarepo-model"
-version = "2.4.0"
+version = "3.0.0"
 description = "Dynamic models for InvenioRDM"
 readme = "README.md"
 authors = [
@@ -8,9 +8,9 @@ authors = [
 ]
 requires-python = ">=3.14,<3.15"
 dependencies = [
-    "oarepo-runtime>=4.0.0,<5.0.0",
+    "oarepo-runtime>=5.0.0,<6.0.0",
     "graphlib",
-    "oarepo[rdm,tests]>=14.0.0,<15.0.0",
+    "oarepo[rdm,tests]>=14.2.1b11.dev1,<15.0.0",
     "deepmerge>=2.0",
     "dotenv>=0.9.9",
     "marshmallow-i18n-messages>=0.1.0",
@@ -36,7 +36,7 @@ tests = [
     "pytest-invenio",
 ]
 oarepo14=[
-    "oarepo[rdm]>=14,<15",
+    "oarepo[rdm]>=14.2.1b11.dev1,<15.0.0",
 ]
 
 
