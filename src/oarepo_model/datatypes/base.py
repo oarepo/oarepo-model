@@ -283,4 +283,7 @@ class FacetMixin(FacetMixinBase):
     ) -> dict[str, Any]:
         """Get extra kwargs for facet constructor."""
         _, _ = path, element
-        return {}
+        ret = {}
+        if "label" in element:
+            ret["label"] = element["label"]
+        return ret

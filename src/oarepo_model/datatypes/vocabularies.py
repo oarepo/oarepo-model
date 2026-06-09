@@ -185,7 +185,10 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         path: str,
         element: dict[str, Any],
     ) -> dict[str, Any]:
-        return {"value_labels": VocabularyLabels(element["vocabulary-type"])}
+        ret = {"value_labels": VocabularyLabels(element["vocabulary-type"])}
+        if "label" in element:
+            ret["label"] = element["label"]
+        return ret
 
 
 default_vocabulary_fields_in_relations: dict[str, list[dict[str, Any]]] = {
