@@ -422,6 +422,8 @@ class ArrayDataType(FacetMixin, DataType):
         _ = path_suffix  # path suffix is not used for arrays
         path = path.removesuffix("[]")
         value = element.get("items", element)
+        if "label" in element and "label" not in value:
+            value = {**value, "label": element["label"]}
         facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
         return facets
 
