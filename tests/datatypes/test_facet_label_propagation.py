@@ -8,7 +8,6 @@
 #
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -19,10 +18,12 @@ class TestArrayFacetLabelPropagation:
 
     @pytest.fixture
     def array_type(self, datatype_registry):
+        """Return the array data type from registry."""
         return datatype_registry.get_type("array")
 
     @pytest.fixture
     def keyword_type(self, datatype_registry):
+        """Return the keyword data type from registry."""
         return datatype_registry.get_type("keyword")
 
     def test_array_label_propagates_to_items(self, array_type, keyword_type):
