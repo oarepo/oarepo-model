@@ -70,7 +70,9 @@ class AppBlueprintPreset(Preset):
 
             return blueprint
 
-        yield AddToModule("blueprints", "create_app_blueprint", staticmethod(create_app_blueprint))
+        yield AddToModule(
+            "blueprints", "create_app_blueprint", staticmethod(create_app_blueprint)
+        )
 
         yield AddEntryPoint(
             group="invenio_base.blueprints",

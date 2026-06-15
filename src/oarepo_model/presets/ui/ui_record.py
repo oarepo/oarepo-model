@@ -36,7 +36,11 @@ class UIRecordPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         """Apply the preset to the model and yield customizations."""
-        record_ui_model = get_ui_model(builder, model.record_type, []) if model.record_type is not None else {}
+        record_ui_model = (
+            get_ui_model(builder, model.record_type, [])
+            if model.record_type is not None
+            else {}
+        )
 
         yield AddDictionary("ui_model", record_ui_model)
 

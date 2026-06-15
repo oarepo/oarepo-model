@@ -36,7 +36,9 @@ class PatchIndexSettings(PatchJSONFile):
                     settings[k] = list(set(settings[k]) | set(v))
                 elif isinstance(settings[k], dict) and isinstance(v, dict):
                     settings[k].update(v)
-                    settings[k] = {kk: vv for kk, vv in settings[k].items() if vv is not None}
+                    settings[k] = {
+                        kk: vv for kk, vv in settings[k].items() if vv is not None
+                    }
                 else:
                     settings[k] = v
             else:

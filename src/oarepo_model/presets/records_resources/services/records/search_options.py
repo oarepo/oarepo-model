@@ -13,7 +13,7 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Any, override
 
-from invenio_records_resources.services.records.config import SearchOptions
+from invenio_rdm_records.services.config import RDMSearchOptions
 from invenio_records_resources.services.records.params.facets import FacetsParam
 from invenio_records_resources.services.records.queryparser import QueryParser
 from oarepo_runtime.services.facets.params import GroupedFacetsParam
@@ -75,6 +75,6 @@ class RecordSearchOptionsPreset(Preset):
                 )
             )
 
-        yield AddClass("RecordSearchOptions", clazz=SearchOptions)
+        yield AddClass("RecordSearchOptions", clazz=RDMSearchOptions)
 
         yield PrependMixin("RecordSearchOptions", RecordSearchOptionsMixin)

@@ -54,7 +54,9 @@ def test_synthetic_data_not_saved_after_access(
         {"metadata": {"title": "hello"}, "files": {"enabled": True}},
     )
     record = Record.pid.resolve(item.id)
-    record.metadata["title_upper"]  # synthetic value shouldn't propagate to the record dict when initialized
+    record.metadata[
+        "title_upper"
+    ]  # synthetic value shouldn't propagate to the record dict when initialized
     with UnitOfWork(db.session) as uow:
         uow.register(RecordCommitOp(record, indexer=synthetic_metadata_service.indexer))
     record = Record.pid.resolve(item.id)

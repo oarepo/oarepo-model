@@ -54,7 +54,9 @@ class ApiBlueprintPreset(Preset):
         def create_api_blueprint(app: Flask) -> Blueprint:
             """Create DocumentsRecord blueprint."""
             with app.app_context():
-                blueprint = app.extensions[model.base_name].records_resource.as_blueprint()
+                blueprint = app.extensions[
+                    model.base_name
+                ].records_resource.as_blueprint()
 
                 for initializer_func in cast(
                     "dict",
@@ -64,7 +66,9 @@ class ApiBlueprintPreset(Preset):
 
             return blueprint
 
-        yield AddToModule("blueprints", "create_api_blueprint", staticmethod(create_api_blueprint))
+        yield AddToModule(
+            "blueprints", "create_api_blueprint", staticmethod(create_api_blueprint)
+        )
 
         yield AddEntryPoint(
             group="invenio_base.api_blueprints",

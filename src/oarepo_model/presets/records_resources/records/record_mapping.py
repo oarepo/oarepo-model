@@ -38,7 +38,11 @@ class RecordMappingPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        mapping = {"mappings": get_mapping(builder, model.record_type)} if model.record_type is not None else {}
+        mapping = (
+            {"mappings": get_mapping(builder, model.record_type)}
+            if model.record_type is not None
+            else {}
+        )
 
         mapping = always_merger.merge(
             {

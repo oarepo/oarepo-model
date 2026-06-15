@@ -51,7 +51,9 @@ def test_simple_flow(
     assert first_hit["links"].items() <= read_item.links.items()
 
     # test that search with illegal syntax does not raise error
-    res = test_draft_service.search_drafts(identity_simple, q="a/b/c illegal syntax", size=25, page=1)
+    res = test_draft_service.search_drafts(
+        identity_simple, q="a/b/c illegal syntax", size=25, page=1
+    )
     assert res.total == 0
 
     # Update it
@@ -88,7 +90,9 @@ def test_simple_flow_resource(
     Draft = draft_model.Draft
 
     # Create a draft
-    res = client.post("/draft-test", headers=headers.json, data=json.dumps(input_data_more_complex))
+    res = client.post(
+        "/draft-test", headers=headers.json, data=json.dumps(input_data_more_complex)
+    )
     assert res.status_code == 201
     id_ = res.json["id"]
     assert res.json["metadata"] == input_data_more_complex["metadata"]
@@ -116,16 +120,22 @@ def test_simple_flow_resource(
     Draft.index.refresh()
 
     # Search it
-    res = client.get("/user/draft-test", query_string={"q": f"id:{id_}"}, headers=headers.json)
+    res = client.get(
+        "/user/draft-test", query_string={"q": f"id:{id_}"}, headers=headers.json
+    )
     assert res.status_code == 200
     assert res.json["hits"]["total"] == 1
-    assert res.json["hits"]["hits"][0]["metadata"] == input_data_more_complex["metadata"]
+    assert (
+        res.json["hits"]["hits"][0]["metadata"] == input_data_more_complex["metadata"]
+    )
     data = res.json["hits"]["hits"][0]
     data["metadata"]["title"] = "New title"
     data["metadata"]["some_bool_val"] = False
 
     # Update it
-    res = client.put(f"/draft-test/{id_}/draft", headers=headers.json, data=json.dumps(data))
+    res = client.put(
+        f"/draft-test/{id_}/draft", headers=headers.json, data=json.dumps(data)
+    )
     assert res.status_code == 200
     assert res.json["metadata"]["title"] == "New title"
     assert not res.json["metadata"]["some_bool_val"]
@@ -161,7 +171,9 @@ def test_simple_flow_resource(
     assert res.status_code == 404
 
     # Try to get search it again
-    res = client.get("/user/draft-test", query_string={"q": f"id:{id_}"}, headers=headers.json)
+    res = client.get(
+        "/user/draft-test", query_string={"q": f"id:{id_}"}, headers=headers.json
+    )
     assert res.status_code == 200
     assert res.json["hits"]["total"] == 0
 

@@ -104,7 +104,9 @@ def test_replace_base_class_without_subclass_matching():
     clz.add_base_classes(SubclassOfOld, UnrelatedBase)
 
     with pytest.raises(BaseClassNotFoundError, match="Base class OldBase not found"):
-        ReplaceBaseClass("TestClass", OldBase, NewBase, subclass=False, fail=True).apply(builder, model)
+        ReplaceBaseClass(
+            "TestClass", OldBase, NewBase, subclass=False, fail=True
+        ).apply(builder, model)
 
 
 def test_replace_base_class_already_built():

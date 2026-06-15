@@ -52,7 +52,9 @@ class Partial:
 
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
         """Build the class from the partial."""
-        raise NotImplementedError("Subclasses must implement this method.")  # pragma: no cover
+        raise NotImplementedError(
+            "Subclasses must implement this method."
+        )  # pragma: no cover
 
     @override
     def __repr__(self) -> str:
@@ -224,7 +226,11 @@ class BuilderModule(Partial, SimpleNamespace):
                 if attr.startswith("_") and attr != "__file__":
                     continue
                 value = getattr(self, attr)
-                if callable(value) and not isinstance(value, LocalProxy) and hasattr(value, "__get__"):
+                if (
+                    callable(value)
+                    and not isinstance(value, LocalProxy)
+                    and hasattr(value, "__get__")
+                ):
                     value = value.__get__(self, type(self))
                 setattr(ret, attr, value)
             except Exception as e:
@@ -431,7 +437,9 @@ class InvenioModelBuilder:
             del self.entry_points[(group, name)]
             return
 
-        self.entry_points[(group, name)] = f"runtime_models_{self.model.base_name}{separator}{value}"
+        self.entry_points[(group, name)] = (
+            f"runtime_models_{self.model.base_name}{separator}{value}"
+        )
 
     _not_found_messages = MappingProxyType[type, str](
         {
@@ -477,7 +485,9 @@ class InvenioModelBuilder:
             if not isinstance(partial, BuilderFile):
                 continue
 
-            self.ns.__files__[f"{partial.module_name}/{partial.file_path}"] = partial.content
+            self.ns.__files__[f"{partial.module_name}/{partial.file_path}"] = (
+                partial.content
+            )
 
     def build(self) -> SimpleNamespace:
         """Build the model from the collected partials."""

@@ -38,7 +38,11 @@ class MetadataProxy(ObjectProxy):
     the database.
     """
 
-    def __init__(self, wrapped: dict[str, Any], synthetic: dict[str, Callable[[dict[str, Any]], Any]] | None = None):
+    def __init__(
+        self,
+        wrapped: dict[str, Any],
+        synthetic: dict[str, Callable[[dict[str, Any]], Any]] | None = None,
+    ):
         """Construct."""
         super().__init__(wrapped)
         self._self_synthetic = synthetic or {}
@@ -54,7 +58,12 @@ class MetadataProxy(ObjectProxy):
 class MetadataField(DictField):
     """Dictionary field supporting synthetic metadata."""
 
-    def __init__(self, *args: Any, synthetic: dict[str, Callable[[dict[str, Any]], Any]], **kwargs: Any):
+    def __init__(
+        self,
+        *args: Any,
+        synthetic: dict[str, Callable[[dict[str, Any]], Any]],
+        **kwargs: Any,
+    ):
         """Construct."""
         super().__init__(*args, **kwargs)
         self.synthetic = synthetic

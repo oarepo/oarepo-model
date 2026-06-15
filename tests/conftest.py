@@ -185,7 +185,9 @@ def csv_imports_model(model_types):
             self.delimiter = delimiter
 
         def deserialize(self, data: Any) -> dict[str, Any]:
-            reader = csv.DictReader(io.StringIO(data.decode("utf-8")), delimiter=self.delimiter)
+            reader = csv.DictReader(
+                io.StringIO(data.decode("utf-8")), delimiter=self.delimiter
+            )
             row = next(reader, None)
             if row is None:
                 return {"metadata": {}, "files": {"enabled": True}}
@@ -336,7 +338,9 @@ def facet_model(model_types):
         metadata_type="Metadata",
         record_type="Record",
         customizations=[
-            AddFacetGroup("curator", ["metadata.b", "metadata.jej.c", "metadata.vlastni"]),
+            AddFacetGroup(
+                "curator", ["metadata.b", "metadata.jej.c", "metadata.vlastni"]
+            ),
             AddFacetGroup("default", ["metadata.b", "metadata.jej.c"]),
             AddFacetGroup("owner", ["metadata.jej.c", "metadata.b"]),
         ],
@@ -786,12 +790,18 @@ def app_config(
 
     app_config["FILES_REST_DEFAULT_STORAGE_CLASS"] = "L"
 
-    app_config["RECORDS_REFRESOLVER_CLS"] = "invenio_records.resolver.InvenioRefResolver"
-    app_config["RECORDS_REFRESOLVER_STORE"] = "invenio_jsonschemas.proxies.current_refresolver_store"
+    app_config["RECORDS_REFRESOLVER_CLS"] = (
+        "invenio_records.resolver.InvenioRefResolver"
+    )
+    app_config["RECORDS_REFRESOLVER_STORE"] = (
+        "invenio_jsonschemas.proxies.current_refresolver_store"
+    )
 
     app_config["THEME_FRONTPAGE"] = False
 
-    app_config["SQLALCHEMY_ENGINE_OPTIONS"] = {  # avoid pool_timeout set in invenio_app_rdm
+    app_config[
+        "SQLALCHEMY_ENGINE_OPTIONS"
+    ] = {  # avoid pool_timeout set in invenio_app_rdm
         "pool_pre_ping": False,
         "pool_recycle": 3600,
     }
@@ -820,7 +830,9 @@ def app_config(
                         "label": "Experiment description",
                         "placeholder": "This experiment aims to...",
                         "icon": "pencil",
-                        "description": ("You should fill this field with the experiment description.",),
+                        "description": (
+                            "You should fill this field with the experiment description.",
+                        ),
                     },
                 },
             ],
@@ -834,7 +846,9 @@ def app_config(
 
     app_config["RDM_PERSISTENT_IDENTIFIERS"] = {}
 
-    app_config["RDM_OPTIONAL_DOI_VALIDATOR"] = lambda _draft, _previous_published, **_kwargs: True
+    app_config["RDM_OPTIONAL_DOI_VALIDATOR"] = (
+        lambda _draft, _previous_published, **_kwargs: True
+    )
 
     app_config["DATACITE_TEST_MODE"] = True
     app_config["RDM_RECORDS_ALLOW_RESTRICTION_AFTER_GRACE_PERIOD"] = True

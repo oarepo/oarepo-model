@@ -48,5 +48,7 @@ class RecordMetadataWithFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        yield AddClassField("RecordMetadata", "bucket_id", db.Column(UUIDType, db.ForeignKey(Bucket.id)))
+        yield AddClassField(
+            "RecordMetadata", "bucket_id", db.Column(UUIDType, db.ForeignKey(Bucket.id))
+        )
         yield AddClassField("RecordMetadata", "bucket", declared_attr(bucket))

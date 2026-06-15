@@ -53,4 +53,6 @@ class RecordMetadataWithFilesPreset(Preset):
             "media_bucket_id",
             db.Column(UUIDType, db.ForeignKey(Bucket.id)),
         )
-        yield AddClassField("RecordMetadata", "media_bucket", declared_attr(media_bucket))
+        yield AddClassField(
+            "RecordMetadata", "media_bucket", declared_attr(media_bucket)
+        )

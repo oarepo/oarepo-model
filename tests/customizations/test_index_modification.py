@@ -27,13 +27,19 @@ def test_index_customizations():
     type_registry = MagicMock()
     builder = InvenioModelBuilder(model, type_registry)
     AddModule("blah").apply(builder, model)
-    AddJSONFile("record-mapping", "blah", "blah.json", {}, exists_ok=True).apply(builder, model)
-    PatchIndexSettings({"a": 1, "b": [1, 2], "c": {"d": 4, "e": 5}, "f": "blah"}).apply(builder, model)
+    AddJSONFile("record-mapping", "blah", "blah.json", {}, exists_ok=True).apply(
+        builder, model
+    )
+    PatchIndexSettings({"a": 1, "b": [1, 2], "c": {"d": 4, "e": 5}, "f": "blah"}).apply(
+        builder, model
+    )
     assert json.loads(builder.get_file("record-mapping").content) == {
         "settings": {"a": 1, "b": [1, 2], "c": {"d": 4, "e": 5}, "f": "blah"}
     }
 
-    PatchIndexSettings({"a": 5, "b": [4], "c": {"d": 1, "e": None}, "f": "abc"}).apply(builder, model)
+    PatchIndexSettings({"a": 5, "b": [4], "c": {"d": 1, "e": None}, "f": "abc"}).apply(
+        builder, model
+    )
     assert json.loads(builder.get_file("record-mapping").content) == {
         "settings": {
             "a": 5,
@@ -84,7 +90,9 @@ def test_index_mapping_customizations():
             "properties": {
                 "a": {"type": "keyword"},
                 "b": {"type": "text"},
-                "c": {"properties": {"d": {"type": "integer"}, "e": {"type": "keyword"}}},
+                "c": {
+                    "properties": {"d": {"type": "integer"}, "e": {"type": "keyword"}}
+                },
                 "f": None,
             }
         }

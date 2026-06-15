@@ -55,8 +55,12 @@ class FileMetadataPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         yield AddClass("FileMetadata")
-        yield AddClassField("FileMetadata", "__tablename__", f"{builder.model.base_name}_files")
-        yield AddClassField("FileMetadata", "__record_model_cls__", dependencies.get("RecordMetadata"))
+        yield AddClassField(
+            "FileMetadata", "__tablename__", f"{builder.model.base_name}_files"
+        )
+        yield AddClassField(
+            "FileMetadata", "__record_model_cls__", dependencies.get("RecordMetadata")
+        )
         yield AddBaseClass("FileMetadata", db.Model)
         yield AddBaseClass("FileMetadata", RecordMetadataBase)
         yield AddBaseClass("FileMetadata", FileRecordModelMixin)

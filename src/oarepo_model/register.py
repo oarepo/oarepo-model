@@ -330,7 +330,9 @@ class ModelImporter(importlib.abc.MetaPathFinder):
 class InMemoryLoader(importlib.abc.Loader):
     """A loader for in-memory modules."""
 
-    def __init__(self, namespace: SimpleNamespace, fullname: str, submodule_root: str | None):
+    def __init__(
+        self, namespace: SimpleNamespace, fullname: str, submodule_root: str | None
+    ):
         """Initialize the in-memory loader."""
         self.namespace = namespace
         self.fullname = fullname
@@ -345,7 +347,11 @@ class InMemoryLoader(importlib.abc.Loader):
 
     @override
     def exec_module(self, module: ModuleType) -> None:
-        sub_namespace = getattr(self.namespace, self.submodule_root) if self.submodule_root else self.namespace
+        sub_namespace = (
+            getattr(self.namespace, self.submodule_root)
+            if self.submodule_root
+            else self.namespace
+        )
 
         module.__dict__.update(
             sub_namespace.__dict__,

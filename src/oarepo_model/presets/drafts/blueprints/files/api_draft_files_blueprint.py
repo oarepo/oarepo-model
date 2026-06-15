@@ -47,7 +47,9 @@ class ApiDraftFilesBlueprintPreset(Preset):
         # need to use staticmethod as python's magic always passes self as the first argument
         def create_draft_files_api_blueprint(app: Flask) -> Blueprint:
             with app.app_context():
-                return app.extensions[model.base_name].draft_files_resource.as_blueprint()
+                return app.extensions[
+                    model.base_name
+                ].draft_files_resource.as_blueprint()
 
         yield AddToModule(
             "blueprints",

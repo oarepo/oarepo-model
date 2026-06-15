@@ -149,7 +149,10 @@ class PolymorphicDataType(DataType):
                 alternative_fields[discriminator_value] = next(iter(ui_fields.values()))
 
         # return custom marshmallow field that distinguishes what schema to use
-        field_class = self._get_ui_marshmallow_field_class(field_name, element) or PolymorphicField
+        field_class = (
+            self._get_ui_marshmallow_field_class(field_name, element)
+            or PolymorphicField
+        )
         return {
             field_name: field_class(
                 discriminator=discriminator,
@@ -177,7 +180,9 @@ class PolymorphicDataType(DataType):
                 child_jsonschema = datatype.create_json_schema(oneof_item)
 
                 if "properties" not in child_jsonschema:
-                    child_jsonschema = dict(child_jsonschema)  # make a copy to avoid modifying the original
+                    child_jsonschema = dict(
+                        child_jsonschema
+                    )  # make a copy to avoid modifying the original
                     child_jsonschema["properties"] = {}
 
                 # only 1 value is allowed in this field (e.g. person or organization)
@@ -188,7 +193,9 @@ class PolymorphicDataType(DataType):
 
                 # discriminator is a required field
                 if "required" not in child_jsonschema:
-                    child_jsonschema = dict(child_jsonschema)  # make a copy to avoid modifying the original
+                    child_jsonschema = dict(
+                        child_jsonschema
+                    )  # make a copy to avoid modifying the original
                     child_jsonschema["required"] = []
                 if discriminator not in child_jsonschema["required"]:
                     child_jsonschema["required"].append(discriminator)

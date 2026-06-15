@@ -65,7 +65,9 @@ class WrappedDataType(DataType):
         }
         return cast(
             "dict[str, Any]",
-            deepmerge.always_merger.merge(copy.deepcopy(self.type_dict), element_without_type),
+            deepmerge.always_merger.merge(
+                copy.deepcopy(self.type_dict), element_without_type
+            ),
         )
 
     @override

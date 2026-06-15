@@ -56,7 +56,9 @@ class RecordUILinksPreset(Preset):
             return
 
         self_links = {
-            "self_html": RecordEndpointLink(f"{ui_blueprint_name}.record_detail", when=has_permission("read"))
+            "self_html": RecordEndpointLink(
+                f"{ui_blueprint_name}.record_detail", when=has_permission("read")
+            )
         }
 
         yield AddToDictionary(

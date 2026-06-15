@@ -30,7 +30,9 @@ class SetPermissionPolicy(Customization):
 
     modifies = ("PermissionPolicy",)
 
-    def __init__(self, permission_policy: type[RecordPermissionPolicy], keep_mixins: bool = False):
+    def __init__(
+        self, permission_policy: type[RecordPermissionPolicy], keep_mixins: bool = False
+    ):
         """Initialize the SetPermissionPolicy customization."""
         super().__init__("SetPermissionPolicy")
         self._permission_policy = permission_policy

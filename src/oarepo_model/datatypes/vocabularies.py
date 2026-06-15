@@ -152,7 +152,9 @@ class VocabularyDataType(FacetMixin, PIDRelation):
 
                 return cast(
                     "PIDFieldContext",
-                    cast("VocabularyPIDFieldContext", Vocabulary.pid).with_type_ctx(vocab_type),
+                    cast("VocabularyPIDFieldContext", Vocabulary.pid).with_type_ctx(
+                        vocab_type
+                    ),
                 )
 
     def _cache_key(

@@ -92,7 +92,9 @@ class DataType:
     ) -> type | None:
         """Get a ui marshmallow field class."""
         if element.get("ui_marshmallow_field_class"):
-            return cast("type", obj_or_import_string(element["ui_marshmallow_field_class"]))
+            return cast(
+                "type", obj_or_import_string(element["ui_marshmallow_field_class"])
+            )
         return None
 
     def get_facet(

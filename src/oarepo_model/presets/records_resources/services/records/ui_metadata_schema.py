@@ -54,7 +54,9 @@ class MetadataUISchemaPreset(Preset):
             class RecordMetadataUIMixin(marshmallow.Schema):
                 """Mixin for record UI schema which serializes metadata."""
 
-                metadata = marshmallow.fields.Nested(get_ui_marshmallow_schema(builder, model.metadata_type))
+                metadata = marshmallow.fields.Nested(
+                    get_ui_marshmallow_schema(builder, model.metadata_type)
+                )
 
                 @marshmallow.post_dump()
                 def flatten_metadata(

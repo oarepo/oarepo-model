@@ -75,7 +75,9 @@ class MediaFilesRecordServiceConfigPreset(Preset):
                     *super().components,
                     *cast(
                         "list[type[ServiceComponent]]",
-                        self.get_model_dependency("media_files_record_service_components"),
+                        self.get_model_dependency(
+                            "media_files_record_service_components"
+                        ),
                     ),
                 ]
 

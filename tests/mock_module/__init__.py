@@ -20,15 +20,21 @@ def create_invenio_app_rdm_records_blueprint(app):
         __name__,
     )
 
-    def record_file_download(pid_value, file_item=None, is_preview=False, **kwargs: object) -> object:
+    def record_file_download(
+        pid_value, file_item=None, is_preview=False, **kwargs: object
+    ) -> object:
         """Fake record_file_download view function."""
         return "<file content>"
 
-    def record_detail(pid_value, file_item=None, is_preview=False, **kwargs: object) -> object:
+    def record_detail(
+        pid_value, file_item=None, is_preview=False, **kwargs: object
+    ) -> object:
         """Fake record_detail view function."""
         return "<record detail>"
 
-    def deposit_edit(pid_value, file_item=None, is_preview=False, **kwargs: object) -> object:
+    def deposit_edit(
+        pid_value, file_item=None, is_preview=False, **kwargs: object
+    ) -> object:
         """Fake record_detail view function."""
         return "<deposit edit>"
 

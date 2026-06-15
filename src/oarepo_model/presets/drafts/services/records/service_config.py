@@ -123,7 +123,9 @@ class DraftServiceConfigPreset(Preset):
                 }
                 return {k: v for k, v in links.items() if v is not None}
 
-        yield ReplaceBaseClass("RecordServiceConfig", RecordServiceConfig, DraftServiceConfig)
+        yield ReplaceBaseClass(
+            "RecordServiceConfig", RecordServiceConfig, DraftServiceConfig
+        )
         yield PrependMixin("RecordServiceConfig", DraftServiceConfigMixin)
 
         self_links = {
@@ -148,7 +150,9 @@ class DraftServiceConfigPreset(Preset):
                     f"{model.blueprint_base}.read",
                     params=["pid_value"],
                     when=is_record,
-                    vars=lambda record, variables: variables.update({"pid_value": record.parent.pid.pid_value}),
+                    vars=lambda record, variables: variables.update(
+                        {"pid_value": record.parent.pid.pid_value}
+                    ),
                 ),
                 "latest": RecordEndpointLink(
                     f"{model.blueprint_base}.read_latest",
@@ -160,7 +164,10 @@ class DraftServiceConfigPreset(Preset):
                 "draft": RecordEndpointLink(
                     f"{model.blueprint_base}.read_draft",
                     when=is_published_record()
-                    & (has_draft() & has_draft_permission("read_draft") | has_permission("edit")),
+                    & (
+                        has_draft() & has_draft_permission("read_draft")
+                        | has_permission("edit")
+                    ),
                 ),
                 "record": RecordEndpointLink(
                     f"{model.blueprint_base}.read",

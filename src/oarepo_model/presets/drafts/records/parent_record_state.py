@@ -58,8 +58,12 @@ class ParentRecordStatePreset(Preset):
         yield AddClass("ParentRecordState")
         yield AddBaseClass("ParentRecordState", db.Model)
         yield AddBaseClass("ParentRecordState", InvenioParentRecordStateMixin)
-        yield AddClassField("ParentRecordState", "__record_model__", dependencies["RecordMetadata"])
-        yield AddClassField("ParentRecordState", "__draft_model__", dependencies["DraftMetadata"])
+        yield AddClassField(
+            "ParentRecordState", "__record_model__", dependencies["RecordMetadata"]
+        )
+        yield AddClassField(
+            "ParentRecordState", "__draft_model__", dependencies["DraftMetadata"]
+        )
         yield AddClassField(
             "ParentRecordState",
             "__parent_record_model__",

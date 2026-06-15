@@ -27,7 +27,9 @@ def test_add_to_dictionary():
     AddToDictionary("ADict", key="a", value="b").apply(builder, model)
     assert builder.get_dictionary("ADict")["a"] == "b"
 
-    with pytest.raises(ValueError, match="Key 'a' already exists in dictionary 'ADict'"):
+    with pytest.raises(
+        ValueError, match="Key 'a' already exists in dictionary 'ADict'"
+    ):
         AddToDictionary("ADict", key="a", value="b").apply(builder, model)
 
     AddToDictionary("ADict", key="a", value="c", exists_ok=True).apply(builder, model)
@@ -46,7 +48,9 @@ def test_add_to_dictionary_override_values():
     builder = InvenioModelBuilder(model, type_registry)
     builder.add_dictionary("CDict")
 
-    AddToDictionary("CDict", {"a": "1", "nested": {"x": "original"}}).apply(builder, model)
+    AddToDictionary("CDict", {"a": "1", "nested": {"x": "original"}}).apply(
+        builder, model
+    )
 
     AddToDictionary(
         "CDict",
@@ -60,7 +64,9 @@ def test_add_to_dictionary_override_values():
     }
 
     builder.add_dictionary("DDict")
-    AddToDictionary("DDict", {"a": "1", "nested": {"x": "original"}}).apply(builder, model)
+    AddToDictionary("DDict", {"a": "1", "nested": {"x": "original"}}).apply(
+        builder, model
+    )
 
     AddToDictionary(
         "DDict",

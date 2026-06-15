@@ -50,7 +50,9 @@ class ObjectDataType(DataType):
         This method can be overridden by subclasses to provide specific properties logic.
         """
         if "properties" not in element:
-            raise ValueError(f"Element must contain 'properties' key. Got {element}")  # pragma: no cover
+            raise ValueError(
+                f"Element must contain 'properties' key. Got {element}"
+            )  # pragma: no cover
         if not isinstance(element["properties"], dict):
             raise TypeError(
                 "Element 'properties' must be a dictionary.",
@@ -68,7 +70,9 @@ class ObjectDataType(DataType):
         if "marshmallow_schema_class" in element:
             # if marshmallow_schema_class is specified, use it directly
             imported = obj_or_import_string(element["marshmallow_schema_class"])
-            if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
+            if not isinstance(imported, type) or not issubclass(
+                imported, marshmallow.Schema
+            ):
                 raise ValueError(
                     f"marshmallow_schema_class {element['marshmallow_schema_class']} "
                     "must be a subclass of marshmallow.Schema",
@@ -103,7 +107,9 @@ class ObjectDataType(DataType):
         if "ui_marshmallow_schema_class" in element:
             # if marshmallow_schema_class is specified, use it directly
             imported = obj_or_import_string(element["ui_marshmallow_schema_class"])
-            if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
+            if not isinstance(imported, type) or not issubclass(
+                imported, marshmallow.Schema
+            ):
                 raise ValueError(
                     f"ui_marshmallow_schema_class {element['ui_marshmallow_schema_class']} "
                     "must be a subclass of marshmallow.Schema",
@@ -144,7 +150,11 @@ class ObjectDataType(DataType):
                     _path = path
                 else:
                     _path = path + "." + key
-                facets.update(self._registry.get_type(value).get_facet(_path, value, nested_facets, facets))
+                facets.update(
+                    self._registry.get_type(value).get_facet(
+                        _path, value, nested_facets, facets
+                    )
+                )
 
         return facets
 
@@ -160,14 +170,19 @@ class ObjectDataType(DataType):
         if element.get("ui_marshmallow_field") is not None:
             # if marshmallow_field is specified, use it directly
             ui_marshmallow_field = obj_or_import_string(element["ui_marshmallow_field"])
-            if ui_marshmallow_field is None or not isinstance(ui_marshmallow_field, marshmallow.fields.Field):
+            if ui_marshmallow_field is None or not isinstance(
+                ui_marshmallow_field, marshmallow.fields.Field
+            ):
                 raise TypeError(
                     f"ui_marshmallow_field must be an instance of marshmallow.fields.Field, got {ui_marshmallow_field}",
                 )
             return {
                 field_name: ui_marshmallow_field,
             }
-        field_class = self._get_ui_marshmallow_field_class(field_name, element) or marshmallow.fields.Nested
+        field_class = (
+            self._get_ui_marshmallow_field_class(field_name, element)
+            or marshmallow.fields.Nested
+        )
         return {
             field_name: field_class(
                 self.create_ui_marshmallow_schema(element),
@@ -192,7 +207,8 @@ class ObjectDataType(DataType):
             **super().create_json_schema(element),
             "unevaluatedProperties": False,
             "properties": {
-                key: self._registry.get_type(value).create_json_schema(value) for key, value in properties.items()
+                key: self._registry.get_type(value).create_json_schema(value)
+                for key, value in properties.items()
             },
         }
 
@@ -203,7 +219,8 @@ class ObjectDataType(DataType):
             **super().create_mapping(element),
             "dynamic": "strict",
             "properties": {
-                key: self._registry.get_type(value).create_mapping(value) for key, value in properties.items()
+                key: self._registry.get_type(value).create_mapping(value)
+                for key, value in properties.items()
             },
         }
 
@@ -284,7 +301,9 @@ def unique_validator(value: list[Any]) -> None:
     """Validate that the array does not contain duplicates."""
     values_as_strings = [json.dumps(item, sort_keys=True) for item in value]
     # get duplicates
-    duplicates = {item for item in values_as_strings if values_as_strings.count(item) > 1}
+    duplicates = {
+        item for item in values_as_strings if values_as_strings.count(item) > 1
+    }
     if duplicates:
         raise marshmallow.ValidationError(
             _("Array contains duplicates: {}").format(", ".join(duplicates)),
@@ -355,10 +374,17 @@ class ArrayDataType(FacetMixin, DataType):
             return {}
 
         # if there is only one field, just use it otherwise create a multi-format field
-        field = next(iter(items_fields.values())) if len(items_fields) == 1 else MultiFormatField(items_fields)
+        field = (
+            next(iter(items_fields.values()))
+            if len(items_fields) == 1
+            else MultiFormatField(items_fields)
+        )
 
         # get representation of a marshmallow field
-        field_class = self._get_ui_marshmallow_field_class(field_name, element) or marshmallow.fields.List
+        field_class = (
+            self._get_ui_marshmallow_field_class(field_name, element)
+            or marshmallow.fields.List
+        )
         return {field_name: field_class(field)}
 
     @override
@@ -424,7 +450,9 @@ class ArrayDataType(FacetMixin, DataType):
         value = element.get("items", element)
         if "label" in element and "label" not in value:
             value = {**value, "label": element["label"]}
-        facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
+        facets.update(
+            self._registry.get_type(value).get_facet(path, value, nested_facets, facets)
+        )
         return facets
 
 
@@ -463,7 +491,9 @@ class DynamicObjectDataType(ObjectDataType):
         return PermissiveSchema
 
     @override
-    def create_ui_marshmallow_fields(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
+    def create_ui_marshmallow_fields(
+        self, field_name: str, element: dict[str, Any]
+    ) -> dict[str, Any]:
         return {}
 
     @override

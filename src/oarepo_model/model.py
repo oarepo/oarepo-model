@@ -200,7 +200,11 @@ class AddToList[T](CachedDescriptor):
 
         if self.position < 0:
             return super_value + list(self.data)
-        return super_value[: self.position] + list(self.data) + super_value[self.position :]
+        return (
+            super_value[: self.position]
+            + list(self.data)
+            + super_value[self.position :]
+        )
 
 
 MISSING = object()
@@ -232,7 +236,11 @@ class Dependency(CachedDescriptor):
     ) -> Any:
         ret = []
         default: list | tuple
-        default = [self.default] if len(self.keys) == 1 or not isinstance(self.default, (list, tuple)) else self.default
+        default = (
+            [self.default]
+            if len(self.keys) == 1 or not isinstance(self.default, (list, tuple))
+            else self.default
+        )
 
         for idx, key in enumerate(self.keys):
             if not hasattr(target_namespace, key):

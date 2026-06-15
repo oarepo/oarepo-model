@@ -85,7 +85,9 @@ class RecordPreset(Preset):
             )
 
             if dependencies.get("synthetic_metadata"):
-                metadata = MetadataField(key="metadata", synthetic=dependencies["synthetic_metadata"])
+                metadata = MetadataField(
+                    key="metadata", synthetic=dependencies["synthetic_metadata"]
+                )
             else:
                 metadata = InvenioRecord.metadata
 

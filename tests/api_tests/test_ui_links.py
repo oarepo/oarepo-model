@@ -45,7 +45,9 @@ def app_with_bp(app):
     def record_latest(pid_value: str) -> str:
         return "latest ok"
 
-    @bp.route("/test-ui-links/records/<pid_value>/export/<export_format>", methods=["GET"])
+    @bp.route(
+        "/test-ui-links/records/<pid_value>/export/<export_format>", methods=["GET"]
+    )
     def record_export(pid_value, export_format: str) -> str:
         return "export ok"
 
@@ -66,7 +68,9 @@ def test_ui_links(
     # Create a draft
     test_data = {"metadata": {"title": "test_title"}}
 
-    res = client.post("/test-ui-links", headers=headers.json, data=json.dumps(test_data))
+    res = client.post(
+        "/test-ui-links", headers=headers.json, data=json.dumps(test_data)
+    )
     assert res.status_code == 201
     assert "self_html" in res.json["links"]
     assert "latest_html" in res.json["links"]

@@ -156,8 +156,12 @@ def headers():
 def add_file_to_draft():
     """Add a file to the record."""
 
-    def _add_file_to_draft(draft_file_service, draft_id, file_id, identity) -> dict[str, Any]:
-        result = draft_file_service.init_files(identity, draft_id, data=[{"key": file_id}])
+    def _add_file_to_draft(
+        draft_file_service, draft_id, file_id, identity
+    ) -> dict[str, Any]:
+        result = draft_file_service.init_files(
+            identity, draft_id, data=[{"key": file_id}]
+        )
         file_md = next(iter(result.entries))
         assert file_md["key"] == "test.txt"
         assert file_md["status"] == "pending"

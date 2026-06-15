@@ -44,7 +44,9 @@ class ParentPIDProviderPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         class PIDProviderMixin:
-            pid_type = builder.model.configuration.get("parent_pid_type") or make_pid_type(
+            pid_type = builder.model.configuration.get(
+                "parent_pid_type"
+            ) or make_pid_type(
                 builder.model.base_name,
             )
 

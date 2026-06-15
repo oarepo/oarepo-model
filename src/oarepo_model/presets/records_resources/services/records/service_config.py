@@ -84,7 +84,9 @@ class RecordServiceConfigPreset(Preset):
 
             url_prefix = f"/{builder.model.slug}/"
 
-            permission_policy_cls = cast("type[RecordPermissionPolicy]", Dependency("PermissionPolicy"))
+            permission_policy_cls = cast(
+                "type[RecordPermissionPolicy]", Dependency("PermissionPolicy")
+            )
 
             schema = cast("type[ma.Schema]", Dependency("RecordSchema"))
 

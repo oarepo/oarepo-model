@@ -38,7 +38,11 @@ class RecordJSONSchemaPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        jsonschema = get_json_schema(builder, model.record_type) if model.record_type is not None else {}
+        jsonschema = (
+            get_json_schema(builder, model.record_type)
+            if model.record_type is not None
+            else {}
+        )
 
         jsonschema = always_merger.merge(
             {

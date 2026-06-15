@@ -24,7 +24,9 @@ def test_simple_flow(
     Record = empty_model.Record
 
     # Create a record
-    res = client.post("/test", headers=headers.json, data=json.dumps(input_data_more_complex))
+    res = client.post(
+        "/test", headers=headers.json, data=json.dumps(input_data_more_complex)
+    )
     assert res.status_code == 201
     id_ = res.json["id"]
     assert res.json["metadata"] == input_data_more_complex["metadata"]
@@ -57,7 +59,9 @@ def test_simple_flow(
     res = client.get("/test", query_string={"q": f"id:{id_}"}, headers=headers.json)
     assert res.status_code == 200
     assert res.json["hits"]["total"] == 1
-    assert res.json["hits"]["hits"][0]["metadata"] == input_data_more_complex["metadata"]
+    assert (
+        res.json["hits"]["hits"][0]["metadata"] == input_data_more_complex["metadata"]
+    )
     data = res.json["hits"]["hits"][0]
     data["metadata"]["title"] = "New title"
     data["metadata"]["some_bool_val"] = False

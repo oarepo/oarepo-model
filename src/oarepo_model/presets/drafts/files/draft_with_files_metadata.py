@@ -53,6 +53,10 @@ class DraftMetadataWithFilesPreset(Preset):
             "media_bucket_id",
             db.Column(UUIDType, db.ForeignKey(Bucket.id)),
         )
-        yield AddClassField("DraftMetadata", "media_bucket", declared_attr(media_bucket))
-        yield AddClassField("DraftMetadata", "bucket_id", db.Column(UUIDType, db.ForeignKey(Bucket.id)))
+        yield AddClassField(
+            "DraftMetadata", "media_bucket", declared_attr(media_bucket)
+        )
+        yield AddClassField(
+            "DraftMetadata", "bucket_id", db.Column(UUIDType, db.ForeignKey(Bucket.id))
+        )
         yield AddClassField("DraftMetadata", "bucket", declared_attr(bucket))

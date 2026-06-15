@@ -34,4 +34,13 @@ def test_add_service_component():
     )
 
     # ideally check whether the component actually ends in the service components list after app init
-    assert len([c for c in m.record_service_components if issubclass(c, TestServiceComponent)]) == 1
+    assert (
+        len(
+            [
+                c
+                for c in m.record_service_components
+                if issubclass(c, TestServiceComponent)
+            ]
+        )
+        == 1
+    )

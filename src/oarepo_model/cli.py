@@ -67,11 +67,15 @@ def list_models() -> None:
 
     for model in current_runtime.models.values():
         if model.records_alias_enabled:
-            click.echo(f"{model.name!s:20} - {get_api_url(model)} - {model.description}")
+            click.echo(
+                f"{model.name!s:20} - {get_api_url(model)} - {model.description}"
+            )
     click.secho("\nOther models:\n")
     for model in current_runtime.models.values():
         if not model.records_alias_enabled:
-            click.echo(f"{model.name!s:20} - {get_api_url(model)} - {model.description}")
+            click.echo(
+                f"{model.name!s:20} - {get_api_url(model)} - {model.description}"
+            )
 
 
 @model.group()
@@ -127,7 +131,9 @@ def mapping(model: SimpleNamespace) -> None:
 
 def dump_jsonschema(ns: SimpleNamespace) -> str:
     """Dump JSON schema for the model."""
-    files = [x for x in ns.__files__ if x.startswith("jsonschemas/") and x.endswith(".json")]
+    files = [
+        x for x in ns.__files__ if x.startswith("jsonschemas/") and x.endswith(".json")
+    ]
     if not files:
         raise ValueError("No JSON schema files found for this model")
     return cast("str", ns.__files__[files[0]])
@@ -135,7 +141,11 @@ def dump_jsonschema(ns: SimpleNamespace) -> str:
 
 def dump_mapping(ns: SimpleNamespace) -> str:
     """Dump mapping for the model."""
-    files = {x: json.loads(v) for x, v in ns.__files__.items() if x.startswith("mappings/") and x.endswith(".json")}
+    files = {
+        x: json.loads(v)
+        for x, v in ns.__files__.items()
+        if x.startswith("mappings/") and x.endswith(".json")
+    }
 
     return json.dumps(files, indent=2)
 
@@ -148,7 +158,9 @@ def dump_field(field: Field) -> tuple[str, list[type]]:
         subschema: type[Schema] | Schema = field.schema
         if isinstance(subschema, Schema):
             subschema = type(subschema)
-        dumped_field_args.append(f'schema="{subschema.__module__}.{subschema.__name__}"')
+        dumped_field_args.append(
+            f'schema="{subschema.__module__}.{subschema.__name__}"'
+        )
         nested_types.append(subschema)
     if isinstance(field, List):
         inner_field_str, inner_nested_types = dump_field(field.inner)
@@ -181,19 +193,25 @@ def dump_field_arg(
         dumped_field_args.append(f"{field_name}={field_value!r}")
 
 
-def dump_schema(schema: type[Schema] | Schema, dumped_schemas: set[type], dumped_names: set[str]) -> dict[type, str]:
+def dump_schema(
+    schema: type[Schema] | Schema, dumped_schemas: set[type], dumped_names: set[str]
+) -> dict[type, str]:
     """Dump marshmallow schema as string."""
     if isinstance(schema, Schema):
         schema = type(schema)
 
     if not issubclass(schema, Schema):
-        raise TypeError("Provided schema is not a marshmallow Schema")  # pragma no cover
+        raise TypeError(
+            "Provided schema is not a marshmallow Schema"
+        )  # pragma no cover
 
     if schema in dumped_schemas:
         return {}
     dumped_schemas.add(schema)
 
-    base_classes = ", \n".join(f"    {base.__module__}.{base.__name__}" for base in schema.__bases__)
+    base_classes = ", \n".join(
+        f"    {base.__module__}.{base.__name__}" for base in schema.__bases__
+    )
     name = f"{schema.__module__}.{schema.__name__}"
     if name in dumped_names:
         # to avoid name clashes, we append a number
@@ -212,7 +230,9 @@ def dump_schema(schema: type[Schema] | Schema, dumped_schemas: set[type], dumped
             dumped_field = f"# Error dumping field: {e}"
             other_schemas = []
         lines.append(f"    {field_name} = {dumped_field}")
-        subschemas.update([type(t) if isinstance(t, Schema) else t for t in other_schemas])
+        subschemas.update(
+            [type(t) if isinstance(t, Schema) else t for t in other_schemas]
+        )
     ret = {schema: "\n".join(lines)}
     for subschema in subschemas:
         ret.update(dump_schema(subschema, dumped_schemas, dumped_names))

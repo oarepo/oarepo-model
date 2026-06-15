@@ -100,9 +100,18 @@ def test_signposting_linksets(
     assert "<https://schema.org/Dataset>; rel=type" in linkset_export
     assert "<https://schema.org/AboutPage>; rel=type" in linkset_export
     assert f'/uploads/{record_id}>; rel=describes; type="text/html"' in linkset_export
-    assert f'/records/{record_id}/export/json>; rel=describedby; type="application/json"' in linkset_export
-    assert f'/records/{record_id}/export/jsonlset>; rel=describedby; type="application/linkset+json"' in linkset_export
-    assert f'/records/{record_id}/export/lset>; rel=describedby; type="application/linkset"' in linkset_export
+    assert (
+        f'/records/{record_id}/export/json>; rel=describedby; type="application/json"'
+        in linkset_export
+    )
+    assert (
+        f'/records/{record_id}/export/jsonlset>; rel=describedby; type="application/linkset+json"'
+        in linkset_export
+    )
+    assert (
+        f'/records/{record_id}/export/lset>; rel=describedby; type="application/linkset"'
+        in linkset_export
+    )
     assert (
         f'/records/{record_id}/export/ui_json>; rel=describedby; type="application/vnd.inveniordm.v1+json"'
         in linkset_export
@@ -148,9 +157,17 @@ def test_signposting_linksets_without_datacite(
         "application/linkset+json",
         "application/vnd.inveniordm.v1+json",
     }
-    linkset_export = current_runtime.models["test"].get_export_by_mimetype("application/linkset")
-    json_linkset_export = current_runtime.models["test"].get_export_by_mimetype("application/linkset+json")
-    with pytest.raises(ValueError, match="No export found for the given mimetype or code"):
+    linkset_export = current_runtime.models["test"].get_export_by_mimetype(
+        "application/linkset"
+    )
+    json_linkset_export = current_runtime.models["test"].get_export_by_mimetype(
+        "application/linkset+json"
+    )
+    with pytest.raises(
+        ValueError, match="No export found for the given mimetype or code"
+    ):
         linkset_export.serializer.serialize_object(item.to_dict())
-    with pytest.raises(ValueError, match="No export found for the given mimetype or code"):
+    with pytest.raises(
+        ValueError, match="No export found for the given mimetype or code"
+    ):
         json_linkset_export.serializer.serialize_object(item.to_dict())

@@ -59,9 +59,13 @@ class RecordResourceConfigPreset(Preset):
             url_prefix = f"/{builder.model.slug}"
 
             # Response handling
-            response_handlers = Dependency("record_response_handlers", "exports", transform=_merge_with_exports)
+            response_handlers = Dependency(
+                "record_response_handlers", "exports", transform=_merge_with_exports
+            )
             # Request handling
-            request_body_parsers = Dependency("record_request_body_parsers", "imports", transform=_merge_with_imports)
+            request_body_parsers = Dependency(
+                "record_request_body_parsers", "imports", transform=_merge_with_imports
+            )
 
         yield AddClass("RecordResourceConfig", clazz=RecordResourceConfig)
         yield PrependMixin("RecordResourceConfig", RecordResourceConfigMixin)
@@ -83,11 +87,15 @@ def _merge_with_exports(record_response_handlers: dict, exports: list[Export]) -
     handler_cache: dict[str, ResponseHandler] = {}
 
     for export in exports:
-        record_response_handlers[export.mimetype] = _register_export(handler_cache, export)
+        record_response_handlers[export.mimetype] = _register_export(
+            handler_cache, export
+        )
     return record_response_handlers
 
 
-def _register_export(cache: dict[str, ResponseHandler], export: Export) -> ResponseHandler:
+def _register_export(
+    cache: dict[str, ResponseHandler], export: Export
+) -> ResponseHandler:
     """Register a new export and return its response handler.
 
     The handler is created when it is accessed first time and cached for future use.
@@ -105,18 +113,24 @@ def _register_export(cache: dict[str, ResponseHandler], export: Export) -> Respo
     return cast("ResponseHandler", LazyProxy(lookup_or_create))
 
 
-def _merge_with_imports(record_request_body_parsers: dict, imports: list[Import]) -> dict:
+def _merge_with_imports(
+    record_request_body_parsers: dict, imports: list[Import]
+) -> dict:
     """Merge imports into the record_request_body_parsers."""
     # we need to return lazy request body parsers as well as do not recreate then with
     # every call. To do this we need to cache the created handlers.
     handler_cache: dict[str, RequestBodyParser] = {}
 
     for import_option in imports:
-        record_request_body_parsers[import_option.mimetype] = _register_import(handler_cache, import_option)
+        record_request_body_parsers[import_option.mimetype] = _register_import(
+            handler_cache, import_option
+        )
     return record_request_body_parsers
 
 
-def _register_import(cache: dict[str, RequestBodyParser], import_option: Import) -> RequestBodyParser:
+def _register_import(
+    cache: dict[str, RequestBodyParser], import_option: Import
+) -> RequestBodyParser:
     """Register a new import and return its request body parser.
 
     The handler is created when it is accessed first time and cached for future use.

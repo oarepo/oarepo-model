@@ -86,7 +86,9 @@ class I18nDictDataType(ObjectDataType):
         return i18n_strings
 
     @override
-    def create_ui_marshmallow_fields(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
+    def create_ui_marshmallow_fields(
+        self, field_name: str, element: dict[str, Any]
+    ) -> dict[str, Any]:
         return {}  # TODO: create UI field serialization
 
     @override

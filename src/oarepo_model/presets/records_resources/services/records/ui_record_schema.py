@@ -88,7 +88,9 @@ class RecordUISchemaPreset(Preset):
             )
 
 
-def get_ui_marshmallow_schema(builder: InvenioModelBuilder, schema_type: Any) -> type[marshmallow.Schema]:
+def get_ui_marshmallow_schema(
+    builder: InvenioModelBuilder, schema_type: Any
+) -> type[marshmallow.Schema]:
     """Get the UI Marshmallow schema for the given schema type."""
     base_schema: type[marshmallow.Schema]
     if isinstance(schema_type, (str, dict)):
@@ -101,5 +103,7 @@ def get_ui_marshmallow_schema(builder: InvenioModelBuilder, schema_type: Any) ->
     elif issubclass(schema_type, marshmallow.Schema):
         base_schema = schema_type
     else:
-        raise TypeError(f"Invalid schema type: {schema_type}. Expected str, dict or None.")
+        raise TypeError(
+            f"Invalid schema type: {schema_type}. Expected str, dict or None."
+        )
     return base_schema

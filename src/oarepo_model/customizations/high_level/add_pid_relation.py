@@ -147,10 +147,14 @@ class AddPIDRelation(Customization):
 
         # pop the relation field if the last item is not an array
         relation_field = (
-            None if merged_paths_with_array_markers[-1] is ARRAY_PATH_ITEM else merged_paths_with_array_markers.pop()
+            None
+            if merged_paths_with_array_markers[-1] is ARRAY_PATH_ITEM
+            else merged_paths_with_array_markers.pop()
         )
 
         # filter out array markers
-        array_paths = [x for x in merged_paths_with_array_markers if x is not ARRAY_PATH_ITEM]
+        array_paths = [
+            x for x in merged_paths_with_array_markers if x is not ARRAY_PATH_ITEM
+        ]
 
         return relation_field, array_paths

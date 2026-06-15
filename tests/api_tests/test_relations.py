@@ -101,9 +101,15 @@ def test_relations(
     assert len(md["triple_array"][0]["array"]) == 2
     assert len(md["triple_array"][0]["array"][0]["array"]) == 1
     assert md["triple_array"][0]["array"][0]["array"][0]["id"] == rec1_id
-    assert md["triple_array"][0]["array"][0]["array"][0]["metadata"]["title"] == "Record 1"
+    assert (
+        md["triple_array"][0]["array"][0]["array"][0]["metadata"]["title"] == "Record 1"
+    )
     assert len(md["triple_array"][0]["array"][1]["array"]) == 2
     assert md["triple_array"][0]["array"][1]["array"][0]["id"] == rec2_id
-    assert md["triple_array"][0]["array"][1]["array"][0]["metadata"]["title"] == "Record 2"
+    assert (
+        md["triple_array"][0]["array"][1]["array"][0]["metadata"]["title"] == "Record 2"
+    )
     assert md["triple_array"][0]["array"][1]["array"][1]["id"] == rec3_id
-    assert md["triple_array"][0]["array"][1]["array"][1]["metadata"]["title"] == "Record 3"
+    assert (
+        md["triple_array"][0]["array"][1]["array"][1]["metadata"]["title"] == "Record 3"
+    )

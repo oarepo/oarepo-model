@@ -46,7 +46,9 @@ class RecordMetadataPreset(Preset):
         yield AddClass("RecordMetadata")
         yield AddBaseClass("RecordMetadata", db.Model)
         yield AddBaseClass("RecordMetadata", RecordMetadataBase)
-        yield AddClassField("RecordMetadata", "__tablename__", f"{builder.model.base_name}_metadata")
+        yield AddClassField(
+            "RecordMetadata", "__tablename__", f"{builder.model.base_name}_metadata"
+        )
         yield AddClassField("RecordMetadata", "__versioned__", {})
 
         yield AddEntryPoint(

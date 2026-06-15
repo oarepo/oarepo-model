@@ -64,7 +64,9 @@ class ReplaceBaseClass(Customization):
                 f"Cannot change base class of {self.name} after it has been built.",
             )
         for idx, base in enumerate(clz.base_classes):
-            if self.old_base_class is base or (self.subclass and issubclass(base, self.old_base_class)):
+            if self.old_base_class is base or (
+                self.subclass and issubclass(base, self.old_base_class)
+            ):
                 clz.base_classes[idx] = self.new_base_class
                 break
         else:

@@ -32,7 +32,9 @@ def test_imports(
         f"Registered imports: {[(i.code, i.mimetype) for i in csv_imports_model.imports]}"
     )
 
-    res = client.post("csv-imports-test", headers=headers.csv, data=csv_row_of_input_data_more_complex)
+    res = client.post(
+        "csv-imports-test", headers=headers.csv, data=csv_row_of_input_data_more_complex
+    )
 
     assert res.status_code == 201, res.get_data(as_text=True)
 

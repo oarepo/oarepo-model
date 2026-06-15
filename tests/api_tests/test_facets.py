@@ -38,9 +38,13 @@ def test_facet(
 
     Record.index.refresh()
     Draft.index.refresh()
-    hit = facet_service.search(identity_simple, q=f"id:{id_}", size=25, page=1, facets={"metadata.b": ["jej"]})
+    hit = facet_service.search(
+        identity_simple, q=f"id:{id_}", size=25, page=1, facets={"metadata.b": ["jej"]}
+    )
 
-    no_hit = facet_service.search(identity_simple, q=f"id:{id_}", size=25, page=1, facets={"metadata.b": ["xy"]})
+    no_hit = facet_service.search(
+        identity_simple, q=f"id:{id_}", size=25, page=1, facets={"metadata.b": ["xy"]}
+    )
     assert hit.total == 1
     assert no_hit.total == 0
 

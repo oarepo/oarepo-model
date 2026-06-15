@@ -43,7 +43,9 @@ def test_keyword_ui_schema(test_ui_schema):
             "type": "keyword",
         },
     )
-    assert schema.dump({"a": "test"}) == {}  # no ui serialization -> we can leave it out
+    assert (
+        schema.dump({"a": "test"}) == {}
+    )  # no ui serialization -> we can leave it out
 
 
 def test_date_ui_schema(test_ui_schema):
@@ -406,73 +408,76 @@ def test_ui_every_format_in_object(test_ui_schema):
         },
     )
 
-    assert res == {
-        "a": {
-            # no string formatting -> name is left out
-            "age": "30",  # age is formatted but same key name is kept
-            "height": "1.82",  # height is formatted but same key name is kept
-            "date_l10n_long": "December 31, 2023",  # 4 different formats for the specific date
-            "date_l10n_medium": "Dec 31, 2023",  # new key has prefix of an original key name
-            "date_l10n_short": "12/31/23",
-            "date_l10n_full": "Sunday, December 31, 2023",
-            # 4 different formats for the another specific date
-            "some_other_date_l10n_long": "December 31, 2023",
-            # new key has prefix of an original key name
-            "some_other_date_l10n_medium": "Dec 31, 2023",
-            "some_other_date_l10n_short": "12/31/23",
-            "some_other_date_l10n_full": "Sunday, December 31, 2023",
-            "is_draft_i18n": "true",  # boolean is formatted always with i18n suffix
-            "arrays": {
-                "array_bool": [
-                    "true",
-                ],  # bools in arrays are just transformed individually a placed in array
-                "array_int": [
-                    "1",
-                ],  # numbers in arrays are just transformed individually a placed in array
-                "array_float": ["1.1"],
-                "array_date": [
-                    # each date has 4 transformations, so dictionary is created
-                    # for each original date
+    assert (
+        res
+        == {
+            "a": {
+                # no string formatting -> name is left out
+                "age": "30",  # age is formatted but same key name is kept
+                "height": "1.82",  # height is formatted but same key name is kept
+                "date_l10n_long": "December 31, 2023",  # 4 different formats for the specific date
+                "date_l10n_medium": "Dec 31, 2023",  # new key has prefix of an original key name
+                "date_l10n_short": "12/31/23",
+                "date_l10n_full": "Sunday, December 31, 2023",
+                # 4 different formats for the another specific date
+                "some_other_date_l10n_long": "December 31, 2023",
+                # new key has prefix of an original key name
+                "some_other_date_l10n_medium": "Dec 31, 2023",
+                "some_other_date_l10n_short": "12/31/23",
+                "some_other_date_l10n_full": "Sunday, December 31, 2023",
+                "is_draft_i18n": "true",  # boolean is formatted always with i18n suffix
+                "arrays": {
+                    "array_bool": [
+                        "true",
+                    ],  # bools in arrays are just transformed individually a placed in array
+                    "array_int": [
+                        "1",
+                    ],  # numbers in arrays are just transformed individually a placed in array
+                    "array_float": ["1.1"],
+                    "array_date": [
+                        # each date has 4 transformations, so dictionary is created
+                        # for each original date
+                        {
+                            "item_l10n_long": "January 1, 2023",
+                            "item_l10n_medium": "Jan 1, 2023",
+                            "item_l10n_short": "1/1/23",
+                            "item_l10n_full": "Sunday, January 1, 2023",
+                        },
+                    ],
+                },
+                "array_of_objects": [
                     {
-                        "item_l10n_long": "January 1, 2023",
-                        "item_l10n_medium": "Jan 1, 2023",
-                        "item_l10n_short": "1/1/23",
-                        "item_l10n_full": "Sunday, January 1, 2023",
+                        # name is left out -> no ui representation
+                        "measurements": [
+                            "123",
+                            "456",
+                            "789",
+                            "123.456",
+                        ],  # numbers in arrays are just transformed individually a placed in array
+                        # just testing nested structures, same logic as above
+                        "birthday_l10n_long": "December 31, 2023",
+                        "birthday_l10n_medium": "Dec 31, 2023",
+                        "birthday_l10n_short": "12/31/23",
+                        "birthday_l10n_full": "Sunday, December 31, 2023",
+                    },
+                    {
+                        "measurements": [],  # testing empty arrays
+                        "birthday_l10n_long": "December 30, 2023",
+                        "birthday_l10n_medium": "Dec 30, 2023",
+                        "birthday_l10n_short": "12/30/23",
+                        "birthday_l10n_full": "Saturday, December 30, 2023",
+                    },
+                    {
+                        "measurements": ["123"],
+                        "birthday_l10n_long": "December 29, 2023",
+                        "birthday_l10n_medium": "Dec 29, 2023",
+                        "birthday_l10n_short": "12/29/23",
+                        "birthday_l10n_full": "Friday, December 29, 2023",
                     },
                 ],
             },
-            "array_of_objects": [
-                {
-                    # name is left out -> no ui representation
-                    "measurements": [
-                        "123",
-                        "456",
-                        "789",
-                        "123.456",
-                    ],  # numbers in arrays are just transformed individually a placed in array
-                    # just testing nested structures, same logic as above
-                    "birthday_l10n_long": "December 31, 2023",
-                    "birthday_l10n_medium": "Dec 31, 2023",
-                    "birthday_l10n_short": "12/31/23",
-                    "birthday_l10n_full": "Sunday, December 31, 2023",
-                },
-                {
-                    "measurements": [],  # testing empty arrays
-                    "birthday_l10n_long": "December 30, 2023",
-                    "birthday_l10n_medium": "Dec 30, 2023",
-                    "birthday_l10n_short": "12/30/23",
-                    "birthday_l10n_full": "Saturday, December 30, 2023",
-                },
-                {
-                    "measurements": ["123"],
-                    "birthday_l10n_long": "December 29, 2023",
-                    "birthday_l10n_medium": "Dec 29, 2023",
-                    "birthday_l10n_short": "12/29/23",
-                    "birthday_l10n_full": "Friday, December 29, 2023",
-                },
-            ],
-        },
-    }
+        }
+    )
 
     # there are 4 UI representation of a date in UI, all should be there
     assert "date_l10n_long" in res["a"]

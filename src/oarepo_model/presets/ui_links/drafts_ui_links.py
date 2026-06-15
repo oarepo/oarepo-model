@@ -66,7 +66,9 @@ class DraftsUILinksPreset(Preset):
         self_links = {
             "self_html": ConditionalLink(
                 cond=is_record,
-                if_=RecordEndpointLink(f"{ui_blueprint_name}.record_detail", when=has_permission("read")),
+                if_=RecordEndpointLink(
+                    f"{ui_blueprint_name}.record_detail", when=has_permission("read")
+                ),
                 else_=RecordEndpointLink(
                     f"{ui_blueprint_name}.deposit_edit",
                     when=has_permission("read_draft"),

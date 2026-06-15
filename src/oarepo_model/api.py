@@ -41,7 +41,9 @@ class FunctionalPreset:
     """A functional preset that can be applied to a model."""
 
     @staticmethod
-    def call(functional_presets: list[FunctionalPreset], method_name: str, **kwargs: Any) -> None:
+    def call(
+        functional_presets: list[FunctionalPreset], method_name: str, **kwargs: Any
+    ) -> None:
         """Call a method on a functional preset."""
         for preset in functional_presets:
             getattr(preset, method_name)(**kwargs)
@@ -279,7 +281,9 @@ def _internal_model(  # noqa: PLR0913 too many arguments
             else:
                 idx += 1
 
-        build_dependencies = {dep: builder.build_partial(dep) for dep in preset.depends_on}
+        build_dependencies = {
+            dep: builder.build_partial(dep) for dep in preset.depends_on
+        }
         for customization in preset.apply(builder, model, build_dependencies):
             try:
                 customization.apply(builder, model)
@@ -325,14 +329,19 @@ def _internal_model(  # noqa: PLR0913 too many arguments
     return ret
 
 
-def get_model_resources(model: InvenioModel, namespace: SimpleNamespace) -> dict[str, str]:
+def get_model_resources(
+    model: InvenioModel, namespace: SimpleNamespace
+) -> dict[str, str]:
     """Get the model resources from the namespace.
 
     Return dictionary where key is file path which starts with
     in_memory_package_name (e.g. runtime_model_test/mappings/...) and value is the file content.
     """
     files = namespace.__files__
-    return {f"{model.in_memory_package_name}/{file_name}": file_content for file_name, file_content in files.items()}
+    return {
+        f"{model.in_memory_package_name}/{file_name}": file_content
+        for file_name, file_content in files.items()
+    }
 
 
 def populate_type_registry(
@@ -393,4 +402,6 @@ def filter_only_if(presets: list[Preset]) -> list[Preset]:
 
     # and return only those presets that do not have only_if or have all dependencies satisfied
     # by the provided dependencies
-    return [p for p in presets if not p.only_if or all(d in all_provides for d in p.only_if)]
+    return [
+        p for p in presets if not p.only_if or all(d in all_provides for d in p.only_if)
+    ]

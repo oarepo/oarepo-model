@@ -51,7 +51,9 @@ class DraftMediaFileServiceConfigPreset(Preset):
             allow_upload = False
 
         yield AddClass("DraftMediaFileServiceConfig", clazz=FileServiceConfig)
-        yield PrependMixin("DraftMediaFileServiceConfig", DraftMediaFileServiceConfigMixin)
+        yield PrependMixin(
+            "DraftMediaFileServiceConfig", DraftMediaFileServiceConfigMixin
+        )
 
         yield AddToList(
             "primary_record_service",
