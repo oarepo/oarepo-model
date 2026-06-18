@@ -185,7 +185,17 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         path: str,
         element: dict[str, Any],
     ) -> dict[str, Any]:
-        return {"value_labels": VocabularyLabels(element["vocabulary-type"])}
+        vocabulary_type = element["vocabulary-type"]
+
+        if vocabulary_type in {"affiliations", "funders"}:
+            return {
+                "value_labels": VocabularyLabels(
+                    vocabulary_type,
+                    service_id=vocabulary_type,
+                ),
+            }
+
+        return {"value_labels": VocabularyLabels(vocabulary_type)}
 
 
 default_vocabulary_fields_in_relations: dict[str, list[dict[str, Any]]] = {
