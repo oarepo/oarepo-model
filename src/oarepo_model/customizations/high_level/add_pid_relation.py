@@ -28,10 +28,41 @@ from oarepo_runtime.records.systemfields.relations import PIDArbitraryNestedList
 from ..base import Customization
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from invenio_records_resources.records.systemfields.pid import PIDFieldContext
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
+
+
+class LazyPIDFieldProxy:
+    """Defer pid_field resolution until first attribute access.
+
+    When a pid-relation references a record class in the *same* module that is
+    currently being constructed (e.g. a self-referential ``parent_activity``
+    field), calling the factory during ``apply()`` triggers a circular import
+    because the module has not finished initialising yet.  This proxy stores
+    the factory and only calls it on first attribute access, by which time all
+    modules are fully loaded.
+    """
+
+    __slots__ = ("_factory", "_resolved")
+
+    def __init__(self, factory: Callable[[], PIDFieldContext]) -> None:
+        object.__setattr__(self, "_factory", factory)
+        object.__setattr__(self, "_resolved", None)
+
+    def _resolve(self) -> PIDFieldContext:
+        resolved = object.__getattribute__(self, "_resolved")
+        if resolved is None:
+            factory: Callable[[], PIDFieldContext] = object.__getattribute__(self, "_factory")
+            resolved = factory()
+            object.__setattr__(self, "_resolved", resolved)
+        return resolved
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._resolve(), name)
 
 
 class ARRAY_PATH_ITEM:  # noqa: N801
@@ -50,7 +81,7 @@ class AddPIDRelation(Customization):
         name: str,
         path: list[str | type[ARRAY_PATH_ITEM]],
         keys: list[str],
-        pid_field: PIDFieldContext,
+        pid_field: PIDFieldContext | Callable[[], PIDFieldContext],
         cache_key: str | None = None,
         **kwargs: Any,
     ) -> None:
@@ -74,12 +105,22 @@ class AddPIDRelation(Customization):
 
         relation_field, array_paths = self._merge_paths_between_arrays()
 
+        # Wrap callable factories in a lazy proxy so that import_string() is
+        # deferred until the pid_field is first *accessed* at record I/O time,
+        # not called eagerly here.  This avoids circular import errors when a
+        # pid-relation references a class in the same module that is currently
+        # being constructed (e.g. a self-referential parent_activity field).
+        if callable(self.pid_field):
+            pid_field = LazyPIDFieldProxy(self.pid_field)
+        else:
+            pid_field = self.pid_field
+
         match array_count:
             case 0:
                 relations[self.name] = PIDRelation(
                     relation_field,
                     keys=self.keys,
-                    pid_field=self.pid_field,
+                    pid_field=pid_field,
                     cache_key=self.cache_key,
                     **self.kwargs,
                 )
@@ -88,7 +129,7 @@ class AddPIDRelation(Customization):
                 relations[self.name] = PIDListRelation(
                     array_paths[0],
                     keys=self.keys,
-                    pid_field=self.pid_field,
+                    pid_field=pid_field,
                     cache_key=self.cache_key,
                     relation_field=relation_field,
                     **self.kwargs,
@@ -102,7 +143,7 @@ class AddPIDRelation(Customization):
                         array_paths=array_paths,
                         relation_field=relation_field,
                         keys=self.keys,
-                        pid_field=self.pid_field,
+                        pid_field=pid_field,
                         cache_key=self.cache_key,
                         **self.kwargs,
                     )
@@ -111,7 +152,7 @@ class AddPIDRelation(Customization):
                         array_paths[0],
                         relation_field=array_paths[1],
                         keys=self.keys,
-                        pid_field=self.pid_field,
+                        pid_field=pid_field,
                         cache_key=self.cache_key,
                         **self.kwargs,
                     )
@@ -120,7 +161,7 @@ class AddPIDRelation(Customization):
                     array_paths=array_paths,
                     relation_field=relation_field,
                     keys=self.keys,
-                    pid_field=self.pid_field,
+                    pid_field=pid_field,
                     cache_key=self.cache_key,
                     **self.kwargs,
                 )
