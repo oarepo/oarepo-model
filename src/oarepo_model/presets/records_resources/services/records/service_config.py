@@ -101,6 +101,12 @@ class RecordServiceConfigPreset(Preset):
 
             search_item_links_template = LinksTemplate
 
+            #: When True, each hit in a search result exposes the same link set
+            #: as a full record read (i.e. links_search_item delegates to links_item).
+            #: Default is False — search hits use the smaller record_search_item_links
+            #: dict, which keeps payloads small for large result sets.
+            search_items_use_full_links: bool = False
+
             @property
             def components(self) -> tuple[type[ServiceComponent], ...]:  # type: ignore[reportIncompatibleVariableOverride]
                 # TODO: needs to be fixed as we have multiple mixins and the sources
@@ -135,6 +141,9 @@ class RecordServiceConfigPreset(Preset):
 
             @property
             def links_search_item(self) -> Mapping[str, Link]:  # type: ignore[reportIncompatibleVariableOverride]
+                if self.search_items_use_full_links:
+                    return self.links_item  # type: ignore[return-value]
+
                 try:
                     # this is oarepo extension - do not put all links on search result
                     # item

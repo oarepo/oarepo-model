@@ -31,3 +31,33 @@ def test_add_link():
 
     assert "test_link" in m.record_links_item
     assert m.record_links_item["test_link"] == tested_link
+
+
+def test_search_items_use_full_links():
+    """When the flag is True, links_search_item delegates to links_item."""
+    from oarepo_model.customizations import PrependMixin
+    from oarepo_model.model import ModelMixin
+    from oarepo_model.presets.drafts import drafts_records_preset
+    from oarepo_model.presets.records_resources import records_preset
+
+    class UseFullLinks(ModelMixin):
+        search_items_use_full_links = True
+
+    m_on = model(
+        name="test_full_links_on",
+        version="1.0.0",
+        presets=[records_preset, drafts_records_preset],
+        customizations=[PrependMixin("RecordServiceConfig", UseFullLinks)],
+    )
+    config_on = m_on.RecordServiceConfig()
+    assert config_on.search_items_use_full_links is True
+    assert config_on.links_search_item == config_on.links_item
+
+    m_default = model(
+        name="test_full_links_default",
+        version="1.0.0",
+        presets=[records_preset, drafts_records_preset],
+    )
+    config_default = m_default.RecordServiceConfig()
+    assert config_default.search_items_use_full_links is False
+    assert config_default.links_search_item != config_default.links_item
