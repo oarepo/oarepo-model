@@ -48,6 +48,7 @@ class DraftFacetsPreset(Preset):
                     "facet": "invenio_records_resources.services.records.facets.TermsFacet",
                     "field": "is_published",
                     "value_labels": {"true": _("Published"), "false": _("Unpublished")},
+                    "label": _("Status"),
                 }
             ],
         }
