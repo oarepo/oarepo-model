@@ -37,6 +37,7 @@ class JSONUISerializerPreset(Preset):
     """Preset for UI JSON Serializer."""
 
     provides = ("JSONUISerializer",)
+    depends_on = ("RecordUISchema",)
 
     @override
     def apply(
@@ -45,14 +46,16 @@ class JSONUISerializerPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
+        record_ui_schema_cls = dependencies["RecordUISchema"]
+
         class JSONUISerializer(MarshmallowSerializer):
             """UI JSON serializer."""
 
-            def __init__(self, object_schema_cls: type):
+            def __init__(self) -> None:
                 """Initialise Serializer."""
                 super().__init__(
                     format_serializer_cls=JSONSerializer,
-                    object_schema_cls=object_schema_cls,
+                    object_schema_cls=record_ui_schema_cls,
                     list_schema_cls=BaseListSchema,
                     schema_context={"object_key": "ui"},
                 )

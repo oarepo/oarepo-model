@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 class RegisterJSONUISerializerPreset(Preset):
     """Preset for registering JSON UI Serializer."""
 
-    depends_on = ("JSONUISerializer", "RecordUISchema")
+    depends_on = ("JSONUISerializer",)
     modifies = ("exports",)
 
     @override
@@ -50,11 +50,10 @@ class RegisterJSONUISerializerPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         json_ui_serializer_cls = dependencies["JSONUISerializer"]
-        record_ui_schema_cls = dependencies["RecordUISchema"]
 
         yield AddMetadataExport(
             code="ui_json",
             name=_("UI JSON"),
             mimetype="application/vnd.inveniordm.v1+json",
-            serializer=json_ui_serializer_cls(object_schema_cls=record_ui_schema_cls),
+            serializer=json_ui_serializer_cls(),
         )
