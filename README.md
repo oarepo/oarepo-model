@@ -36,8 +36,7 @@ my_model = model(
         records_resources_preset,
         drafts_preset,
     ],
-    customizations=[
-    ],
+    customizations=[],
 )
 ```
 
@@ -123,8 +122,9 @@ my_model = model(
 ```python
 from oarepo_model.customizations import AddToList
 
-class MyComponent:
-    ...
+
+class MyComponent: ...
+
 
 my_model = model(
     "my_model",
@@ -224,7 +224,6 @@ a special way by Invenio and are skipped. For example, a `pid` field on a record
 not be created in this way.
 
 ```python
-
 class A:
     b = Dependency("B")
 ```
@@ -271,7 +270,6 @@ of the preset. This is a dictionary of classes that were built during the model 
 Example:
 
 ```python
-
 class MyPreset(Preset):
     provides = ["MyClass"]
     depends_on = ["Record"]
@@ -280,6 +278,7 @@ class MyPreset(Preset):
         # dependencies is a dict of classes that were built during the model building process
         class MyClass(metaclass=MetaThatNeedsToHaveBProperty):
             b = dependencies["Record"]  # The Record has been built at this point and is a valid class
+
         yield AddClass("MyClass", MyClass)
 ```
 

@@ -33,7 +33,7 @@ class AddMetadataImport(Customization):
 
     modifies = ("imports",)
 
-    def __init__(  # noqa: PLR0913  # too many arguments
+    def __init__(  # noqa: PLR0913, PLR0917  # too many arguments
         self,
         code: str,
         name: LazyString,
