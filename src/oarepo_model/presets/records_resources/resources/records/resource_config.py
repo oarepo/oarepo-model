@@ -44,6 +44,7 @@ class RecordResourceConfigPreset(Preset):
         "RecordResourceConfig",
         "record_response_handlers",
         "record_request_body_parsers",
+        "record_error_handlers",
     )
 
     @override
@@ -63,6 +64,8 @@ class RecordResourceConfigPreset(Preset):
             # Request handling
             request_body_parsers = Dependency("record_request_body_parsers", "imports", transform=_merge_with_imports)
 
+            error_handlers = Dependency("record_error_handlers")
+
         yield AddClass("RecordResourceConfig", clazz=RecordResourceConfig)
         yield PrependMixin("RecordResourceConfig", RecordResourceConfigMixin)
 
@@ -72,6 +75,11 @@ class RecordResourceConfigPreset(Preset):
         )
         yield AddDictionary(
             "record_request_body_parsers",
+            {},
+        )
+
+        yield AddDictionary(
+            "record_error_handlers",
             {},
         )
 
