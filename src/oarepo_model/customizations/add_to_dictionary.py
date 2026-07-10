@@ -33,8 +33,8 @@ class AddToDictionary(Customization):
     def __init__(  # noqa PLR0913
         self,
         dictionary_name: str,
-        *values: dict[str, Any],
-        key: str | None = None,
+        *values: dict[Any, Any],
+        key: Any | None = None,
         value: Any = None,
         exists_ok: bool = False,
         patch: bool = False,
