@@ -50,7 +50,6 @@ from .records.relations_dumper_ext import RelationsDumperExtPreset
 from .records.synthetic_metadata import SyntheticMetadataPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
-from .resources.records.error_handlers import ErrorHandlersPreset
 from .resources.records.exports import ExportsPreset
 from .resources.records.imports import ImportsPreset
 from .resources.records.json_deserializer import JSONDeserializerPreset
@@ -127,7 +126,6 @@ records_preset: list[type[Preset]] = [
     RecordResourceConfigPreset,
     JSONUISerializerPreset,
     RegisterJSONUISerializerPreset,
-    ErrorHandlersPreset,
     # extension
     ExtPreset,
     ProxyPreset,

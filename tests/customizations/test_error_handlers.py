@@ -8,12 +8,9 @@
 #
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any
 
-from flask import Flask
 from invenio_records_resources.services.errors import PermissionDeniedError
-from oarepo_runtime.errors import AuthExceptionGroup
 
 from oarepo_model.api import model
 from oarepo_model.customizations import AddToDictionary
@@ -42,17 +39,6 @@ def build_model(name: str, *customizations: Customization) -> SimpleNamespace:
         presets=[records_resources_preset],
         customizations=list(customizations),
     )
-
-
-def test_error_handlers_default():
-    """The preset provides an record_error_handlers dictionary with AuthExceptionGroup."""
-    m = build_model("eh_default")
-
-    assert len(m.record_error_handlers) == 1
-    assert next(iter(m.record_error_handlers)) == AuthExceptionGroup
-
-    assert len(m.RecordResourceConfig().error_handlers) == 1
-    assert next(iter(m.RecordResourceConfig().error_handlers)) == AuthExceptionGroup
 
 
 def test_error_handlers_reach_the_resource():
@@ -85,26 +71,3 @@ def test_error_handler_overrides_invenio_default():
 
     assert handlers[PermissionDeniedError] is my_handler
     assert m.RecordResource.error_handlers[PermissionDeniedError] is not my_handler
-
-
-def test_auth_exception_group_maps_to_401():
-    """The default ``AuthExceptionGroup`` handler returns a 401 JSON response.
-
-    Drives the handler ``ErrorHandlersPreset`` registers the way flask-resources
-    does at request time (the closure logs through ``current_app``, so an app
-    context is required) and asserts the mapped HTTP response rather than just the
-    presence of the key.
-    """
-    m = build_model("eh_auth")
-    resource = m.RecordResource(m.RecordResourceConfig(), None)
-    handler = dict(resource.create_error_handlers())[AuthExceptionGroup]
-
-    exc = AuthExceptionGroup("boom", [ValueError("nested")])
-    with Flask(__name__).app_context():
-        response = handler(exc)
-
-    assert response.status_code == 401
-    assert json.loads(response.get_data(as_text=True)) == {
-        "status": 401,
-        "message": "Authentication failed.",
-    }
