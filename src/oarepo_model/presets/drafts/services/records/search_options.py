@@ -21,7 +21,7 @@ from oarepo_runtime.services.queryparsers.transformer import (
     SearchQueryValidator,
 )
 
-from oarepo_model.customizations import AddClass, Customization
+from oarepo_model.customizations import AddClass, AddDictionary, Customization
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -49,10 +49,11 @@ class DraftSearchOptionsPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        # yield AddDictionary("FacetGroups"FacetGroups, {}, exists_ok=True)
+        yield AddDictionary("DraftFacetGroups", {}, exists_ok=True)
+
         class DraftSearchOptionsMixin(ModelMixin):
             facets = Dependency("RecordFacets")
-            facet_groups = Dependency("FacetGroups")
+            facet_groups = Dependency("DraftFacetGroups")
 
             @property
             def params_interpreters_cls(self) -> Any:

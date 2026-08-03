@@ -29,34 +29,44 @@ if TYPE_CHECKING:
 
 
 class AddFacetGroup(Customization):
-    """Customization to add a list to the model."""
+    """Customization to add a facet group to the model."""
 
     def __init__(
         self,
         name: str,
         facets: list,
         exists_ok: bool = False,
+        *,
+        draft_facets: list | None = None,
     ) -> None:
-        """Initialize the AddList customization.
+        """Initialize the AddFacetGroup customization.
 
-        :param name: The name of the list to be added.
-        :param exists_ok: Whether to ignore if the list already exists.
+        :param name: The name of the facet group.
+        :param facets: Facets rendered for the published search (RecordSearchOptions).
+        :param draft_facets: Facets rendered for the drafts search. If omitted,
+            drafts inherit ``facets``. Pass an explicit list (including ``[]``)
+            to give the drafts view its own set.
+        :param exists_ok: Whether to overwrite if the group already exists.
         """
         super().__init__(name)
         self.facets = facets
+        self.draft_facets = facets if draft_facets is None else draft_facets
         self.exists_ok = exists_ok
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         """Add facet group."""
-        facet_groups = builder.add_dictionary("FacetGroups", exists_ok=True)
+        self._write(builder, "FacetGroups", self.facets)
+        self._write(builder, "DraftFacetGroups", self.draft_facets)
 
+    def _write(self, builder: InvenioModelBuilder, dict_name: str, facets: list) -> None:
+        facet_groups = builder.add_dictionary(dict_name, exists_ok=True)
         fg_typed: dict[str, list] = cast("dict[str, list]", facet_groups)
 
         if self.name in fg_typed:
             if self.exists_ok:
-                fg_typed[self.name] = self.facets
+                fg_typed[self.name] = facets
             else:
-                raise AlreadyRegisteredError(f"Facet group {self.name} already exists.")
+                raise AlreadyRegisteredError(f"Facet group {self.name} already exists in {dict_name}.")
         else:
-            fg_typed[self.name] = self.facets
+            fg_typed[self.name] = facets
