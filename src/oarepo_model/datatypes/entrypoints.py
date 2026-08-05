@@ -28,6 +28,7 @@ from .date import (
     DateDataType,
     DateTimeDataType,
     EDTFDataType,
+    EDTFDateOrIntervalDataType,
     EDTFIntervalType,
     EDTFTimeDataType,
     TimeDataType,
@@ -65,6 +66,7 @@ DATA_TYPES: dict[str, type[DataType] | dict[str, Any]] = {
     I18nDictDataType.TYPE: I18nDictDataType,
     DynamicObjectDataType.TYPE: DynamicObjectDataType,
     PolymorphicDataType.TYPE: PolymorphicDataType,
+    EDTFDateOrIntervalDataType.TYPE: EDTFDateOrIntervalDataType,
     "multilingual-type": MultilingualDataType,
     "multilingual": {
         "type": "multilingual-type",

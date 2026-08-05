@@ -475,3 +475,38 @@ class EDTFIntervalType(DataType):
         """Create facets for the data type."""
         _, _, _, _, _ = path, element, nested_facets, facets, path_suffix
         return facets
+
+
+class EDTFDateOrIntervalDataType(DataType):
+    """An EDTF date or interval represented by an OpenSearch date_range."""
+
+    TYPE = "edtf-date-or-interval"
+
+    marshmallow_field_class = marshmallow.fields.String
+    jsonschema_type = MappingProxyType({"type": "string", "format": "date"})
+    mapping_type = MappingProxyType(
+        {
+            "type": "date_range",
+            "format": "strict_date",
+        }
+    )
+
+    @override
+    def _get_marshmallow_field_args(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
+        ret = super()._get_marshmallow_field_args(field_name, element)
+        ret.setdefault("validate", []).append(
+            CachedMultilayerEDTFValidator(types=[edtf.Date, edtf.Interval]),
+        )
+        return ret
+
+    @override
+    def create_ui_marshmallow_fields(
+        self, field_name: str, element: dict[str, Any]
+    ) -> dict[str, marshmallow.fields.Field]:
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or LocalizedEDTFTimeInterval
+        return {
+            f"{field_name}_l10n_long": field_class(attribute=field_name, format="long"),
+            f"{field_name}_l10n_medium": field_class(attribute=field_name, format="medium"),
+            f"{field_name}_l10n_short": field_class(attribute=field_name, format="short"),
+            f"{field_name}_l10n_full": field_class(attribute=field_name, format="full"),
+        }
