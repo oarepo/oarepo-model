@@ -426,6 +426,27 @@ def test_edtf_interval_field(test_schema):
     assert schema.load({"a": val}) == {"a": val}
 
 
+def test_edtf_date_or_interval_field(test_schema):
+    schema = test_schema(
+        {
+            "type": "edtf-date-or-interval",
+        },
+    )
+
+    val = "2023-01-01"
+    assert schema.load({"a": val}) == {"a": val}
+
+    val = "1964/2008"
+    assert schema.load({"a": val}) == {"a": val}
+
+    val = "2024-01-01T00:00:00"
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": val})
+
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": 2023})
+
+
 def test_polymorphic_field(test_schema):
     person_schema = {
         "type": "object",
