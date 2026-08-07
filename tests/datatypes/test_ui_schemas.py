@@ -772,8 +772,8 @@ def test_vocabulary_array_ui_schema(app, test_ui_schema):
     ) == {"a": [{"id": "ZIP", "title_l10n": "ZIP"}, {"id": "PDF", "title_l10n": "PDF"}]}
 
 
-def test_specialized_vocabulary_ui_schema_left_to_contrib(app, test_ui_schema):
-    """Specialized vocabularies keep their own representation, not { id, title_l10n }."""
+def test_specialized_vocabulary_ui_schema_not_forced_to_title_l10n(app, test_ui_schema):
+    """Specialized vocabularies are not forced into the generic { id, title_l10n } UI shape."""
     schema = test_ui_schema(
         {"type": "vocabulary", "vocabulary-type": "affiliations"},
     )
