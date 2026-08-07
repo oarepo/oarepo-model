@@ -127,8 +127,8 @@ class VocabularyDataType(FacetMixin, PIDRelation):
     def create_ui_marshmallow_schema(self, element: dict[str, Any]) -> type[Schema]:
         # The generic i18ndict UI serialization is not implemented yet (returns {}),
         # so without this a vocabulary reference would emit an empty `ui` block.
-        # Emit the standard {id, title_l10n} representation for generic vocabularies;
-        # the specialized types keep their own (invenio contrib) representation.
+        # Emit the standard {id, title_l10n} UI representation for *generic* vocabularies.
+        # For specialized contrib vocabularies, keep the existing UI serialization behavior.
         if element["vocabulary-type"] in SPECIALIZED_VOCABULARY_TYPES:
             return super().create_ui_marshmallow_schema(element)
 
