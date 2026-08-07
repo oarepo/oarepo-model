@@ -740,3 +740,44 @@ def test_polymorphic_ui_schema_in_obj(test_ui_schema):
             "supported_by": {"age": formatted_number, "isFree_i18n": "true"},
         },
     }
+
+
+def test_vocabulary_ui_schema(app, test_ui_schema):
+    """A generic vocabulary reference serializes { id, title_l10n } into the UI."""
+    schema = test_ui_schema(
+        {"type": "vocabulary", "vocabulary-type": "removalreasons"},
+    )
+
+    assert schema.dump(
+        {"a": {"id": "spam", "title": {"en": "Spam", "cs": "Spam CZ"}, "@v": "x"}},
+    ) == {"a": {"id": "spam", "title_l10n": "Spam"}}
+
+
+def test_vocabulary_array_ui_schema(app, test_ui_schema):
+    """An array of vocabulary references serializes a list of { id, title_l10n }."""
+    schema = test_ui_schema(
+        {
+            "type": "array",
+            "items": {"type": "vocabulary", "vocabulary-type": "filetypes"},
+        },
+    )
+
+    assert schema.dump(
+        {
+            "a": [
+                {"id": "ZIP", "title": {"en": "ZIP"}},
+                {"id": "PDF", "title": {"en": "PDF"}},
+            ],
+        },
+    ) == {"a": [{"id": "ZIP", "title_l10n": "ZIP"}, {"id": "PDF", "title_l10n": "PDF"}]}
+
+
+def test_specialized_vocabulary_ui_schema_left_to_contrib(app, test_ui_schema):
+    """Specialized vocabularies keep their own representation, not { id, title_l10n }."""
+    schema = test_ui_schema(
+        {"type": "vocabulary", "vocabulary-type": "affiliations"},
+    )
+
+    # affiliations use `name`, not `title`; the generic title_l10n handling must
+    # not kick in, so no title_l10n is copied into the UI serialization.
+    assert schema.dump({"a": {"id": "cern", "name": "CERN"}}) == {"a": {}}

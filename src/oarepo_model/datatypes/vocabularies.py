@@ -30,6 +30,13 @@ if TYPE_CHECKING:
     from marshmallow import Schema
 
 
+#: Vocabulary types that ship their own (invenio contrib) relation schema and
+#: representation. They must not fall back to the generic ``{id, title_l10n}``
+#: handling, as their stored shape differs (e.g. affiliations/funders use
+#: ``name`` rather than ``title``).
+SPECIALIZED_VOCABULARY_TYPES = ("affiliations", "funders", "awards", "subjects")
+
+
 class VocabularyDataType(FacetMixin, PIDRelation):
     """A reference to a controlled vocabulary.
 
@@ -115,6 +122,19 @@ class VocabularyDataType(FacetMixin, PIDRelation):
                 return cast("type[Schema]", SubjectRelationSchema)
             case _generic:
                 return super().create_marshmallow_schema(element)
+
+    @override
+    def create_ui_marshmallow_schema(self, element: dict[str, Any]) -> type[Schema]:
+        # The generic i18ndict UI serialization is not implemented yet (returns {}),
+        # so without this a vocabulary reference would emit an empty `ui` block.
+        # Emit the standard {id, title_l10n} representation for generic vocabularies;
+        # the specialized types keep their own (invenio contrib) representation.
+        if element["vocabulary-type"] in SPECIALIZED_VOCABULARY_TYPES:
+            return super().create_ui_marshmallow_schema(element)
+
+        from invenio_vocabularies.resources.schema import VocabularyL10Schema
+
+        return cast("type[Schema]", VocabularyL10Schema)
 
     @override
     def _key_names(
