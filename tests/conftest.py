@@ -577,6 +577,91 @@ relation_model_types = {
     },
 }
 
+recursive_relation_model_types = {
+    "Metadata": {
+        "properties": {
+            "direct": {
+                "type": "pid-relation",
+                "keys": ["id", "metadata.title"],
+                "model": "recursive_relation_models_test",
+            },
+            "array": {
+                "type": "array",
+                "items": {
+                    "type": "pid-relation",
+                    "keys": ["id", "metadata.title"],
+                    "model": "recursive_relation_models_test",
+                },
+            },
+            "object": {
+                "type": "object",
+                "properties": {
+                    "a": {
+                        "type": "pid-relation",
+                        "keys": ["id", "metadata.title"],
+                        "model": "recursive_relation_models_test",
+                    },
+                },
+            },
+            "double_array": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "array": {
+                            "type": "array",
+                            "items": {
+                                "type": "pid-relation",
+                                "keys": ["id", "metadata.title"],
+                                "model": "recursive_relation_models_test",
+                            },
+                        },
+                    },
+                },
+            },
+            "triple_array": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "array": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "array": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "pid-relation",
+                                            "keys": ["id", "metadata.title"],
+                                            "model": "recursive_relation_models_test",
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            "multilingual": {
+                # test that relations are not broken in multilingual fields
+                "type": "multilingual",
+            },
+            "i18n": {
+                # test that relations are not broken in i18n fields
+                "type": "i18n",
+            },
+            "i18ndict": {
+                # test that relations are not broken in i18n fields with dict structure
+                "type": "i18ndict",
+            },
+            "title": {
+                "type": "keyword",
+            },
+        },
+    },
+}
+
 vocabulary_model_types = {
     "Metadata": {
         "properties": {
@@ -634,6 +719,30 @@ def relation_model(empty_model):
         version="1.0.0",
         presets=[records_resources_preset, relations_preset],
         types=[relation_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    relation_model.register()
+
+    t2 = time.time()
+    log.info("Model created in %.2f seconds", t2 - t1)
+
+    return relation_model
+
+
+@pytest.fixture(scope="session")
+def recursive_relation_model(empty_model):
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
+
+    t1 = time.time()
+
+    relation_model = model(
+        name="recursive_relation_test",
+        version="1.0.0",
+        presets=[records_resources_preset, relations_preset],
+        types=[recursive_relation_model_types],
         metadata_type="Metadata",
         customizations=[],
     )
@@ -874,6 +983,7 @@ def extra_entry_points(
     facet_model,
     drafts_cf_model,
     relation_model,
+    recursive_relation_model,
     vocabulary_model,
     multilingual_model,
     ui_links_model,

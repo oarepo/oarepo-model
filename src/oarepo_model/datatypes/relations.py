@@ -50,8 +50,12 @@ class PIDRelation(ObjectDataType):
         - id
         - metadata.title:
             type: i18nstr
-        record_cls: "my_other_model.records:record" or class   (not required if pid_field is provided)
-        pid_field: "my_module:pid_field_getter" or PIDField instance (not required if record_cls is provided)
+
+        # one of the following items is required
+        model: "my_other_model"
+        record_cls: "my_other_model.records:record" or class
+        pid_field: "my_module:pid_field_getter" or PIDField instance
+
         cache_key: "my_cache_key" (optional, used for caching the resolved record)
     ```
     """
@@ -132,7 +136,7 @@ class PIDRelation(ObjectDataType):
 
     def _relation_path(
         self,
-        element: dict[str, Any],  # noqa: ARG002 for overriding
+        element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],
     ) -> list:
         """Get the relation path for the PID relation."""
@@ -155,7 +159,7 @@ class PIDRelation(ObjectDataType):
     def _pid_field(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002 for overriding
+        path: list[tuple[str, dict[str, Any]]],
     ) -> PIDFieldContext:
         """Get the PID field from the element."""
         if "pid_field" in element:
@@ -175,6 +179,13 @@ class PIDRelation(ObjectDataType):
                     f"Record class {element['record_cls']} does not have a 'pid' attribute.",
                 )
             return rec.pid
+        if "model" in element:
+            rec = obj_or_import_string(element["model"]).Record
+            if rec is None or not hasattr(rec, "pid"):
+                raise ValueError(
+                    f"Record class {rec} on model {element['model']} does not have a 'pid' attribute.",
+                )
+            return rec.pid
         raise ValueError(
             "Either 'pid_field' or 'record_cls' must be provided in the pid-relation element.",
         )
@@ -182,14 +193,14 @@ class PIDRelation(ObjectDataType):
     def _cache_key(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002 for overriding
+        path: list[tuple[str, dict[str, Any]]],
     ) -> str | None:
         return element.get("cache_key")
 
     def _key_names(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002 for overriding
+        path: list[tuple[str, dict[str, Any]]],
     ) -> list[str]:
         keys = set()
         for key in element.get("keys", []):
