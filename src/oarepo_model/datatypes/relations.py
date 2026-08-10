@@ -17,6 +17,7 @@ customizations for the model builder.
 
 from __future__ import annotations
 
+import copy
 from abc import abstractmethod
 from collections.abc import Mapping
 from functools import cached_property
@@ -202,6 +203,90 @@ class LazyJSONSchema(LazyModelJSONFile):
             self._data["@v"] = {"type": "string"}
 
 
+class LazyMarshmallowSchema(marshmallow.Schema):
+    """A marshmallow schema that lazily builds and delegates to the real schema.
+
+    Concrete subclasses are created dynamically (see
+    PIDRelation.create_marshmallow_schema) with `model`/`keys` class attributes
+    set - resolving those into actual fields requires the referenced model's
+    schema, which is not available while a self-referencing model is still
+    being built, so the real schema is only built on first load()/dump() call.
+    """
+
+    model: str
+    keys: list[str] | None = None
+
+    _proxied_schema: marshmallow.Schema | None = None
+
+    @classmethod
+    def _create_proxied_marshmallow(cls) -> type[marshmallow.Schema]:
+        """Build the real marshmallow schema class for `model`/`keys`.
+
+        First builds a tree - key (without dot) -> the target model's real
+        marshmallow field, or (for keys with more path segments left) a nested
+        dict of the same shape - then turns that tree into actual marshmallow
+        Schema classes.
+        """
+        target_schema = current_runtime.models[cls.model].service_config.schema()
+
+        # Step 1: descend into the target schema for each key, same as LazyMapping/
+        # LazyJSONSchema do for the mapping/json schema, building a tree of
+        # Field instances (leaves) and plain dicts (intermediate path segments).
+        tree: dict[str, Any] = {}
+        for key in cls.keys or []:
+            parts = key.split(".")
+            source_schema = target_schema
+            dest = tree
+            for part in parts[:-1]:
+                field = source_schema.fields[part]
+                if not isinstance(field, marshmallow.fields.Nested):
+                    raise TypeError(
+                        f"Field {part!r} on the path to {key!r} is not a nested field.",
+                    )
+                source_schema = field.schema
+                dest = dest.setdefault(part, {})
+            dest[parts[-1]] = source_schema.fields[parts[-1]]
+
+        return cls._build_schema_class(cls.__name__, tree)
+
+    @classmethod
+    def _build_schema_class(cls, name: str, node: dict[str, Any]) -> type[marshmallow.Schema]:
+        """Turn a tree built by _create_proxied_marshmallow into a Schema class.
+
+        A nested dict becomes a Nested field pointing to a (recursively built)
+        schema class; a leaf field is deep-copied, since a marshmallow Field
+        instance can only ever be bound to a single schema class.
+        """
+        attrs: dict[str, Any] = {}
+        for key, value in node.items():
+            if isinstance(value, dict):
+                attrs[key] = marshmallow.fields.Nested(cls._build_schema_class(f"{name}_{key}", value))
+            else:
+                attrs[key] = copy.deepcopy(value)
+
+        class Meta:
+            unknown = marshmallow.RAISE
+
+        attrs["Meta"] = Meta
+        return type(name, (marshmallow.Schema,), attrs)
+
+    def _get_proxied_schema(self) -> marshmallow.Schema:
+        """Return the (cached) real schema instance, building it on first use."""
+        if self._proxied_schema is None:
+            self._proxied_schema = self._create_proxied_marshmallow()()
+        return self._proxied_schema
+
+    @override
+    def load(self, *args: Any, **kwargs: Any) -> Any:
+        """Load data using the lazily-resolved proxied schema."""
+        return self._get_proxied_schema().load(*args, **kwargs)
+
+    @override
+    def dump(self, *args: Any, **kwargs: Any) -> Any:
+        """Dump data using the lazily-resolved proxied schema."""
+        return self._get_proxied_schema().dump(*args, **kwargs)
+
+
 class PIDRelation(ObjectDataType):
     """Relation to another record using a PID.
 
@@ -303,6 +388,26 @@ class PIDRelation(ObjectDataType):
             "unevaluatedProperties": False,
             "properties": LazyJSONSchema(model, keys),
         }
+
+    @override
+    def create_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
+        """Create a marshmallow schema for the data type.
+
+        Resolving the properties eagerly (as ObjectDataType.create_marshmallow_schema
+        does) requires the referenced model's schema/record class. If that is not
+        available yet (self-referencing relations), a LazyMarshmallowSchema subclass
+        is returned instead, which only builds the real schema on first load()/dump().
+        """
+        if not self._needs_lazy_access(element):
+            return super().create_marshmallow_schema(element)
+
+        if "model" not in element:
+            raise ValueError("'model' key is required for lazy marshmallow schema")
+
+        model = element["model"]
+        keys = element.get("keys", [])
+
+        return type(self.name, (LazyMarshmallowSchema,), {"model": model, "keys": keys})
 
     def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
         if "properties" in element:
