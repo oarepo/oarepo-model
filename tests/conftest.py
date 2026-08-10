@@ -582,15 +582,15 @@ recursive_relation_model_types = {
         "properties": {
             "direct": {
                 "type": "pid-relation",
-                "keys": ["id", "metadata.title"],
-                "model": "recursive_relation_models_test",
+                "keys": ["id", "metadata.title", "metadata.multilingual"],
+                "model": "recursive_relation_test",
             },
             "array": {
                 "type": "array",
                 "items": {
                     "type": "pid-relation",
-                    "keys": ["id", "metadata.title"],
-                    "model": "recursive_relation_models_test",
+                    "keys": ["id", "metadata.title", "metadata.multilingual"],
+                    "model": "recursive_relation_test",
                 },
             },
             "object": {
@@ -598,8 +598,8 @@ recursive_relation_model_types = {
                 "properties": {
                     "a": {
                         "type": "pid-relation",
-                        "keys": ["id", "metadata.title"],
-                        "model": "recursive_relation_models_test",
+                        "keys": ["id", "metadata.title", "metadata.multilingual"],
+                        "model": "recursive_relation_test",
                     },
                 },
             },
@@ -612,8 +612,8 @@ recursive_relation_model_types = {
                             "type": "array",
                             "items": {
                                 "type": "pid-relation",
-                                "keys": ["id", "metadata.title"],
-                                "model": "recursive_relation_models_test",
+                                "keys": ["id", "metadata.title", "metadata.multilingual"],
+                                "model": "recursive_relation_test",
                             },
                         },
                     },
@@ -633,8 +633,8 @@ recursive_relation_model_types = {
                                         "type": "array",
                                         "items": {
                                             "type": "pid-relation",
-                                            "keys": ["id", "metadata.title"],
-                                            "model": "recursive_relation_models_test",
+                                            "keys": ["id", "metadata.title", "metadata.multilingual"],
+                                            "model": "recursive_relation_test",
                                         },
                                     },
                                 },

@@ -16,7 +16,7 @@ and position of array items in the relation path.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from invenio_records_resources.records.systemfields import (
     PIDListRelation,
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from invenio_records_resources.records.systemfields.pid import PIDFieldContext
 
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.datatypes.relations import LazyModelPIDField, LazyRecordPIDField
     from oarepo_model.model import InvenioModel
 
 
@@ -50,7 +51,7 @@ class AddPIDRelation(Customization):
         name: str,
         path: list[str | type[ARRAY_PATH_ITEM]],
         keys: list[str],
-        pid_field: PIDFieldContext,
+        pid_field: PIDFieldContext | LazyRecordPIDField | LazyModelPIDField,
         cache_key: str | None = None,
         **kwargs: Any,
     ) -> None:
@@ -74,12 +75,17 @@ class AddPIDRelation(Customization):
 
         relation_field, array_paths = self._merge_paths_between_arrays()
 
+        # LazyRecordPIDField/LazyModelPIDField only duck-type PIDFieldContext (they
+        # provide a compatible .resolve()), which is all the systemfields below
+        # actually use, so this is safe despite the narrower declared parameter type.
+        pid_field = cast("PIDFieldContext", self.pid_field)
+
         match array_count:
             case 0:
                 relations[self.name] = PIDRelation(
                     relation_field,
                     keys=self.keys,
-                    pid_field=self.pid_field,
+                    pid_field=pid_field,
                     cache_key=self.cache_key,
                     **self.kwargs,
                 )
@@ -88,7 +94,7 @@ class AddPIDRelation(Customization):
                 relations[self.name] = PIDListRelation(
                     array_paths[0],
                     keys=self.keys,
-                    pid_field=self.pid_field,
+                    pid_field=pid_field,
                     cache_key=self.cache_key,
                     relation_field=relation_field,
                     **self.kwargs,
@@ -102,7 +108,7 @@ class AddPIDRelation(Customization):
                         array_paths=array_paths,
                         relation_field=relation_field,
                         keys=self.keys,
-                        pid_field=self.pid_field,
+                        pid_field=pid_field,
                         cache_key=self.cache_key,
                         **self.kwargs,
                     )
@@ -111,7 +117,7 @@ class AddPIDRelation(Customization):
                         array_paths[0],
                         relation_field=array_paths[1],
                         keys=self.keys,
-                        pid_field=self.pid_field,
+                        pid_field=pid_field,
                         cache_key=self.cache_key,
                         **self.kwargs,
                     )
@@ -120,7 +126,7 @@ class AddPIDRelation(Customization):
                     array_paths=array_paths,
                     relation_field=relation_field,
                     keys=self.keys,
-                    pid_field=self.pid_field,
+                    pid_field=pid_field,
                     cache_key=self.cache_key,
                     **self.kwargs,
                 )

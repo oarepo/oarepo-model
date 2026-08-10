@@ -20,13 +20,21 @@ from importlib.metadata import Distribution, DistributionFinder
 from types import ModuleType, SimpleNamespace
 from typing import TYPE_CHECKING, Any, Literal, cast, override
 
+from .utils import resolve_file_content
+
 if TYPE_CHECKING:
     import io
     import os
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Callable, Iterator, Sequence
     from importlib.metadata._meta import SimplePath
 
     from .model import InvenioModel
+
+# File content can either be the literal file text, or a callable returning it,
+# in which case it is only resolved (and cached) when the file is actually read -
+# used for content that is not safe/possible to compute before the model has
+# finished building (e.g. self-referencing relation mappings).
+type FileContent = str | Callable[[], str]
 
 
 class ModelDistribution(Distribution):
@@ -93,7 +101,7 @@ Version: {self.model.version}
 class InMemoryTraversable(importlib.resources.abc.Traversable):
     """In-memory implementation of a traversable resource."""
 
-    def __init__(self, name: str, files_dict: dict[str, str], is_dir: bool = False):
+    def __init__(self, name: str, files_dict: dict[str, FileContent], is_dir: bool = False):
         """Initialize the traversable with name, files dictionary, and directory flag."""
         self._name = name
         self._files = files_dict
@@ -149,15 +157,14 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
         if self._name not in self._files:
             raise FileNotFoundError(f"{self._name} does not exist")
 
-        content = self._files[self._name]
-        return content.encode("utf-8")
+        return resolve_file_content(self._files[self._name]).encode("utf-8")
 
     @override
     def read_text(self, encoding: str | None = "utf-8") -> str:
         """Read the content of this file as text."""
         if self._name not in self._files:
             raise FileNotFoundError(f"{self._name} does not exist")
-        return self._files[self._name]
+        return resolve_file_content(self._files[self._name])
 
     # The real signature is (child: StrPath) -> InMemoryTraversable but StrPath is not exported
     # in importlib.resources.abc
@@ -215,7 +222,7 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
 class InMemoryResourceReader(importlib.resources.abc.TraversableResources):
     """ResourceReader that works with in-memory files."""
 
-    def __init__(self, files_dict: dict[str, str], package_name: str):
+    def __init__(self, files_dict: dict[str, FileContent], package_name: str):
         """Initialize the resource reader with files dictionary and package name."""
         self._files = files_dict
         self._package_name = package_name
@@ -356,7 +363,7 @@ class InMemoryLoader(importlib.abc.Loader):
         name: str,
     ) -> importlib.resources.abc.ResourceReader:
         """Get a resource reader for the specified name."""
-        files_dict: dict[str, str] = self.namespace.get_resources()
+        files_dict: dict[str, FileContent] = self.namespace.get_resources()
         package_path = "/".join(name.split("."))
 
         return InMemoryResourceReader(files_dict, package_path)

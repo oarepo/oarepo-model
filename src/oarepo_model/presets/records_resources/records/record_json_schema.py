@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, cast, override
 
 from deepmerge import always_merger
 
-from oarepo_model.customizations import AddJSONFile, Customization
+from oarepo_model.customizations import AddJSONFile, AddModule, Customization
 from oarepo_model.datatypes.collections import ObjectDataType
 from oarepo_model.presets import Preset
 
@@ -62,6 +62,22 @@ class RecordJSONSchemaPreset(Preset):
             "record-jsonschema",
             "jsonschemas",
             f"{model.base_name}-v{model.version}.json",
+            jsonschema,
+        )
+        # Same json schema, stored a second time under a stable, version-independent
+        # key so that it can be located in the model's namespace __files__ without
+        # having to know/reconstruct the {base_name}-v{version}.json naming scheme
+        # (e.g. from a lazily-resolved self-referencing relation). Both entries
+        # share the same "jsonschema" dict object, so later patches to the
+        # "record-jsonschema" file (which mutate that dict in place) are
+        # reflected here too. Stored in a separate "internal" module rather than
+        # under "jsonschemas" for the same reason the mapping is (see
+        # record_mapping.py) - "jsonschemas" is walked as a whole elsewhere.
+        yield AddModule("internal", exists_ok=True)
+        yield AddJSONFile(
+            "record-primary-jsonschema",
+            "internal",
+            "primary_jsonschema.json",
             jsonschema,
         )
 
