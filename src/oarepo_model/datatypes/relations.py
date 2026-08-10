@@ -21,26 +21,25 @@ import copy
 from abc import abstractmethod
 from collections.abc import Mapping
 from functools import cached_property
-from importlib import import_module
 from typing import TYPE_CHECKING, Any, cast, override
 
 import marshmallow
 from flask import json
 from invenio_base.utils import obj_or_import_string
-from oarepo_model.utils import JSONContent
 from oarepo_runtime.proxies import current_runtime
 
 from oarepo_model.customizations.high_level.add_pid_relation import (
     ARRAY_PATH_ITEM,
     AddPIDRelation,
 )
-from oarepo_model.register import FileContent
+from oarepo_model.utils import JSONContent
 
 from .base import DataType
 from .collections import ObjectDataType
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
+    from types import SimpleNamespace
 
     from invenio_records_resources.records.systemfields.pid import (
         PIDFieldContext,
@@ -103,7 +102,8 @@ class LazyModelJSONFile(Mapping):
 
     def _load_json(self) -> Any:
         """Load and parse the JSON file content from the target model's namespace."""
-        ns_files = current_runtime.models[self._model].namespace.__files__
+        namespace = cast("SimpleNamespace", current_runtime.models[self._model].namespace)
+        ns_files = namespace.__files__
         file_content = ns_files[self._filename]
         if isinstance(file_content, JSONContent):
             return file_content.payload
@@ -166,7 +166,7 @@ class LazyMapping(LazyModelJSONFile):
 
     @override
     def _get_source_properties(self, loaded: Any) -> dict[str, Any]:
-        return loaded["mappings"]["properties"]
+        return cast("dict[str, Any]", loaded["mappings"]["properties"])
 
     @override
     def _ensure(self) -> None:
@@ -190,7 +190,7 @@ class LazyJSONSchema(LazyModelJSONFile):
 
     @override
     def _get_source_properties(self, loaded: Any) -> dict[str, Any]:
-        return loaded["properties"]
+        return cast("dict[str, Any]", loaded["properties"])
 
     @override
     def _ensure(self) -> None:
@@ -203,20 +203,38 @@ class LazyJSONSchema(LazyModelJSONFile):
             self._data["@v"] = {"type": "string"}
 
 
-class LazyMarshmallowSchema(marshmallow.Schema):
+class LazyProxiedMarshmallowSchema(marshmallow.Schema):
     """A marshmallow schema that lazily builds and delegates to the real schema.
 
     Concrete subclasses are created dynamically (see
-    PIDRelation.create_marshmallow_schema) with `model`/`keys` class attributes
-    set - resolving those into actual fields requires the referenced model's
-    schema, which is not available while a self-referencing model is still
-    being built, so the real schema is only built on first load()/dump() call.
+    PIDRelation.create_marshmallow_schema/create_ui_marshmallow_schema) with
+    `model`/`keys` class attributes set, and must implement `_get_target_schema`
+    to return the (instantiated) schema `keys` should be resolved against.
+    Resolving `keys` into actual fields requires the referenced model's schema,
+    which is not available while a self-referencing model is still being built,
+    so the real schema is only built on first load()/dump() call.
     """
 
     model: str
     keys: list[str] | None = None
 
     _proxied_schema: marshmallow.Schema | None = None
+
+    @classmethod
+    def _get_target_schema(cls) -> marshmallow.Schema:
+        """Return an instance of the schema `keys` should be resolved against."""
+        raise NotImplementedError
+
+    @classmethod
+    def _missing_field(cls, key: str) -> marshmallow.fields.Field:
+        """Return a fallback field to use when `key` can not be resolved on the target schema.
+
+        The default just fails loudly - a missing field is a genuine error for
+        the "real" record schema. Subclasses (e.g. for the UI schema, where not
+        every field necessarily has a UI-specific counterpart) may override this
+        to return a fallback field instead.
+        """
+        raise KeyError(key)
 
     @classmethod
     def _create_proxied_marshmallow(cls) -> type[marshmallow.Schema]:
@@ -227,7 +245,7 @@ class LazyMarshmallowSchema(marshmallow.Schema):
         dict of the same shape - then turns that tree into actual marshmallow
         Schema classes.
         """
-        target_schema = current_runtime.models[cls.model].service_config.schema()
+        target_schema = cls._get_target_schema()
 
         # Step 1: descend into the target schema for each key, same as LazyMapping/
         # LazyJSONSchema do for the mapping/json schema, building a tree of
@@ -235,17 +253,21 @@ class LazyMarshmallowSchema(marshmallow.Schema):
         tree: dict[str, Any] = {}
         for key in cls.keys or []:
             parts = key.split(".")
-            source_schema = target_schema
             dest = tree
             for part in parts[:-1]:
-                field = source_schema.fields[part]
-                if not isinstance(field, marshmallow.fields.Nested):
-                    raise TypeError(
-                        f"Field {part!r} on the path to {key!r} is not a nested field.",
-                    )
-                source_schema = field.schema
                 dest = dest.setdefault(part, {})
-            dest[parts[-1]] = source_schema.fields[parts[-1]]
+            try:
+                source_schema = target_schema
+                for part in parts[:-1]:
+                    field = source_schema.fields[part]
+                    if not isinstance(field, marshmallow.fields.Nested):
+                        raise TypeError(
+                            f"Field {part!r} on the path to {key!r} is not a nested field.",
+                        )
+                    source_schema = field.schema
+                dest[parts[-1]] = source_schema.fields[parts[-1]]
+            except KeyError, TypeError:
+                dest[parts[-1]] = cls._missing_field(key)
 
         return cls._build_schema_class(cls.__name__, tree)
 
@@ -285,6 +307,42 @@ class LazyMarshmallowSchema(marshmallow.Schema):
     def dump(self, *args: Any, **kwargs: Any) -> Any:
         """Dump data using the lazily-resolved proxied schema."""
         return self._get_proxied_schema().dump(*args, **kwargs)
+
+
+class LazyMarshmallowSchema(LazyProxiedMarshmallowSchema):
+    """Lazily resolves a relation's marshmallow schema from the target model's record schema."""
+
+    @classmethod
+    @override
+    def _get_target_schema(cls) -> marshmallow.Schema:
+        schema_cls = cast(
+            "type[marshmallow.Schema]",
+            current_runtime.models[cls.model].service_config.schema,
+        )
+        return schema_cls()
+
+
+class LazyUIMarshmallowSchema(LazyProxiedMarshmallowSchema):
+    """Lazily resolves a relation's UI marshmallow schema from the target model's UI record schema.
+
+    Unlike the regular marshmallow schema, the UI schema is not registered on
+    current_runtime.models's service config - it is only available as the
+    "RecordUISchema" class on the target model's own runtime namespace.
+    """
+
+    @classmethod
+    @override
+    def _get_target_schema(cls) -> marshmallow.Schema:
+        namespace = cast("SimpleNamespace", current_runtime.models[cls.model].namespace)
+        return namespace.RecordUISchema()
+
+    @classmethod
+    @override
+    def _missing_field(cls, key: str) -> marshmallow.fields.Field:
+        # Not every field has a UI-specific counterpart (e.g. top-level "id" is
+        # not part of the UI schema at all) - fall back to passing the value
+        # through unchanged rather than failing.
+        return marshmallow.fields.Raw()
 
 
 class PIDRelation(ObjectDataType):
@@ -353,11 +411,11 @@ class PIDRelation(ObjectDataType):
         if not self._needs_lazy_access(element):
             return super().create_mapping(element)
 
-        if 'model' not in element:
+        if "model" not in element:
             raise ValueError("'model' key is required for lazy mapping")
 
-        model = element['model']
-        keys = element.get('keys', [])
+        model = element["model"]
+        keys = element.get("keys", [])
 
         return {
             **DataType.create_mapping(self, element),
@@ -408,6 +466,27 @@ class PIDRelation(ObjectDataType):
         keys = element.get("keys", [])
 
         return type(self.name, (LazyMarshmallowSchema,), {"model": model, "keys": keys})
+
+    @override
+    def create_ui_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
+        """Create a UI marshmallow schema for the data type.
+
+        Resolving the properties eagerly (as ObjectDataType.create_ui_marshmallow_schema
+        does) requires the referenced model's schema/record class. If that is not
+        available yet (self-referencing relations), a LazyUIMarshmallowSchema
+        subclass is returned instead, which only builds the real schema on first
+        load()/dump().
+        """
+        if not self._needs_lazy_access(element):
+            return super().create_ui_marshmallow_schema(element)
+
+        if "model" not in element:
+            raise ValueError("'model' key is required for lazy ui marshmallow schema")
+
+        model = element["model"]
+        keys = element.get("keys", [])
+
+        return type(self.name, (LazyUIMarshmallowSchema,), {"model": model, "keys": keys})
 
     def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
         if "properties" in element:
