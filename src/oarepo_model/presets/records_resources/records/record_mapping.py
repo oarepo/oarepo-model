@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, cast, override
 
 from deepmerge import always_merger
 
-from oarepo_model.customizations import AddJSONFile, Customization
+from oarepo_model.customizations import AddJSONFile, AddModule, Customization
 from oarepo_model.datatypes.collections import ObjectDataType
 from oarepo_model.presets import Preset
 
@@ -71,6 +71,25 @@ class RecordMappingPreset(Preset):
             "record-mapping",
             "mappings",
             f"os-v2/{model.base_name}/metadata-v{model.version}.json",
+            mapping,
+        )
+        # Same mapping, stored a second time under a stable, version-independent
+        # key so that it can be located in the model's namespace __files__ without
+        # having to know/reconstruct the os-v2/{base_name}/metadata-v{version}.json
+        # naming scheme (e.g. from a lazily-resolved self-referencing relation).
+        # Both entries share the same "mapping" dict object, so later patches to
+        # the "record-mapping" file (which mutate that dict in place) are
+        # reflected here too.
+        # Stored in a separate "internal" module rather than under "mappings" -
+        # the "mappings" module is walked as a whole by invenio-search (via the
+        # invenio_search.mappings entry point registered below) and filtered by
+        # prefix in cli.py's dump_mapping, so adding a stray file in there would
+        # affect both.
+        yield AddModule("internal", exists_ok=True)
+        yield AddJSONFile(
+            "record-primary-mapping",
+            "internal",
+            "primary_mapping.json",
             mapping,
         )
 

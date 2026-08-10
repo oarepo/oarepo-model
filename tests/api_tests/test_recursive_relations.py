@@ -8,11 +8,16 @@
 #
 from __future__ import annotations
 
+import json
+
+from oarepo_model.utils import resolve_file_content
+
 
 def test_recursive_relations(
     app,
     identity_simple,
     recursive_relation_model,
+    vocabulary_fixtures,
     search,
     search_clear,
     location,
@@ -25,7 +30,13 @@ def test_recursive_relations(
 
     rec1_id = service.create(
         identity_simple,
-        {"files": {"enabled": False}, "metadata": {"title": "Record 1"}},
+        {
+            "files": {"enabled": False},
+            "metadata": {
+                "title": "Record 1",
+                "multilingual": [{"lang": {"id": "cs"}, "value": "blah"}],
+            },
+        },
     ).id
     rec2_id = service.create(
         identity_simple,
@@ -76,6 +87,9 @@ def test_recursive_relations(
     md = relation_rec.data["metadata"]
     assert md["direct"]["id"] == rec1_id
     assert md["direct"]["metadata"]["title"] == "Record 1"
+    assert md["direct"]["metadata"]["multilingual"] == [
+        {"lang": {"id": "cs", "title": {"cs": "Čeština", "en": "Czech"}}, "value": "blah"}
+    ]
 
     assert len(md["array"]) == 2
     assert md["array"][0]["id"] == rec1_id
@@ -106,3 +120,88 @@ def test_recursive_relations(
     assert md["triple_array"][0]["array"][1]["array"][0]["metadata"]["title"] == "Record 2"
     assert md["triple_array"][0]["array"][1]["array"][1]["id"] == rec3_id
     assert md["triple_array"][0]["array"][1]["array"][1]["metadata"]["title"] == "Record 3"
+
+
+def test_recursive_relations_mapping_and_jsonschema(app, recursive_relation_model):
+    """Check that the generated mapping/json schema for a self-referencing relation is correct.
+
+    It should reflect the real fields of the target model (e.g. "multilingual"
+    being a proper nested object), instead of falling back to a plain "keyword".
+    """
+    files = recursive_relation_model.__files__
+
+    mapping = json.loads(resolve_file_content(files["internal/primary_mapping.json"]))
+    metadata_mapping = mapping["mappings"]["properties"]["metadata"]["properties"]
+
+    expected_relation_properties = {
+        "id": {"type": "keyword"},
+        "metadata": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "keyword", "ignore_above": 256},
+                "multilingual": {
+                    "type": "object",
+                    "dynamic": "strict",
+                    "properties": {
+                        "lang": {
+                            "type": "object",
+                            "dynamic": "strict",
+                            "properties": {
+                                "id": {"type": "keyword", "ignore_above": 256},
+                                "title": {"type": "object", "dynamic": "true"},
+                                "@v": {"type": "keyword", "ignore_above": 256},
+                            },
+                        },
+                        "value": {"type": "keyword", "ignore_above": 256},
+                    },
+                },
+            },
+        },
+        "@v": {"type": "keyword", "ignore_above": 256},
+    }
+    # "direct" is a single relation, "array"'s "items" mapping is the relation object
+    # itself (opensearch does not have a separate array type in mappings), and
+    # "object.a" is a relation nested inside a plain object - all should resolve
+    # to the same, correctly-typed properties.
+    assert metadata_mapping["direct"]["properties"] == expected_relation_properties
+    assert metadata_mapping["array"]["properties"] == expected_relation_properties
+    assert metadata_mapping["object"]["properties"]["a"]["properties"] == expected_relation_properties
+
+    jsonschema = json.loads(resolve_file_content(files["internal/primary_jsonschema.json"]))
+    metadata_schema = jsonschema["properties"]["metadata"]["properties"]
+
+    expected_relation_schema_properties = {
+        "id": {"type": "string"},
+        "metadata": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "multilingual": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "unevaluatedProperties": False,
+                        "properties": {
+                            "lang": {
+                                "type": "object",
+                                "unevaluatedProperties": False,
+                                "properties": {
+                                    "id": {"type": "string"},
+                                    "title": {
+                                        "type": "object",
+                                        "additionalProperties": {"type": "string"},
+                                    },
+                                    "@v": {"type": "string"},
+                                },
+                            },
+                            "value": {"type": "string"},
+                        },
+                    },
+                },
+            },
+        },
+        "@v": {"type": "string"},
+    }
+    assert metadata_schema["direct"]["properties"] == expected_relation_schema_properties
+    assert metadata_schema["array"]["items"]["properties"] == expected_relation_schema_properties
+    assert metadata_schema["object"]["properties"]["a"]["properties"] == expected_relation_schema_properties
