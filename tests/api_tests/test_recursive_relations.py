@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 
+from oarepo_runtime.typing import record_from_result
+
 from oarepo_model.utils import resolve_file_content
 
 
@@ -21,6 +23,7 @@ def test_recursive_relations(
     search,
     search_clear,
     location,
+    db,
 ):
     Record = recursive_relation_model.Record
     service = recursive_relation_model.proxies.current_service
@@ -87,9 +90,16 @@ def test_recursive_relations(
     md = relation_rec.data["metadata"]
     assert md["direct"]["id"] == rec1_id
     assert md["direct"]["metadata"]["title"] == "Record 1"
-    assert md["direct"]["metadata"]["multilingual"] == [
-        {"lang": {"id": "cs", "title": {"cs": "Čeština", "en": "Czech"}}, "value": "blah"}
-    ]
+    # rec1's own "lang" vocabulary relation is only dereferenced (enriched with
+    # "title") as a transient, in-memory side effect of *indexing* rec1 (see
+    # RelationDumperExt.dump() in invenio_records, which mutates the record's
+    # dict in place) - that happens strictly after rec1's clean data was
+    # already committed to the DB (RecordCommitOp.on_register() commits before
+    # on_commit() indexes), so the enrichment is never persisted. When "direct"
+    # embeds rec1's "metadata.multilingual" here, it resolves a fresh copy of
+    # rec1 from the DB and copies its raw, un-dereferenced value: relations are
+    # not recursively re-dereferenced through "keys".
+    assert md["direct"]["metadata"]["multilingual"] == [{"lang": {"id": "cs"}, "value": "blah"}]
 
     assert len(md["array"]) == 2
     assert md["array"][0]["id"] == rec1_id
@@ -120,6 +130,16 @@ def test_recursive_relations(
     assert md["triple_array"][0]["array"][1]["array"][0]["metadata"]["title"] == "Record 2"
     assert md["triple_array"][0]["array"][1]["array"][1]["id"] == rec3_id
     assert md["triple_array"][0]["array"][1]["array"][1]["metadata"]["title"] == "Record 3"
+
+    # The "@v" marker above (part of md["direct"] via dereferencing) is a
+    # transient, in-memory side effect of dumping/indexing the record (see the
+    # comment above) - it must never be persisted to the database. Reload the
+    # record's underlying DB row fresh (bypassing SQLAlchemy's in-memory
+    # identity map) and confirm the raw stored json field contains no "@v".
+    record = record_from_result(relation_rec)
+    db.session.expire_all()
+    reloaded_model = record.model_cls.query.get(record.id)
+    assert "@v" not in json.dumps(reloaded_model.json)
 
 
 def test_recursive_relations_mapping_and_jsonschema(app, recursive_relation_model):
