@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from oarepo_runtime.typing import record_from_result
 
@@ -287,3 +288,61 @@ def test_recursive_relations_mapping_and_jsonschema(app, recursive_relation_mode
     assert metadata_schema["direct"]["properties"] == expected_relation_schema_properties
     assert metadata_schema["array"]["items"]["properties"] == expected_relation_schema_properties
     assert metadata_schema["object"]["properties"]["a"]["properties"] == expected_relation_schema_properties
+
+
+def test_recursive_relations_ui_model(app, recursive_relation_model):
+    """Check that the generated ui.json model for a self-referencing relation is correct.
+
+    Like create_mapping/create_json_schema above (see LazyMapping/
+    LazyJSONSchema), PIDRelation.create_ui_model's 'children' is backed by a
+    lazily-resolved mapping (LazyUIModelChildren) for self-referencing
+    relations - it should reflect the real fields of the target model (e.g.
+    "multilingual" resolving all the way down to its nested vocabulary
+    "lang" field), instead of being left empty.
+    """
+    ui_model = recursive_relation_model.ui_model
+    metadata_ui_model = ui_model["children"]["metadata"]["children"]
+
+    def ui(label: str, input_type: str, **extra: Any) -> dict[str, Any]:
+        return {"help": {"und": ""}, "label": {"und": label}, "hint": {"und": ""}, "input": input_type, **extra}
+
+    expected_relation_children = {
+        # "id" has no counterpart on the target's own ui model at all (it is
+        # never synthesized there, unlike mapping/json schema) - falls back
+        # to a plain keyword input instead of crashing.
+        "id": ui("id", "keyword"),
+        "metadata": {
+            "input": "object",
+            "children": {
+                "title": ui("title", "keyword"),
+                "multilingual": ui(
+                    "multilingual",
+                    "multilingual",
+                    child=ui(
+                        "item",
+                        "object",
+                        children={
+                            "lang": ui(
+                                "lang",
+                                "vocabulary",
+                                children={
+                                    "id": ui("id", "keyword"),
+                                    "title": ui("title", "i18ndict", children={}),
+                                    "@v": ui("@v", "keyword"),
+                                },
+                            ),
+                            "value": ui("value", "keyword"),
+                        },
+                    ),
+                ),
+            },
+        },
+    }
+
+    # "direct" is a single relation, "array"'s "child" is the relation's own
+    # ui model wrapped under "child" (see ArrayDataType.create_ui_model), and
+    # "object.a" is a relation nested inside a plain object - all should
+    # resolve to the same, correctly-typed children.
+    assert metadata_ui_model["direct"]["children"] == expected_relation_children
+    assert metadata_ui_model["array"]["child"]["children"] == expected_relation_children
+    assert metadata_ui_model["object"]["children"]["a"]["children"] == expected_relation_children
