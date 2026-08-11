@@ -24,6 +24,8 @@ def test_recursive_relations(
     search_clear,
     location,
     db,
+    client,
+    headers,
 ):
     Record = recursive_relation_model.Record
     service = recursive_relation_model.proxies.current_service
@@ -140,6 +142,66 @@ def test_recursive_relations(
     db.session.expire_all()
     reloaded_model = record.model_cls.query.get(record.id)
     assert "@v" not in json.dumps(reloaded_model.json)
+
+    # Check the UI ("vnd.inveniordm.v1+json") serialization of the same
+    # self-referencing relations, via the actual resource/HTTP layer. This
+    # exercises PIDRelation.create_ui_marshmallow_schema/LazyUIMarshmallowSchema,
+    # which goes through the model's own "RecordUISchema" (looked up on the
+    # runtime namespace, not on current_runtime.models's service config).
+    #
+    # Note: this asserts on the *creation* response - once a record is created
+    # and then re-fetched via a separate read, invenio only re-embeds the
+    # target's "id" (not the full "keys" data) into the relation, regardless of
+    # whether the target model is self-referencing (see the "@v" comment
+    # above for the source-level explanation) - so a freshly created response
+    # is the only place a fully-resolved relation can be observed.
+    res = client.post(
+        "/recursive-relation-test",
+        headers=headers.ui,
+        data=json.dumps(
+            {
+                "files": {"enabled": False},
+                "metadata": {
+                    "title": "y",
+                    "direct": {"id": rec1_id},
+                    "array": [{"id": rec1_id}, {"id": rec2_id}],
+                    "object": {"a": {"id": rec1_id}},
+                },
+            }
+        ),
+    )
+    assert res.status_code == 201
+
+    ui = res.json["ui"]
+    assert ui.keys() == {
+        "created_date_l10n_short",
+        "created_date_l10n_medium",
+        "created_date_l10n_long",
+        "created_date_l10n_full",
+        "updated_date_l10n_short",
+        "updated_date_l10n_medium",
+        "updated_date_l10n_long",
+        "updated_date_l10n_full",
+        "direct",
+        "array",
+        "object",
+    }
+
+    # "id" has no UI-specific counterpart on the target's RecordUISchema (it is
+    # not part of the UI schema at all) and falls back to a raw passthrough
+    # field instead of crashing; "metadata.title" does have a real UI field and
+    # resolves to the target's actual (UI-formatted) value.
+    assert ui["direct"]["id"] == rec1_id
+    assert ui["direct"]["metadata"]["title"] == "Record 1"
+
+    assert len(ui["array"]) == 2
+    assert ui["array"][0]["id"] == rec1_id
+    assert ui["array"][0]["metadata"]["title"] == "Record 1"
+    assert ui["array"][1]["id"] == rec2_id
+    assert ui["array"][1]["metadata"]["title"] == "Record 2"
+
+    assert ui["object"]["a"]["id"] == rec1_id
+    assert ui["object"]["a"]["metadata"]["title"] == "Record 1"
 
 
 def test_recursive_relations_mapping_and_jsonschema(app, recursive_relation_model):
