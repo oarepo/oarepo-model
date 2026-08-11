@@ -18,6 +18,7 @@ customizations for the model builder.
 from __future__ import annotations
 
 import copy
+import logging
 from abc import abstractmethod
 from collections.abc import Mapping
 from functools import cached_property
@@ -46,6 +47,8 @@ if TYPE_CHECKING:
     )
 
     from oarepo_model.customizations.base import Customization
+
+log = logging.getLogger("oarepo_model")
 
 
 class LazyModelPIDField:
@@ -383,6 +386,26 @@ class PIDRelation(ObjectDataType):
 
         return facets
 
+    def _target_reference(self, element: dict[str, Any]) -> str | None:
+        """Return the import string identifying this relation's target.
+
+        'record_cls' is already a direct "module:Attr" import path. 'model'
+        is the model's *base name* (e.g. "recursive_relation_test") and is
+        not directly importable as-is - it has to be turned into its
+        in-memory package name first (see InvenioModel.in_memory_package_name),
+        which is only importable once that model has been built and
+        `.register()`-ed.
+        """
+        if "record_cls" in element:
+            target = element["record_cls"]
+        elif "model" in element:
+            target = element["model"]
+            if isinstance(target, str):
+                target = f"runtime_models_{target}"
+        else:
+            return None
+        return target if isinstance(target, str) else None
+
     def _needs_lazy_access(self, element: dict[str, Any]) -> bool:
         """Check whether this pid-relation's target can be resolved right now.
 
@@ -390,8 +413,8 @@ class PIDRelation(ObjectDataType):
         imported yet (e.g. a relation referencing the model that is currently being
         built), meaning any access into the target's schema must be deferred.
         """
-        target = element.get("record_cls") or element.get("model")
-        if not isinstance(target, str):
+        target = self._target_reference(element)
+        if target is None:
             return False
         try:
             obj_or_import_string(target)
@@ -495,10 +518,37 @@ class PIDRelation(ObjectDataType):
                     f"Expected 'properties' to be a dict, got {type(element['properties'])}.",
                 )
             return cast("dict[str, Any]", element["properties"])
+
+        if self._needs_lazy_access(element):
+            target = element.get("record_cls") or element.get("model")
+            # This happens for self-referencing relations (a relation whose
+            # target is the model that is currently being built) - the
+            # target's real schema can not be introspected yet at this point,
+            # so we fall back to the old "keyword for everything" behavior
+            # below instead of hard-failing the whole model build. Relations
+            # nested inside such a field's 'keys' (e.g. a vocabulary relation
+            # copied in from the target) will not be discovered/dereferenced -
+            # declare 'properties' explicitly to work around this.
+            log.warning(
+                "Cannot determine the properties of the pid-relation's 'keys' because "
+                "the target model %r is not built yet (likely a self-referencing "
+                "relation). Falling back to 'keyword' for every key - declare "
+                "'properties' explicitly if this is not sufficient.",
+                target,
+            )
+            target_properties: dict[str, Any] = {}
+        else:
+            target_properties = self._get_target_properties(element)
+
         ret: dict[str, Any] = {}
         for key in element["keys"]:
             if isinstance(key, str):
-                set_key_model(ret, key, {"type": "keyword"})
+                prop = _lookup_property(target_properties, key)
+                set_key_model(
+                    ret,
+                    key,
+                    copy.deepcopy(prop) if prop is not None else {"type": "keyword"},
+                )
             elif isinstance(key, dict):
                 for k, v in key.items():
                     set_key_model(ret, k, v)
@@ -511,6 +561,40 @@ class PIDRelation(ObjectDataType):
         if "@v" not in ret:
             ret["@v"] = {"type": "keyword", "skip_marshmallow": True}
         return ret
+
+    def _get_target_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Look up the already-built target model's real declarative schema tree.
+
+        Returns a "properties"-style mapping (field name -> its declarative
+        element dict, the same shape as this project's own model type dicts),
+        merged from the target's record- and metadata-level schemas, so dotted
+        'keys' entries like "metadata.title" can be resolved against the
+        target's *real* field types (e.g. "vocabulary", "multilingual")
+        instead of a hardcoded "keyword" guess.
+
+        Returns an empty dict if the target can't be introspected this way
+        (e.g. it was declared only via 'pid_field', or isn't an oarepo_model
+        -built model) - callers fall back to "keyword" per key in that case.
+        """
+        target = self._target_reference(element)
+        if target is None:
+            return {}
+
+        # 'target' may be "module:attr" (record_cls) or just "module" (model) -
+        # either way, the model's namespace module itself is what carries
+        # 'oarepo_model_arguments', so only the module part is needed here.
+        imported = obj_or_import_string(target.split(":", 1)[0])
+        model_metadata = getattr(imported, "oarepo_model_arguments", {}).get("model_metadata")
+        if model_metadata is None:
+            return {}
+
+        properties: dict[str, Any] = {}
+        if model_metadata.record_type:
+            record_root = model_metadata.types.get(model_metadata.record_type, {})
+            properties.update(record_root.get("properties", {}))
+        if model_metadata.metadata_type:
+            properties["metadata"] = model_metadata.types.get(model_metadata.metadata_type, {})
+        return properties
 
     @override
     def create_relations(
@@ -649,3 +733,22 @@ def set_key_model(properties: dict[str, Any], key: str, value: Any) -> None:
             }
         current = current[part]["properties"]
     current[parts[-1]] = value
+
+
+def _lookup_property(properties: dict[str, Any], key: str) -> dict[str, Any] | None:
+    """Walk a dotted key path down a properties tree, mirroring set_key_model.
+
+    Returns None if any segment of the path is missing, so callers can fall
+    back to a default rather than failing outright (e.g. for system fields
+    like "id" that are never part of the declared properties tree).
+    """
+    parts = key.split(".")
+    node = properties
+    for part in parts[:-1]:
+        prop = node.get(part)
+        if not isinstance(prop, dict):
+            return None
+        node = prop.get("properties", {})
+        if not isinstance(node, dict):
+            return None
+    return node.get(parts[-1])
