@@ -92,16 +92,16 @@ def test_recursive_relations(
     md = relation_rec.data["metadata"]
     assert md["direct"]["id"] == rec1_id
     assert md["direct"]["metadata"]["title"] == "Record 1"
-    # rec1's own "lang" vocabulary relation is only dereferenced (enriched with
-    # "title") as a transient, in-memory side effect of *indexing* rec1 (see
-    # RelationDumperExt.dump() in invenio_records, which mutates the record's
-    # dict in place) - that happens strictly after rec1's clean data was
-    # already committed to the DB (RecordCommitOp.on_register() commits before
-    # on_commit() indexes), so the enrichment is never persisted. When "direct"
-    # embeds rec1's "metadata.multilingual" here, it resolves a fresh copy of
-    # rec1 from the DB and copies its raw, un-dereferenced value: relations are
-    # not recursively re-dereferenced through "keys".
-    assert md["direct"]["metadata"]["multilingual"] == [{"lang": {"id": "cs"}, "value": "blah"}]
+    # rec1's own "lang" vocabulary relation, nested inside the "multilingual"
+    # field that "direct" embeds via 'keys', is discovered lazily (see
+    # LazyRelationsField/AddLazyRelation in
+    # customizations/high_level/add_pid_relation.py) once this
+    # self-referencing model has finished building and registering - so it is
+    # registered as this record's own relation too, and gets dereferenced
+    # here just like it would be when reading rec1 directly.
+    assert md["direct"]["metadata"]["multilingual"] == [
+        {"lang": {"id": "cs", "title": {"cs": "Čeština", "en": "Czech"}}, "value": "blah"},
+    ]
 
     assert len(md["array"]) == 2
     assert md["array"][0]["id"] == rec1_id

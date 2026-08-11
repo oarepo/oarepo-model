@@ -27,11 +27,14 @@ from typing import TYPE_CHECKING, Any, cast, override
 import marshmallow
 from flask import json
 from invenio_base.utils import obj_or_import_string
+from invenio_records.systemfields.relations import RelationsField
 from oarepo_runtime.proxies import current_runtime
 
 from oarepo_model.customizations.high_level.add_pid_relation import (
     ARRAY_PATH_ITEM,
+    AddLazyRelation,
     AddPIDRelation,
+    RelationFieldCustomization,
 )
 from oarepo_model.utils import JSONContent
 
@@ -42,6 +45,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
     from types import SimpleNamespace
 
+    from invenio_records.systemfields.relations import RelationBase
     from invenio_records_resources.records.systemfields.pid import (
         PIDFieldContext,
     )
@@ -619,15 +623,69 @@ class PIDRelation(ObjectDataType):
             ),
         ]
 
+        if "properties" not in element and self._needs_lazy_access(element):
+            # The target's real schema can't be introspected yet (self-referencing
+            # relation) - defer discovering relations nested inside this field's
+            # copied 'keys' (e.g. a vocabulary relation nested inside a
+            # multilingual field) until the target model is fully built and
+            # registered, instead of losing them (see _get_properties's warning
+            # fallback for the case where nothing here can help - explicit
+            # 'properties' overrides).
+            relations.append(
+                AddLazyRelation(lambda: self._resolve_nested_relation_fields(element, path)),
+            )
+        else:
+            relations.extend(self._discover_nested_relation_customizations(element, path))
+
+        return relations
+
+    def _discover_nested_relation_customizations(
+        self,
+        element: dict[str, Any],
+        path: list[tuple[str, dict[str, Any]]],
+    ) -> list[Customization]:
+        """Walk this relation's nested properties, collecting relation-registering customizations."""
+        result: list[Customization] = []
         for prop_name, prop in self._get_properties(element).items():
-            relations.extend(
+            result.extend(
                 self._registry.get_type(prop).create_relations(
                     prop,
                     [*path, (prop_name, prop)],
                 ),
             )
+        return result
 
-        return relations
+    def _resolve_nested_relation_fields(
+        self,
+        element: dict[str, Any],
+        path: list[tuple[str, dict[str, Any]]],
+    ) -> dict[str, RelationBase]:
+        """Materialize this relation's nested relation fields, called lazily.
+
+        Re-runs the nested-relation-discovery walk against the target's
+        *real* schema - by the time this actually runs (see
+        LazyRelationsField), the target model is fully built and registered,
+        so _get_properties() (called transitively via
+        _discover_nested_relation_customizations) resolves it for real
+        instead of falling back to "keyword".
+        """
+        fields: dict[str, RelationBase] = {}
+        for customization in self._discover_nested_relation_customizations(element, path):
+            if not isinstance(customization, RelationFieldCustomization):
+                continue
+            for name, field in customization.build_relation_fields().items():
+                if isinstance(field, RelationsField):
+                    # A nested customization is itself lazily-resolved (e.g. a
+                    # deeper, still-unbuilt target found while resolving this
+                    # already-deferred walk) - MultiRelationsField only
+                    # flattens one level of nested RelationsField groups (see
+                    # field.py:131-144), so resolve it immediately here rather
+                    # than nesting another lazy group a level too deep for it
+                    # to see.
+                    fields.update(field._fields)
+                else:
+                    fields[name] = field
+        return fields
 
     def _relation_path(
         self,
