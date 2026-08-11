@@ -735,13 +735,14 @@ def recursive_relation_model(empty_model):
     from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
+    from oarepo_model.presets.ui import ui_preset
 
     t1 = time.time()
 
     relation_model = model(
         name="recursive_relation_test",
         version="1.0.0",
-        presets=[records_resources_preset, relations_preset],
+        presets=[records_resources_preset, relations_preset, ui_preset],
         types=[recursive_relation_model_types],
         metadata_type="Metadata",
         customizations=[],

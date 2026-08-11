@@ -210,6 +210,84 @@ class LazyJSONSchema(LazyModelJSONFile):
             self._data["@v"] = {"type": "string"}
 
 
+class LazyUIModelChildren(Mapping):
+    """Lazily resolves a relation's UI model 'children' from the target model's own UI model.
+
+    Unlike LazyModelJSONFile above, the target's UI model is not backed by a
+    file in its namespace - it is a plain dict passed straight to
+    oarepo_runtime.api.Model (see presets/ui/ui_ext.py). But Model.ui_model
+    is itself typed as a bare Mapping there (not dict), so embedding a
+    lazily-resolved Mapping here composes the same way: whatever eventually
+    serializes the whole ui_model tree only triggers resolution then, by
+    which point the (self-referencing) target model is guaranteed to be
+    fully built and registered - the target's own `namespace.ui_model` is
+    read directly instead of going through a namespace file.
+    """
+
+    def __init__(self, model: str, keys: list[str] | None = None) -> None:
+        """Initialize with the model name and keys to resolve."""
+        self._model = model
+        self._keys = keys
+        self._data: dict[str, Any] = {}
+
+    def _fallback_ui_model(self, key: str) -> dict[str, Any]:
+        """Return a minimal UI model for a key that has no counterpart on the target's ui model.
+
+        Mirrors DataType.create_ui_model's defaults for a bare keyword field.
+        Needed because - unlike mapping/json schema, where RecordMappingPreset/
+        the record json schema equivalent always synthesize an entry for
+        system fields like the record's own "id" PID field - the ui model
+        never does, so a "keys" entry like "id" (present on virtually every
+        pid-relation) has nothing to look up on the target's ui model at all.
+        """
+        return {"help": {"und": ""}, "label": {"und": key}, "hint": {"und": ""}, "input": "keyword"}
+
+    def _ensure(self) -> None:
+        """Resolve the ui model children on first use."""
+        if self._data:
+            return
+        namespace = cast("SimpleNamespace", current_runtime.models[self._model].namespace)
+        source_properties = cast("dict[str, Any]", namespace.ui_model).get("children", {})
+
+        generated: dict[str, Any] = {}
+        self._data = generated
+
+        for key in self._keys or []:
+            # walk down both the source (the target's real ui model) and the
+            # destination (generated) in lockstep for any nesting in `key`,
+            # creating minimal intermediate "object" ui model nodes in the
+            # destination as we go - mirrors LazyModelJSONFile._ensure's
+            # "properties" walk, just nested under "children" instead. Any
+            # segment missing on the source side (see _fallback_ui_model)
+            # falls back instead of raising, since not everything in `keys`
+            # necessarily has a real counterpart on the target (e.g. "id").
+            parts = key.split(".")
+            source: Any = source_properties
+            dest = generated
+            for part in parts[:-1]:
+                node = source.get(part) if isinstance(source, dict) else None
+                dest = dest.setdefault(part, {"input": "object", "children": {}})["children"]
+                source = node.get("children", {}) if isinstance(node, dict) else {}
+            last = parts[-1]
+            value = source.get(last) if isinstance(source, dict) else None
+            dest[last] = value if value is not None else self._fallback_ui_model(last)
+
+    def __getitem__(self, key: str) -> Any:
+        """Get an item from the mapping, resolving it first."""
+        self._ensure()
+        return self._data[key]
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over the mapping keys, resolving it first."""
+        self._ensure()
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        """Get the number of items in the mapping, resolving it first."""
+        self._ensure()
+        return len(self._data)
+
+
 class LazyProxiedMarshmallowSchema(marshmallow.Schema):
     """A marshmallow schema that lazily builds and delegates to the real schema.
 
@@ -514,6 +592,34 @@ class PIDRelation(ObjectDataType):
         keys = element.get("keys", [])
 
         return type(self.name, (LazyUIMarshmallowSchema,), {"model": model, "keys": keys})
+
+    @override
+    def create_ui_model(
+        self,
+        element: dict[str, Any],
+        path: list[str],
+    ) -> dict[str, Any]:
+        """Create a UI model for the data type.
+
+        Resolving the properties eagerly (as ObjectDataType.create_ui_model
+        does, via _get_properties()) requires the referenced model's schema.
+        If that is not available yet (self-referencing relations), the
+        'children' key is backed by a LazyUIModelChildren that is only
+        resolved on first use instead - same approach as create_mapping/
+        create_json_schema above (see LazyMapping/LazyJSONSchema).
+        """
+        if not self._needs_lazy_access(element):
+            return super().create_ui_model(element, path)
+
+        if "model" not in element:
+            raise ValueError("'model' key is required for lazy ui model")
+
+        model = element["model"]
+        keys = element.get("keys", [])
+
+        ret = DataType.create_ui_model(self, element, path)
+        ret["children"] = LazyUIModelChildren(model, keys)
+        return ret
 
     def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
         if "properties" in element:
