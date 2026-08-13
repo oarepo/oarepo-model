@@ -230,6 +230,15 @@ class PolymorphicDataType(DataType):
 
         return {"type": "object", "properties": all_properties}
 
+    @override
+    def visit(self, element: dict[str, Any], path: list[str], visitor: Any) -> None:
+        """Visit polymorphic data type and all variants."""
+        super().visit(element, path, visitor)
+        for oneof_item in element.get("oneof", []):
+            schema_type = oneof_item.get("type")
+            if schema_type:
+                self._registry.get_type(schema_type).visit(oneof_item, path, visitor)
+
 
 class PolymorphicField(ma.fields.Field):
     """Custom marshmallow field class that supports handling polymorphic fields."""

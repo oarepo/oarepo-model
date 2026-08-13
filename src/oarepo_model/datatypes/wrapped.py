@@ -150,6 +150,14 @@ class WrappedDataType(DataType):
         return self.impl.create_mapping(self._merge_type_dict(element))
 
     @override
+    def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> Mapping[str, Any]:
+        return self.impl.create_dynamic_mapping(field_name, self._merge_type_dict(element))
+
+    @override
+    def visit(self, element: dict[str, Any], path: list[str], visitor: Any) -> None:
+        self.impl.visit(self._merge_type_dict(element), path, visitor)
+
+    @override
     def create_relations(
         self,
         element: dict[str, Any],

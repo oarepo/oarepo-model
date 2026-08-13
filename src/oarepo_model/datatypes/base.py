@@ -15,7 +15,7 @@ that define how data types are implemented and used within OARepo models.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, cast
 
 from invenio_base.utils import obj_or_import_string
@@ -196,6 +196,23 @@ class DataType:
         raise NotImplementedError(
             f"{self.__class__.__name__} neither implements create_mapping nor provides self.mapping_type",
         )
+
+    def create_dynamic_mapping(
+        self,
+        field_name: str,  # noqa: ARG002
+        element: dict[str, Any],  # noqa: ARG002
+    ) -> Mapping[str, Any]:
+        """Create additional mapping properties."""
+        return {}
+
+    def visit(
+        self,
+        element: dict[str, Any],
+        path: list[str],
+        visitor: Callable[[DataType, list[str], dict[str, Any]], None],
+    ) -> None:
+        """Visit this data type in a model tree."""
+        visitor(self, path, element)
 
     def create_relations(
         self,

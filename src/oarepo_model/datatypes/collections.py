@@ -199,13 +199,24 @@ class ObjectDataType(DataType):
     @override
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
         properties = self._get_properties(element)
+        mapping_properties = {}
+        for key, value in properties.items():
+            datatype = self._registry.get_type(value)
+            mapping_properties[key] = datatype.create_mapping(value)
+            for dynamic_key, dynamic_mapping in datatype.create_dynamic_mapping(key, value).items():
+                mapping_properties.setdefault(dynamic_key, dynamic_mapping)
         return {
             **super().create_mapping(element),
             "dynamic": "strict",
-            "properties": {
-                key: self._registry.get_type(value).create_mapping(value) for key, value in properties.items()
-            },
+            "properties": mapping_properties,
         }
+
+    @override
+    def visit(self, element: dict[str, Any], path: list[str], visitor: Any) -> None:
+        """Visit object data type and its properties."""
+        super().visit(element, path, visitor)
+        for key, value in self._get_properties(element).items():
+            self._registry.get_type(value).visit(value, [*path, key], visitor)
 
     @override
     def create_relations(
@@ -376,6 +387,12 @@ class ArrayDataType(FacetMixin, DataType):
         return self._registry.get_type(element["items"]).create_mapping(
             element["items"],
         )
+
+    @override
+    def visit(self, element: dict[str, Any], path: list[str], visitor: Any) -> None:
+        """Visit array data type and its item data type."""
+        super().visit(element, path, visitor)
+        self._registry.get_type(element["items"]).visit(element["items"], [*path, ARRAY_ITEM_PATH], visitor)
 
     @override
     def create_ui_model(
