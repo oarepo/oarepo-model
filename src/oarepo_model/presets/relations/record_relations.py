@@ -50,7 +50,7 @@ class RecordRelationsPreset(Preset):
 
 def get_relations_fields(
     builder: InvenioModelBuilder,
-    schema_type: Any,  # dddd
+    schema_type: Any,
     path: list[tuple[str, dict[str, Any]]],
 ) -> Generator[Customization]:
     """Get the relations fields for a given record type."""
