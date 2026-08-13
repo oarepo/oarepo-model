@@ -360,6 +360,7 @@ vite.config.ts.timestamp-*
 .eslintrc.yaml
 .mypy.ini
 .ruff.toml
+.python-version
 
 #
 # Editors
