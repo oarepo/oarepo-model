@@ -447,6 +447,32 @@ def test_edtf_date_or_interval_field(test_schema):
         schema.load({"a": 2023})
 
 
+def test_edtf_date_or_interval_object_mapping(datatype_registry):
+    ret = datatype_registry.get_type("object").create_mapping(
+        element={
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "edtf-date-or-interval",
+                },
+            },
+        },
+    )
+
+    assert ret == {
+        "type": "object",
+        "dynamic": "strict",
+        "properties": {
+            "date": {
+                "type": "keyword",
+            },
+            "date_range": {
+                "type": "date_range",
+            },
+        },
+    }
+
+
 def test_polymorphic_field(test_schema):
     person_schema = {
         "type": "object",

@@ -478,7 +478,7 @@ class EDTFIntervalType(DataType):
 
 
 class EDTFDateOrIntervalDataType(DataType):
-    """An EDTF date or interval represented by an OpenSearch date_range."""
+    """An EDTF date or interval represented by keyword."""
 
     TYPE = "edtf-date-or-interval"
 
@@ -486,10 +486,21 @@ class EDTFDateOrIntervalDataType(DataType):
     jsonschema_type = MappingProxyType({"type": "string", "format": "date"})
     mapping_type = MappingProxyType(
         {
-            "type": "date_range",
-            "format": "strict_date",
+            "type": "keyword",
         }
     )
+
+    @override
+    def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> MappingProxyType[str, Any]:
+        """Create RDM-style sibling date_range mapping."""
+        _ = element
+        return MappingProxyType(
+            {
+                f"{field_name}_range": {
+                    "type": "date_range",
+                },
+            },
+        )
 
     @override
     def _get_marshmallow_field_args(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
