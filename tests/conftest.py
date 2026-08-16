@@ -730,6 +730,133 @@ def relation_model(empty_model):
     return relation_model
 
 
+internal_relation_model_types = {
+    "Metadata": {
+        "properties": {
+            "proteins": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "keyword"},
+                        "name": {"type": "keyword"},
+                    },
+                },
+            },
+            "instruments": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "keyword"},
+                        "name": {"type": "keyword"},
+                    },
+                },
+            },
+            "primary_protein": {
+                "type": "internal-relation",
+                "target_paths": ["metadata.proteins", "metadata.instruments"],
+                "keys": ["id", "name"],
+                "model": "internal_relation_test",
+            },
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def internal_relation_model(empty_model):
+    from oarepo_model.api import model
+    from oarepo_model.presets.internal_relations import internal_relations_preset
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
+    from oarepo_model.presets.ui import ui_preset
+
+    t1 = time.time()
+
+    im = model(
+        name="internal_relation_test",
+        version="1.0.0",
+        presets=[records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
+        types=[internal_relation_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    im.register()
+
+    t2 = time.time()
+    log.info("Model created in %.2f seconds", t2 - t1)
+
+    return im
+
+
+internal_relation_draft_model_types = {
+    "Metadata": {
+        "properties": {
+            "proteins": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "keyword"},
+                        "name": {"type": "keyword"},
+                    },
+                },
+            },
+            "instruments": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "keyword"},
+                        "name": {"type": "keyword"},
+                    },
+                },
+            },
+            "primary_protein": {
+                "type": "internal-relation",
+                "target_paths": ["metadata.proteins", "metadata.instruments"],
+                "keys": ["id", "name"],
+                "model": "internal_relation_draft_test",
+            },
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def internal_relation_draft_model(empty_model):
+    from oarepo_model.api import model
+    from oarepo_model.presets.drafts import drafts_preset
+    from oarepo_model.presets.internal_relations import internal_relations_preset
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
+    from oarepo_model.presets.ui import ui_preset
+
+    t1 = time.time()
+
+    im = model(
+        name="internal_relation_draft_test",
+        version="1.0.0",
+        presets=[
+            records_resources_preset,
+            drafts_preset,
+            relations_preset,
+            internal_relations_preset,
+            ui_preset,
+        ],
+        types=[internal_relation_draft_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    im.register()
+
+    t2 = time.time()
+    log.info("Model created in %.2f seconds", t2 - t1)
+
+    return im
+
+
 @pytest.fixture(scope="session")
 def recursive_relation_model(empty_model):
     from oarepo_model.api import model

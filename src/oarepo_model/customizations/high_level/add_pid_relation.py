@@ -167,28 +167,43 @@ class AddPIDRelation(RelationFieldCustomization):
         and merges them into dot-separated strings. It also determines the relation
         field (the segment after the last array marker) if it exists.
         """
-        merged_paths_with_array_markers: list[Any] = []
-        joined: list[str] = []
-        for x in self.path:
-            if isinstance(x, str):
-                joined.append(x)
-            else:
-                if joined:
-                    merged_paths_with_array_markers.append(".".join(joined))
-                    joined = []
-                merged_paths_with_array_markers.append(ARRAY_PATH_ITEM)
-        if joined:
-            merged_paths_with_array_markers.append(".".join(joined))
+        return merge_paths_between_arrays(self.path)
 
-        # pop the relation field if the last item is not an array
-        relation_field = (
-            None if merged_paths_with_array_markers[-1] is ARRAY_PATH_ITEM else merged_paths_with_array_markers.pop()
-        )
 
-        # filter out array markers
-        array_paths = [x for x in merged_paths_with_array_markers if x is not ARRAY_PATH_ITEM]
+def merge_paths_between_arrays(
+    path: list[str | type[ARRAY_PATH_ITEM]],
+) -> tuple[str | None, list[str]]:
+    """Merge path segments between array markers.
 
-        return relation_field, array_paths
+    Turns a path (as produced by relation_path_from_customization_path in
+    datatypes/relations.py) into the (relation_field, array_paths) shape the
+    various ArbitraryPath*/PID*Relation system fields expect. Shared between
+    AddPIDRelation and AddInternalRelation (see add_internal_relation.py) -
+    the path-merging logic is the same regardless of what kind of relation
+    field ends up being built from the result.
+    """
+    merged_paths_with_array_markers: list[Any] = []
+    joined: list[str] = []
+    for x in path:
+        if isinstance(x, str):
+            joined.append(x)
+        else:
+            if joined:
+                merged_paths_with_array_markers.append(".".join(joined))
+                joined = []
+            merged_paths_with_array_markers.append(ARRAY_PATH_ITEM)
+    if joined:
+        merged_paths_with_array_markers.append(".".join(joined))
+
+    # pop the relation field if the last item is not an array
+    relation_field = (
+        None if merged_paths_with_array_markers[-1] is ARRAY_PATH_ITEM else merged_paths_with_array_markers.pop()
+    )
+
+    # filter out array markers
+    array_paths = [x for x in merged_paths_with_array_markers if x is not ARRAY_PATH_ITEM]
+
+    return relation_field, array_paths
 
 
 class LazyRelationsField(RelationsField):

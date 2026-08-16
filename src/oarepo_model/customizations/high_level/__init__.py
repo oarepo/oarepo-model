@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from .add_export import AddMetadataExport
 from .add_import import AddMetadataImport
+from .add_internal_relation import AddInternalRelation
 from .add_link import AddLink
 from .add_pid_relation import AddPIDRelation
 from .add_search_fields import SetDefaultSearchFields
@@ -32,6 +33,7 @@ from .set_permission_policy import SetPermissionPolicy
 from .set_synthetic_metadata import SetSyntheticMetadata
 
 __all__ = (
+    "AddInternalRelation",
     "AddLink",
     "AddMetadataExport",
     "AddMetadataImport",
