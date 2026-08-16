@@ -107,3 +107,29 @@ def test_relations(
     assert md["triple_array"][0]["array"][1]["array"][0]["metadata"]["title"] == "Record 2"
     assert md["triple_array"][0]["array"][1]["array"][1]["id"] == rec3_id
     assert md["triple_array"][0]["array"][1]["array"][1]["metadata"]["title"] == "Record 3"
+
+
+def test_relation_facets(app, relation_model):
+    """Check that facets are generated for a pid-relation's 'keys'.
+
+    Facet generation (MetadataFacetsPreset/RecordFacetsPreset -> get_facets
+    -> DataType.get_facet) walks the *local* schema tree, calling
+    `self._registry.get_type(value).get_facet(...)` recursively for object/
+    array content (see ObjectDataType.get_facet, ArrayDataType.get_facet).
+    PIDRelation.get_facet mirrors that recursion via _get_properties() (see
+    its docstring in datatypes/relations.py) - so a relation's individual
+    "keys" (e.g. "id", "metadata.title") get their own facet, whether the
+    relation is a plain field ("direct"), nested in an array ("array"), or
+    nested inside a plain object field ("object.a"). For the
+    self-referencing case, see test_recursive_relations_facets in
+    test_recursive_relations.py - the target's real schema isn't known yet
+    at facet-generation (build) time, so no facets are generated there.
+    """
+    facets = relation_model.facets
+
+    for base in ("metadata.direct", "metadata.array", "metadata.object.a"):
+        # "id" (a plain keyword key) should get its own terms facet.
+        assert hasattr(facets, f"{base}.id"), f"missing facet for {base}.id"
+        # "metadata.title" resolves (see PIDRelation._get_properties) to the
+        # target's real "fulltext+keyword" type, which is itself facetable.
+        assert hasattr(facets, f"{base}.metadata.title"), f"missing facet for {base}.metadata.title"

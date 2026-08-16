@@ -455,6 +455,7 @@ class PIDRelation(ObjectDataType):
 
     marshmallow_field_class = marshmallow.fields.Nested
 
+    @override
     def get_facet(
         self,
         path: str,
@@ -463,8 +464,50 @@ class PIDRelation(ObjectDataType):
         facets: dict[str, list],
         path_suffix: str = "",
     ) -> Any:
-        """Create facets for the data type."""
-        _, _, _, _, _ = path, element, nested_facets, facets, path_suffix
+        """Create facets for the pid-relation's own 'keys'.
+
+        Mirrors ObjectDataType.get_facet, but always derives properties via
+        _get_properties() instead of requiring a literal 'properties' key on
+        `element` - a plain pid-relation element never has one (properties
+        are synthesized from 'keys', see _get_properties).
+
+        Facet generation (RecordFacetsPreset/MetadataFacetsPreset) has no
+        lazy/deferred variant anywhere in this codebase, unlike
+        create_mapping/create_json_schema/create_relations/create_ui_model:
+        facet *names* must be known and registered (via AddToModule)
+        synchronously at build time, so there's nowhere to defer to for a
+        self-referencing relation (target not resolvable yet). Rather than
+        guess at types for a target we can't introspect - which could
+        produce an invalid facet (e.g. aggregating on a text field that has
+        no keyword sub-field) - no facets are generated for this relation's
+        keys in that case, same as before this override existed.
+        """
+        _ = path_suffix  # path suffix is not used for pid-relations
+
+        if self._needs_lazy_access(element) and "properties" not in element:
+            target = element.get("record_cls") or element.get("model")
+            log.warning(
+                "Cannot generate facets for the pid-relation's 'keys' because "
+                "the target model %r is not built yet (likely a "
+                "self-referencing relation). No facets will be generated for "
+                "this relation's keys - declare 'properties' explicitly if "
+                "this is not sufficient.",
+                target,
+            )
+            return facets
+
+        for key, value in self._get_properties(element).items():
+            if key == "@v":
+                # internal revision marker stamped onto every dereferenced
+                # relation - never a meaningful facet target.
+                continue
+            if path == "":
+                _path = key
+            elif path.endswith(key):
+                _path = path
+            else:
+                _path = path + "." + key
+            facets.update(self._registry.get_type(value).get_facet(_path, value, nested_facets, facets))
 
         return facets
 

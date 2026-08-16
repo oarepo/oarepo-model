@@ -346,3 +346,75 @@ def test_recursive_relations_ui_model(app, recursive_relation_model):
     assert metadata_ui_model["direct"]["children"] == expected_relation_children
     assert metadata_ui_model["array"]["child"]["children"] == expected_relation_children
     assert metadata_ui_model["object"]["children"]["a"]["children"] == expected_relation_children
+
+
+def test_recursive_relations_facets(app, recursive_relation_model):
+    """Check that no (invalid) facets are generated for a self-referencing relation's 'keys'.
+
+    Unlike test_relation_facets in test_relations.py (see its docstring),
+    a self-referencing relation's target model is not resolvable yet at
+    facet-generation (build) time - and facet generation, unlike
+    create_mapping/create_json_schema/create_relations/create_ui_model, has
+    no lazy/deferred variant anywhere in this codebase (facet *names* must
+    be known and registered via AddToModule synchronously, at build time -
+    see RecordFacetsPreset/MetadataFacetsPreset). PIDRelation.get_facet
+    deliberately does not guess at types for a target it can't introspect
+    (which could produce an invalid facet, e.g. aggregating on a text field
+    with no keyword sub-field) - so, for this case only, no facets are
+    generated for the relation's keys at all (see
+    test_recursive_relations_facets_warning below for the warning this
+    logs).
+    """
+    facets = recursive_relation_model.facets
+
+    for base in ("metadata.direct", "metadata.array", "metadata.object.a"):
+        assert not hasattr(facets, f"{base}.id"), f"unexpected facet for {base}.id"
+        assert not hasattr(facets, f"{base}.metadata.title"), f"unexpected facet for {base}.metadata.title"
+
+    # the relation's own top-level facet-less-ness doesn't affect unrelated,
+    # non-relation fields on the same (self-referencing) model.
+    assert hasattr(facets, "metadata.title")
+
+
+def test_recursive_relations_facets_warning(caplog):
+    """Check that PIDRelation.get_facet logs a clear warning for the self-reference fallback.
+
+    Builds its own throwaway model (rather than reusing the session-scoped
+    `recursive_relation_model` fixture) so the model build - and the
+    warning it triggers - happens inside this test, where caplog can see
+    it; `recursive_relation_model` is built once, lazily, the first time
+    any test in the session requests it, so its build-time warnings aren't
+    reliably observable from an arbitrary later test.
+    """
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
+
+    types = {
+        "Metadata": {
+            "properties": {
+                "direct": {
+                    "type": "pid-relation",
+                    "keys": ["id", "metadata.title"],
+                    "model": "recursive_relations_facets_warning_test",
+                },
+                "title": {"type": "keyword"},
+            },
+        },
+    }
+
+    with caplog.at_level("WARNING", logger="oarepo_model"):
+        m = model(
+            name="recursive_relations_facets_warning_test",
+            version="1.0.0",
+            presets=[records_resources_preset, relations_preset],
+            types=[types],
+            metadata_type="Metadata",
+            customizations=[],
+        )
+        m.register()
+
+    assert not hasattr(m.facets, "metadata.direct.id")
+    warnings = [r for r in caplog.records if "Cannot generate facets for the pid-relation's 'keys'" in r.message]
+    assert len(warnings) == 1
+    assert "recursive_relations_facets_warning_test" in warnings[0].message
