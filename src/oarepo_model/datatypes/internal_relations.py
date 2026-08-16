@@ -39,6 +39,7 @@ import marshmallow
 from invenio_records.systemfields.relations import RelationsField
 from oarepo_runtime.proxies import current_runtime
 
+from oarepo_model.api import current_model
 from oarepo_model.customizations.high_level.add_internal_relation import AddInternalRelation
 from oarepo_model.customizations.high_level.add_pid_relation import AddLazyRelation, RelationFieldCustomization
 
@@ -307,11 +308,6 @@ class InternalRelationDataType(ObjectDataType):
         - id
         - name
 
-        # required - see _model()/ir.md for why this is needed and how it
-        # could be made implicit; must equal the enclosing model's own name,
-        # since an internal relation always resolves within the same record.
-        model: "my_own_model"
-
         relation_field_kwargs: {}  # optional, forwarded to InternalRelation(**kwargs)
         properties: {...}          # optional escape hatch, see _get_properties
     ```
@@ -335,24 +331,22 @@ class InternalRelationDataType(ObjectDataType):
             )
         return cast("str", target)
 
-    def _model(self, element: dict[str, Any]) -> str:
-        """Return the (required) 'model' declared on the element.
+    def _model(self) -> str:
+        """Return the name of the model currently being built.
 
         Always a self-reference (an internal relation resolves within the
-        record it is declared on), but is still required explicitly rather
-        than inferred: create_mapping/create_json_schema/create_marshmallow_schema/
-        etc. are called by several different presets, none of which currently
-        pass the InvenioModel being built down to the data type - see ir.md
-        for the ergonomics/architecture trade-off this involves.
+        record it is declared on) - read from api.current_model, the
+        thread-local `_internal_model` populates for the whole duration of
+        the build, rather than requiring an explicit (and always redundant)
+        'model' element key - see ir.md ("The `model` key").
         """
-        model = element.get("model")
-        if not model:
-            raise ValueError(
-                "'model' key is required for an internal-relation element - set it "
-                "to the enclosing model's own name (an internal relation always "
-                "resolves within the same record - see ir.md).",
+        model = getattr(current_model, "value", None)
+        if model is None:
+            raise RuntimeError(
+                "InternalRelationDataType can only be used while a model is "
+                "being built (api.current_model is not set) - see ir.md.",
             )
-        return cast("str", model)
+        return cast("str", model.name)
 
     @override
     def get_facet(
@@ -444,7 +438,7 @@ class InternalRelationDataType(ObjectDataType):
             **DataType.create_mapping(self, element),
             "dynamic": "strict",
             "properties": LazyInternalMapping(
-                self._model(element),
+                self._model(),
                 self._target_path(element),
                 element.get("keys", []),
             ),
@@ -456,7 +450,7 @@ class InternalRelationDataType(ObjectDataType):
             **DataType.create_json_schema(self, element),
             "unevaluatedProperties": False,
             "properties": LazyInternalJSONSchema(
-                self._model(element),
+                self._model(),
                 self._target_path(element),
                 element.get("keys", []),
             ),
@@ -468,7 +462,7 @@ class InternalRelationDataType(ObjectDataType):
             self.name,
             (LazyInternalMarshmallowSchema,),
             {
-                "model": self._model(element),
+                "model": self._model(),
                 "target_path": self._target_path(element),
                 "keys": element.get("keys", []),
             },
@@ -480,7 +474,7 @@ class InternalRelationDataType(ObjectDataType):
             self.name,
             (LazyInternalUIMarshmallowSchema,),
             {
-                "model": self._model(element),
+                "model": self._model(),
                 "target_path": self._target_path(element),
                 "keys": element.get("keys", []),
             },
@@ -494,7 +488,7 @@ class InternalRelationDataType(ObjectDataType):
     ) -> dict[str, Any]:
         ret = DataType.create_ui_model(self, element, path)
         ret["children"] = LazyInternalUIModelChildren(
-            self._model(element),
+            self._model(),
             self._target_path(element),
             element.get("keys", []),
         )
@@ -522,7 +516,15 @@ class InternalRelationDataType(ObjectDataType):
         ]
 
         if "properties" not in element:
-            relations.append(AddLazyRelation(lambda: self._resolve_nested_relation_fields(element, path)))
+            # own_model is resolved eagerly here (during the build, while
+            # api.current_model is still set) rather than inside the resolver
+            # itself - the resolver only runs lazily, on first actual
+            # `record.relations` access at runtime, long after the build (and
+            # api.current_model) is gone.
+            own_model = self._model()
+            relations.append(
+                AddLazyRelation(lambda: self._resolve_nested_relation_fields(element, path, own_model)),
+            )
         else:
             relations.extend(self._discover_nested_relation_customizations(element, path))
 
@@ -548,15 +550,17 @@ class InternalRelationDataType(ObjectDataType):
         self,
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],
+        own_model: str,
     ) -> dict[str, RelationBase]:
         """Materialize this relation's nested relation fields, called lazily.
 
         Mirrors PIDRelation._resolve_nested_relation_fields, but the tree to
         walk is the (by then fully built and registered) own model's declared
         schema at this relation's target_path, instead of a single external
-        target's schema.
+        target's schema. `own_model` is resolved eagerly by the caller (see
+        create_relations) since api.current_model is no longer set by the
+        time this runs.
         """
-        own_model = self._model(element)
         root_properties = resolve_declared_root_properties(f"runtime_models_{own_model}")
         target_properties = _walk_type_tree_path(root_properties, self._target_path(element)) or {}
 

@@ -17,6 +17,7 @@ registration with the Invenio framework.
 from __future__ import annotations
 
 import itertools
+import threading
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
@@ -35,6 +36,14 @@ from .errors import ApplyCustomizationError
 from .model import InvenioModel
 from .register import register_model, unregister_model
 from .sorter import sort_presets
+
+#: The `InvenioModel` currently being built on this thread, if any (`.value`,
+#: absent/None outside of a `_internal_model` call). Lets code that runs
+#: synchronously during a build (e.g. DataType.create_* methods) find out
+#: which model they are being built for without it being threaded explicitly
+#: through every call - see InternalRelationDataType for the motivating case
+#: (ir.md, "The `model` key").
+current_model: threading.local = threading.local()
 
 
 class FunctionalPreset:
@@ -205,124 +214,136 @@ def _internal_model(  # noqa: PLR0913 too many arguments
         record_type=record_type,
     )
 
-    FunctionalPreset.call(
-        functional_presets,
-        "before_populate_type_registry",
-        model=model,
-        types=types,
-        presets=presets,
-        customizations=customizations,
-        params=params,
-    )
+    # populate current_model for the whole duration of the build below, so
+    # that code running synchronously during the build (e.g. DataType.create_*
+    # methods) can find out which model is being built without it being
+    # threaded explicitly through every call - see the current_model
+    # docstring above. Saving/restoring the previous value (rather than just
+    # clearing it in `finally`) keeps nested model() calls on the same thread
+    # correct, should they ever occur.
+    previous_model = getattr(current_model, "value", None)
+    current_model.value = model
+    try:
+        FunctionalPreset.call(
+            functional_presets,
+            "before_populate_type_registry",
+            model=model,
+            types=types,
+            presets=presets,
+            customizations=customizations,
+            params=params,
+        )
 
-    type_registry = populate_type_registry(list(types) if types is not None else None)
+        type_registry = populate_type_registry(list(types) if types is not None else None)
 
-    FunctionalPreset.call(
-        functional_presets,
-        "after_populate_type_registry",
-        model=model,
-        types=types,
-        presets=presets,
-        customizations=customizations,
-        params=params,
-    )
+        FunctionalPreset.call(
+            functional_presets,
+            "after_populate_type_registry",
+            model=model,
+            types=types,
+            presets=presets,
+            customizations=customizations,
+            params=params,
+        )
 
-    builder = InvenioModelBuilder(model, type_registry)
+        builder = InvenioModelBuilder(model, type_registry)
 
-    FunctionalPreset.call(
-        functional_presets,
-        "after_builder_created",
-        model=model,
-        types=types,
-        presets=presets,
-        builder=builder,
-        customizations=customizations,
-        params=params,
-    )
+        FunctionalPreset.call(
+            functional_presets,
+            "after_builder_created",
+            model=model,
+            types=types,
+            presets=presets,
+            builder=builder,
+            customizations=customizations,
+            params=params,
+        )
 
-    # filter out presets that do not have only_if condition satisfied
-    sorted_presets = filter_only_if(flattened_presets)
+        # filter out presets that do not have only_if condition satisfied
+        sorted_presets = filter_only_if(flattened_presets)
 
-    sorted_presets = sort_presets(sorted_presets)
+        sorted_presets = sort_presets(sorted_presets)
 
-    FunctionalPreset.call(
-        functional_presets,
-        "after_presets_sorted",
-        model=model,
-        types=types,
-        presets=presets,
-        builder=builder,
-        customizations=customizations,
-        params=params,
-    )
+        FunctionalPreset.call(
+            functional_presets,
+            "after_presets_sorted",
+            model=model,
+            types=types,
+            presets=presets,
+            builder=builder,
+            customizations=customizations,
+            params=params,
+        )
 
-    user_customizations: list[Customization] = list(customizations or ())
+        user_customizations: list[Customization] = list(customizations or ())
 
-    preset_idx = 0
-    while preset_idx < len(sorted_presets):
-        preset = sorted_presets[preset_idx]
-        preset_idx += 1
+        preset_idx = 0
+        while preset_idx < len(sorted_presets):
+            preset = sorted_presets[preset_idx]
+            preset_idx += 1
 
-        # if preset depends on something, make sure user customizations
-        # for that dependency are applied
-        idx = 0
-        while idx < len(user_customizations):
-            customization = user_customizations[idx]
-            if customization.name in preset.depends_on:
+            # if preset depends on something, make sure user customizations
+            # for that dependency are applied
+            idx = 0
+            while idx < len(user_customizations):
+                customization = user_customizations[idx]
+                if customization.name in preset.depends_on:
+                    try:
+                        customization.apply(builder, model)
+                    except Exception as e:
+                        raise ApplyCustomizationError(
+                            f"Error evaluating user customization {customization} while applying preset {preset}",
+                        ) from e
+                    user_customizations.pop(idx)
+                else:
+                    idx += 1
+
+            build_dependencies = {dep: builder.build_partial(dep) for dep in preset.depends_on}
+            for customization in preset.apply(builder, model, build_dependencies):
                 try:
                     customization.apply(builder, model)
                 except Exception as e:
                     raise ApplyCustomizationError(
-                        f"Error evaluating user customization {customization} while applying preset {preset}",
+                        f"Error evaluating user customization {customization} while applying preset {preset}: {e}",
                     ) from e
-                user_customizations.pop(idx)
-            else:
-                idx += 1
 
-        build_dependencies = {dep: builder.build_partial(dep) for dep in preset.depends_on}
-        for customization in preset.apply(builder, model, build_dependencies):
-            try:
-                customization.apply(builder, model)
-            except Exception as e:
-                raise ApplyCustomizationError(
-                    f"Error evaluating user customization {customization} while applying preset {preset}: {e}",
-                ) from e
+        for customization in user_customizations:
+            # apply user customizations that were not handled by presets
+            customization.apply(builder, model)
 
-    for customization in user_customizations:
-        # apply user customizations that were not handled by presets
-        customization.apply(builder, model)
+        FunctionalPreset.call(
+            functional_presets,
+            "after_user_customizations_applied",
+            model=model,
+            types=types,
+            presets=presets,
+            builder=builder,
+            customizations=customizations,
+            params=params,
+        )
 
-    FunctionalPreset.call(
-        functional_presets,
-        "after_user_customizations_applied",
-        model=model,
-        types=types,
-        presets=presets,
-        builder=builder,
-        customizations=customizations,
-        params=params,
-    )
+        # maybe replace this with a LazyNamespace if there are dependency issues
+        ret = builder.build()
+        run_checks(ret)
 
-    # maybe replace this with a LazyNamespace if there are dependency issues
-    ret = builder.build()
-    run_checks(ret)
+        ret.register = partial(register_model, model=model, namespace=ret)
+        ret.unregister = partial(unregister_model, model=model)
+        ret.get_resources = partial(get_model_resources, model=model, namespace=ret)
 
-    ret.register = partial(register_model, model=model, namespace=ret)
-    ret.unregister = partial(unregister_model, model=model)
-    ret.get_resources = partial(get_model_resources, model=model, namespace=ret)
-
-    FunctionalPreset.call(
-        functional_presets,
-        "after_model_built",
-        model=model,
-        types=types,
-        presets=presets,
-        builder=builder,
-        customizations=customizations,
-        model_namespace=ret,
-        params=params,
-    )
-    return ret
+        FunctionalPreset.call(
+            functional_presets,
+            "after_model_built",
+            model=model,
+            types=types,
+            presets=presets,
+            builder=builder,
+            customizations=customizations,
+            model_namespace=ret,
+            params=params,
+        )
+        return ret
+    finally:
+        current_model.value = previous_model
 
 
 def get_model_resources(model: InvenioModel, namespace: SimpleNamespace) -> dict[str, str]:
