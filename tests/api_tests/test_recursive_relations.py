@@ -396,7 +396,7 @@ def test_recursive_relations_facets_warning(caplog):
                 "direct": {
                     "type": "pid-relation",
                     "keys": ["id", "metadata.title"],
-                    "model": "recursive_relations_facets_warning_test",
+                    "model": "rrf_warning_test",
                 },
                 "title": {"type": "keyword"},
             },
@@ -405,7 +405,7 @@ def test_recursive_relations_facets_warning(caplog):
 
     with caplog.at_level("WARNING", logger="oarepo_model"):
         m = model(
-            name="recursive_relations_facets_warning_test",
+            name="rrf_warning_test",
             version="1.0.0",
             presets=[records_resources_preset, relations_preset],
             types=[types],
@@ -417,4 +417,4 @@ def test_recursive_relations_facets_warning(caplog):
     assert not hasattr(m.facets, "metadata.direct.id")
     warnings = [r for r in caplog.records if "Cannot generate facets for the pid-relation's 'keys'" in r.message]
     assert len(warnings) == 1
-    assert "recursive_relations_facets_warning_test" in warnings[0].message
+    assert "rrf_warning_test" in warnings[0].message
