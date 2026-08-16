@@ -26,7 +26,7 @@ from oarepo_model.utils import resolve_file_content
 
 
 def test_internal_relation_mapping_and_jsonschema(app, internal_relation_model):
-    """The lazily-resolved mapping/json schema should reflect the target_paths' real fields."""
+    """The lazily-resolved mapping/json schema should reflect the target's real fields."""
     m = internal_relation_model
 
     mapping = json.loads(resolve_file_content(m.__files__["internal/primary_mapping.json"]))
@@ -42,7 +42,7 @@ def test_internal_relation_mapping_and_jsonschema(app, internal_relation_model):
 
 
 def test_internal_relation_marshmallow_schema(app, internal_relation_model):
-    """LazyInternalMarshmallowSchema should resolve 'keys' against the target_paths' real fields."""
+    """LazyInternalMarshmallowSchema should resolve 'keys' against the target's real fields."""
     schema_cls = internal_relation_model.proxies.current_service.schema.schema
     field = schema_cls().fields["metadata"].schema.fields["primary_protein"]
 
@@ -54,7 +54,7 @@ def test_internal_relation_marshmallow_schema(app, internal_relation_model):
 
 
 def test_internal_relation_ui_model(app, internal_relation_model):
-    """LazyInternalUIModelChildren should resolve 'keys' against the target_paths' real ui model."""
+    """LazyInternalUIModelChildren should resolve 'keys' against the target's real ui model."""
     ui_model = internal_relation_model.ui_model
     pp_ui = ui_model["children"]["metadata"]["children"]["primary_protein"]
     pp_ui_children = dict(pp_ui["children"])
@@ -69,7 +69,7 @@ def test_internal_relation_field_registered(app, internal_relation_model):
 
     field = internal_relation_model.Record.relations._fields["metadata.primary_protein"]
     assert isinstance(field, InternalRelation)
-    assert field.target_paths == ["metadata.proteins", "metadata.instruments"]
+    assert field.target_paths == ["metadata.proteins"]
 
 
 def test_internal_relation_resolve(app, internal_relation_model):

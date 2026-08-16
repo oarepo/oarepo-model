@@ -17,12 +17,10 @@ https://github.com/oarepo/oarepo-runtime/pull/420).
 An internal relation's target is always the model currently being built - it
 can never be introspected eagerly the way PIDRelation.create_mapping/
 create_json_schema/etc. can for an already-built external model, since the
-model that owns the target_paths is still under construction while this data
+model that owns the target_path is still under construction while this data
 type's create_* methods run. Every InternalRelationDataType field is therefore
-always resolved lazily, reusing (and, where the shape differs because there
-may be several target_paths instead of a single target model, extending) the
-Lazy* helpers PIDRelation already uses for its own self-referencing case - see
-relations.py.
+always resolved lazily, reusing the Lazy* helpers PIDRelation already uses for
+its own self-referencing case - see relations.py.
 
 The `internal_relations = InternalRelations()` lookup-table system field itself
 (needed on the Record class for this data type's fields to actually resolve at
@@ -147,35 +145,18 @@ def _unwrap_nested_field(field: marshmallow.fields.Field | None) -> marshmallow.
     return field if isinstance(field, marshmallow.fields.Nested) else None
 
 
-def _merge_across_target_paths(
-    resolve_one: Any,
-    target_paths: list[str],
-) -> dict[str, Any]:
-    """Merge the per-target_path property mappings `resolve_one` returns into one.
-
-    Earlier target_paths win on key collisions, mirroring
-    InternalRelationResult.resolve()'s runtime behaviour of trying each
-    target_path in order and returning the first match.
-    """
-    merged: dict[str, Any] = {}
-    for target_path in target_paths:
-        for key, value in (resolve_one(target_path) or {}).items():
-            merged.setdefault(key, value)
-    return merged
-
-
 class LazyInternalMapping(LazyModelJSONFile):
-    """Lazily resolves an internal-relation's mapping properties across its target_paths."""
+    """Lazily resolves an internal-relation's mapping properties from its target_path."""
 
-    def __init__(self, model: str, target_paths: list[str], keys: list[str] | None = None) -> None:
-        """Initialize with the (self-referencing) model name, target_paths and keys."""
+    def __init__(self, model: str, target_path: str, keys: list[str] | None = None) -> None:
+        """Initialize with the (self-referencing) model name, target_path and keys."""
         super().__init__(model, keys, "internal/primary_mapping.json")
-        self._target_paths = target_paths
+        self._target_path = target_path
 
     @override
     def _get_source_properties(self, loaded: Any) -> dict[str, Any]:
         root = cast("dict[str, Any]", loaded["mappings"]["properties"])
-        return _merge_across_target_paths(lambda p: _walk_mapping_path(root, p), self._target_paths)
+        return _walk_mapping_path(root, self._target_path) or {}
 
     @override
     def _ensure(self) -> None:
@@ -187,17 +168,17 @@ class LazyInternalMapping(LazyModelJSONFile):
 
 
 class LazyInternalJSONSchema(LazyModelJSONFile):
-    """Lazily resolves an internal-relation's json schema properties across its target_paths."""
+    """Lazily resolves an internal-relation's json schema properties from its target_path."""
 
-    def __init__(self, model: str, target_paths: list[str], keys: list[str] | None = None) -> None:
-        """Initialize with the (self-referencing) model name, target_paths and keys."""
+    def __init__(self, model: str, target_path: str, keys: list[str] | None = None) -> None:
+        """Initialize with the (self-referencing) model name, target_path and keys."""
         super().__init__(model, keys, "internal/primary_jsonschema.json")
-        self._target_paths = target_paths
+        self._target_path = target_path
 
     @override
     def _get_source_properties(self, loaded: Any) -> dict[str, Any]:
         root = cast("dict[str, Any]", loaded["properties"])
-        return _merge_across_target_paths(lambda p: _walk_type_tree_path(root, p), self._target_paths)
+        return _walk_type_tree_path(root, self._target_path) or {}
 
     @override
     def _ensure(self) -> None:
@@ -208,31 +189,28 @@ class LazyInternalJSONSchema(LazyModelJSONFile):
 
 
 class LazyInternalUIModelChildren(LazyUIModelChildren):
-    """Lazily resolves an internal-relation's UI model 'children' across its target_paths."""
+    """Lazily resolves an internal-relation's UI model 'children' from its target_path."""
 
-    def __init__(self, model: str, target_paths: list[str], keys: list[str] | None = None) -> None:
-        """Initialize with the (self-referencing) model name, target_paths and keys."""
+    def __init__(self, model: str, target_path: str, keys: list[str] | None = None) -> None:
+        """Initialize with the (self-referencing) model name, target_path and keys."""
         super().__init__(model, keys)
-        self._target_paths = target_paths
+        self._target_path = target_path
 
     @override
     def _get_source_properties(self) -> dict[str, Any]:
         root = super()._get_source_properties()
-        return _merge_across_target_paths(lambda p: _walk_ui_model_path(root, p), self._target_paths)
+        return _walk_ui_model_path(root, self._target_path) or {}
 
 
 class LazyProxiedInternalMarshmallowSchema(LazyProxiedMarshmallowSchema):
-    """Lazily builds a marshmallow schema by resolving 'keys' across multiple target_paths.
+    """Lazily builds a marshmallow schema by resolving 'keys' against a single target_path.
 
     Concrete subclasses (LazyInternalMarshmallowSchema/LazyInternalUIMarshmallowSchema)
-    additionally set `target_paths` (on top of `model`/`keys`, see
-    LazyProxiedMarshmallowSchema) - each `keys` entry is resolved against the
-    first target_path whose (possibly nested) schema actually has it, mirroring
-    InternalRelationResult.resolve()'s "try every target_path in order" runtime
-    behaviour.
+    additionally set `target_path` (on top of `model`/`keys`, see
+    LazyProxiedMarshmallowSchema).
     """
 
-    target_paths: ClassVar[list[str]] = []
+    target_path: ClassVar[str] = ""
 
     @classmethod
     def _descend(cls, schema: marshmallow.Schema, path: str) -> marshmallow.Schema | None:
@@ -253,29 +231,27 @@ class LazyProxiedInternalMarshmallowSchema(LazyProxiedMarshmallowSchema):
     @classmethod
     def _resolve_field(
         cls,
-        target_schemas: list[marshmallow.Schema | None],
+        target_schema: marshmallow.Schema | None,
         parts: list[str],
     ) -> marshmallow.fields.Field | None:
-        for target_schema in target_schemas:
-            if target_schema is None:
-                continue
-            source_schema = target_schema
-            try:
-                for part in parts[:-1]:
-                    nested = _unwrap_nested_field(source_schema.fields[part])
-                    if nested is None:
-                        raise TypeError(f"Field {part!r} is not a nested field.")
-                    source_schema = nested.schema
-                return source_schema.fields[parts[-1]]
-            except (KeyError, TypeError):
-                continue
-        return None
+        if target_schema is None:
+            return None
+        source_schema = target_schema
+        try:
+            for part in parts[:-1]:
+                nested = _unwrap_nested_field(source_schema.fields[part])
+                if nested is None:
+                    raise TypeError(f"Field {part!r} is not a nested field.")
+                source_schema = nested.schema
+            return source_schema.fields[parts[-1]]
+        except (KeyError, TypeError):
+            return None
 
     @classmethod
     @override
     def _create_proxied_marshmallow(cls) -> type[marshmallow.Schema]:
         own_schema = cls._get_target_schema()
-        target_schemas = [cls._descend(own_schema, path) for path in cls.target_paths]
+        target_schema = cls._descend(own_schema, cls.target_path)
 
         tree: dict[str, Any] = {}
         for key in cls.keys or []:
@@ -283,14 +259,14 @@ class LazyProxiedInternalMarshmallowSchema(LazyProxiedMarshmallowSchema):
             dest = tree
             for part in parts[:-1]:
                 dest = dest.setdefault(part, {})
-            field = cls._resolve_field(target_schemas, parts)
+            field = cls._resolve_field(target_schema, parts)
             dest[parts[-1]] = field if field is not None else cls._missing_field(key)
 
         return cls._build_schema_class(cls.__name__, tree)
 
 
 class LazyInternalMarshmallowSchema(LazyProxiedInternalMarshmallowSchema):
-    """Lazily resolves an internal-relation's marshmallow schema across its target_paths."""
+    """Lazily resolves an internal-relation's marshmallow schema from its target_path."""
 
     @classmethod
     @override
@@ -303,7 +279,7 @@ class LazyInternalMarshmallowSchema(LazyProxiedInternalMarshmallowSchema):
 
 
 class LazyInternalUIMarshmallowSchema(LazyProxiedInternalMarshmallowSchema):
-    """Lazily resolves an internal-relation's UI marshmallow schema across its target_paths."""
+    """Lazily resolves an internal-relation's UI marshmallow schema from its target_path."""
 
     @classmethod
     @override
@@ -326,9 +302,7 @@ class InternalRelationDataType(ObjectDataType):
     ```yaml
     a:
         type: internal-relation
-        target_paths:
-        - metadata.proteins
-        - metadata.instruments
+        target: metadata.proteins
         keys:
         - id
         - name
@@ -352,14 +326,14 @@ class InternalRelationDataType(ObjectDataType):
 
     marshmallow_field_class = marshmallow.fields.Nested
 
-    def _target_paths(self, element: dict[str, Any]) -> list[str]:
-        """Return the (required) 'target_paths' declared on the element."""
-        target_paths = element.get("target_paths")
-        if not target_paths:
+    def _target_path(self, element: dict[str, Any]) -> str:
+        """Return the (required) 'target' path declared on the element."""
+        target = element.get("target")
+        if not target:
             raise ValueError(
-                "'target_paths' key is required for an internal-relation element.",
+                "'target' key is required for an internal-relation element.",
             )
-        return list(target_paths)
+        return cast("str", target)
 
     def _model(self, element: dict[str, Any]) -> str:
         """Return the (required) 'model' declared on the element.
@@ -392,7 +366,7 @@ class InternalRelationDataType(ObjectDataType):
         """Create facets for the internal-relation's own 'keys'.
 
         Mirrors PIDRelation.get_facet's self-referencing branch - an internal
-        relation's target_paths always point into the model currently being
+        relation's target always points into the model currently being
         built, so (unlike create_mapping/create_json_schema/create_relations/
         create_ui_model) there is nowhere to defer facet generation to (facet
         *names* must be known synchronously, at build time - see
@@ -404,11 +378,11 @@ class InternalRelationDataType(ObjectDataType):
         if "properties" not in element:
             log.warning(
                 "Cannot generate facets for the internal-relation's 'keys' because "
-                "its target_paths %r point into the model currently being built and "
+                "its target %r points into the model currently being built and "
                 "can not be introspected yet. No facets will be generated for this "
                 "relation's keys - declare 'properties' explicitly if this is not "
                 "sufficient.",
-                element.get("target_paths"),
+                element.get("target"),
             )
             return facets
 
@@ -429,8 +403,8 @@ class InternalRelationDataType(ObjectDataType):
         """Get the (explicit or keyword-fallback) properties for this relation's 'keys'.
 
         Unlike PIDRelation._get_properties, there is no eager branch - an
-        internal relation's target_paths can never be introspected while the
-        model that owns them is still being built (see the module docstring),
+        internal relation's target can never be introspected while the
+        model that owns it is still being built (see the module docstring),
         so this always falls back to "keyword" per key, same as PIDRelation's
         own self-referencing fallback.
         """
@@ -443,10 +417,10 @@ class InternalRelationDataType(ObjectDataType):
 
         log.warning(
             "Cannot determine the properties of the internal-relation's 'keys' "
-            "because its target_paths %r point into the model currently being "
+            "because its target %r points into the model currently being "
             "built. Falling back to 'keyword' for every key - declare 'properties' "
             "explicitly if this is not sufficient.",
-            element.get("target_paths"),
+            element.get("target"),
         )
 
         ret: dict[str, Any] = {}
@@ -471,7 +445,7 @@ class InternalRelationDataType(ObjectDataType):
             "dynamic": "strict",
             "properties": LazyInternalMapping(
                 self._model(element),
-                self._target_paths(element),
+                self._target_path(element),
                 element.get("keys", []),
             ),
         }
@@ -483,7 +457,7 @@ class InternalRelationDataType(ObjectDataType):
             "unevaluatedProperties": False,
             "properties": LazyInternalJSONSchema(
                 self._model(element),
-                self._target_paths(element),
+                self._target_path(element),
                 element.get("keys", []),
             ),
         }
@@ -495,7 +469,7 @@ class InternalRelationDataType(ObjectDataType):
             (LazyInternalMarshmallowSchema,),
             {
                 "model": self._model(element),
-                "target_paths": self._target_paths(element),
+                "target_path": self._target_path(element),
                 "keys": element.get("keys", []),
             },
         )
@@ -507,7 +481,7 @@ class InternalRelationDataType(ObjectDataType):
             (LazyInternalUIMarshmallowSchema,),
             {
                 "model": self._model(element),
-                "target_paths": self._target_paths(element),
+                "target_path": self._target_path(element),
                 "keys": element.get("keys", []),
             },
         )
@@ -521,7 +495,7 @@ class InternalRelationDataType(ObjectDataType):
         ret = DataType.create_ui_model(self, element, path)
         ret["children"] = LazyInternalUIModelChildren(
             self._model(element),
-            self._target_paths(element),
+            self._target_path(element),
             element.get("keys", []),
         )
         return ret
@@ -534,7 +508,7 @@ class InternalRelationDataType(ObjectDataType):
     ) -> list[Customization]:
         relation_path = relation_path_from_customization_path(path)
         relation_name = relation_name_from_path(relation_path)
-        target_paths = self._target_paths(element)
+        target_path = self._target_path(element)
         key_names = key_names_from_keys(element.get("keys", []))
 
         relations: list[Customization] = [
@@ -542,7 +516,7 @@ class InternalRelationDataType(ObjectDataType):
                 name=relation_name,
                 path=relation_path,
                 keys=key_names,
-                target_paths=target_paths,
+                target_path=target_path,
                 **element.get("relation_field_kwargs", {}),
             ),
         ]
@@ -578,19 +552,16 @@ class InternalRelationDataType(ObjectDataType):
         """Materialize this relation's nested relation fields, called lazily.
 
         Mirrors PIDRelation._resolve_nested_relation_fields, but the tree to
-        walk is the union of the (by then fully built and registered) own
-        model's declared schema at each of this relation's target_paths,
-        instead of a single external target's schema.
+        walk is the (by then fully built and registered) own model's declared
+        schema at this relation's target_path, instead of a single external
+        target's schema.
         """
         own_model = self._model(element)
         root_properties = resolve_declared_root_properties(f"runtime_models_{own_model}")
-        merged_properties = _merge_across_target_paths(
-            lambda p: _walk_type_tree_path(root_properties, p),
-            self._target_paths(element),
-        )
+        target_properties = _walk_type_tree_path(root_properties, self._target_path(element)) or {}
 
         fields: dict[str, RelationBase] = {}
-        for prop_name, prop in merged_properties.items():
+        for prop_name, prop in target_properties.items():
             for customization in self._registry.get_type(prop).create_relations(prop, [*path, (prop_name, prop)]):
                 if not isinstance(customization, RelationFieldCustomization):
                     continue

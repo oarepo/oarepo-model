@@ -755,7 +755,7 @@ internal_relation_model_types = {
             },
             "primary_protein": {
                 "type": "internal-relation",
-                "target_paths": ["metadata.proteins", "metadata.instruments"],
+                "target": "metadata.proteins",
                 "keys": ["id", "name"],
                 "model": "internal_relation_test",
             },
@@ -815,7 +815,7 @@ internal_relation_draft_model_types = {
             },
             "primary_protein": {
                 "type": "internal-relation",
-                "target_paths": ["metadata.proteins", "metadata.instruments"],
+                "target": "metadata.proteins",
                 "keys": ["id", "name"],
                 "model": "internal_relation_draft_test",
             },

@@ -38,7 +38,7 @@ class AddInternalRelation(RelationFieldCustomization):
         name: str,
         path: list[str | type[ARRAY_PATH_ITEM]],
         keys: list[str],
-        target_paths: list[str],
+        target_path: str,
         **kwargs: Any,
     ) -> None:
         """Initialize the AddInternalRelation customization.
@@ -48,15 +48,15 @@ class AddInternalRelation(RelationFieldCustomization):
         :param path: The path to the relation, in the same shape AddPIDRelation
             expects (see relation_path_from_customization_path).
         :param keys: The keys to embed from the resolved target.
-        :param target_paths: The record-relative paths InternalRelation looks the
+        :param target_path: The record-relative path InternalRelation looks the
             relation's ids up against (see oarepo_runtime's InternalRelations
-            system field - it must be configured with a superset of these paths).
+            system field - it must be configured with a superset of this path).
         """
         super().__init__("add_internal_relation")
         self.name = name
         self.path = path
         self.keys = keys
-        self.target_paths = target_paths
+        self.target_path = target_path
         self.kwargs = kwargs
 
     @override
@@ -68,10 +68,14 @@ class AddInternalRelation(RelationFieldCustomization):
         # which natively handles 0, 1 or arbitrarily many array levels via
         # array_paths/relation_field alone - unlike AddPIDRelation.build_relation_fields,
         # there is no need to branch on how many array markers were in the path.
+        #
+        # InternalRelation's own target_paths kwarg is a list (it can try
+        # several paths at runtime) - oarepo-model only exposes a single
+        # target_path, so it is wrapped in a one-element list here.
         field: RelationBase = InternalRelation(
             array_paths=array_paths,
             relation_field=relation_field,
-            target_paths=self.target_paths,
+            target_paths=[self.target_path],
             keys=self.keys,
             **self.kwargs,
         )
