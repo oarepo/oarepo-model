@@ -72,7 +72,19 @@ class AddInternalRelation(RelationFieldCustomization):
         # InternalRelation's own target_paths kwarg is a list (it can try
         # several paths at runtime) - oarepo-model only exposes a single
         # target_path, so it is wrapped in a one-element list here.
+        # RelationBase (the invenio_records base class InternalRelation ultimately
+        # extends) stores its first positional arg as `self.key` - the record-relative
+        # path at which the *whole* relation value lives, used by RelationDumperExt
+        # (dict_lookup(record, key)/dict_set(data, key, ...)) to dump the dereferenced
+        # value into the search index. AddPIDRelation derives the equivalent
+        # positionally (`relation_field` for a scalar relation, `array_paths[0]` for
+        # a relation living inside an array - see its case 0/1 branches); mirror that
+        # here rather than leaving `key` at its default of None, which would make the
+        # dumper raise "No lookup key specified" and skip the field entirely.
+        key = array_paths[0] if array_paths else relation_field
+
         field: RelationBase = InternalRelation(
+            key,
             array_paths=array_paths,
             relation_field=relation_field,
             target_paths=[self.target_path],

@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from oarepo_model.utils import resolve_file_content
 
 
@@ -125,3 +127,241 @@ def test_internal_relation_resolve_on_draft(app, internal_relation_draft_model):
 
     resolved = getattr(draft.relations, "metadata.primary_protein")()
     assert resolved["name"] == "Protein One"
+
+
+def test_internal_relation_service_create_and_search(
+    app,
+    identity_simple,
+    internal_relation_model,
+    search,
+    search_clear,
+    location,
+    db,
+):
+    """An internal relation should survive the full service create/index/dump cycle.
+
+    ir.md TODO 1: `test_internal_relation_resolve` only exercises `.resolve()`/
+    `()` against an in-memory `Record()` - it never goes through
+    `RelationDumperExt`/the real create -> index -> dump pipeline. This builds
+    a record via the actual service (mirroring
+    test_recursive_relations.py::test_recursive_relations and
+    test_relations.py::test_relations, the "normal"/"recursive" counterparts
+    of this same end-to-end check), confirms the dereferenced
+    'primary_protein.name' is present on the *create* response, and then -
+    the part none of the in-memory tests can show - confirms it was actually
+    dumped into the search index by querying OpenSearch for it directly.
+    """
+    Record = internal_relation_model.Record
+    service = internal_relation_model.proxies.current_service
+
+    rec = service.create(
+        identity_simple,
+        {
+            "files": {"enabled": False},
+            "metadata": {
+                "proteins": [
+                    {"id": "p1", "name": "Protein One"},
+                    {"id": "p2", "name": "Protein Two"},
+                ],
+                "instruments": [{"id": "i1", "name": "Instrument One"}],
+                "primary_protein": {"id": "p1"},
+            },
+        },
+    )
+
+    md = rec.data["metadata"]
+    assert md["primary_protein"]["id"] == "p1"
+    assert md["primary_protein"]["name"] == "Protein One"
+
+    # Refresh to make changes live
+    Record.index.refresh()
+
+    # The relation's embedded 'name' (not just the raw 'id') must be a real,
+    # queryable field in the index - not merely present in the create
+    # response - i.e. RelationDumperExt actually dumped the dereferenced
+    # value rather than the raw {"id": "p1"} into the indexed document.
+    hits = service.search(identity_simple, q='metadata.primary_protein.name:"Protein One"', size=25, page=1)
+    assert hits.total == 1, (
+        f"Expected 1 hit for 'Protein One', got {hits.total}. "
+        "This test exposes whether internal relations are dumped to OpenSearch correctly."
+    )
+    assert next(iter(hits.hits))["id"] == rec.id
+
+    # A query for the *other* protein's name (present elsewhere in the same
+    # record, in "proteins", but not the one "primary_protein" points at)
+    # must not match - confirming the index reflects the resolved relation,
+    # not just any "name" appearing anywhere in the record.
+    no_hits = service.search(identity_simple, q='metadata.primary_protein.name:"Protein Two"', size=25, page=1)
+    assert no_hits.total == 0
+
+
+def test_internal_relation_array_service_create_and_search(
+    app,
+    identity_simple,
+    internal_relation_array_model,
+    search,
+    search_clear,
+    location,
+    db,
+):
+    """Array internal relations should also survive the full service create/index/dump cycle.
+
+    ir.md TODO 1: Test the array case (used_instruments) in addition to the
+    scalar case (primary_protein). This creates a record with multiple
+    instruments and an array internal relation referencing them, then confirms
+    all dereferenced instrument names are queryable in OpenSearch.
+    """
+    Record = internal_relation_array_model.Record
+    service = internal_relation_array_model.proxies.current_service
+
+    rec = service.create(
+        identity_simple,
+        {
+            "files": {"enabled": False},
+            "metadata": {
+                "proteins": [
+                    {"id": "p1", "name": "Protein One"},
+                ],
+                "instruments": [
+                    {"id": "i1", "name": "Spectrometer A"},
+                    {"id": "i2", "name": "Microscope B"},
+                    {"id": "i3", "name": "Centrifuge C"},
+                ],
+                "primary_protein": {"id": "p1"},
+                "used_instruments": [{"id": "i1"}, {"id": "i3"}],
+            },
+        },
+    )
+
+    md = rec.data["metadata"]
+    # Scalar relation
+    assert md["primary_protein"]["id"] == "p1"
+    assert md["primary_protein"]["name"] == "Protein One"
+    # Array relation - verify the create response has dereferenced data
+    assert len(md["used_instruments"]) == 2
+    assert md["used_instruments"][0]["id"] == "i1"
+    assert md["used_instruments"][0]["name"] == "Spectrometer A"
+    assert md["used_instruments"][1]["id"] == "i3"
+    assert md["used_instruments"][1]["name"] == "Centrifuge C"
+
+    # Refresh to make changes live
+    Record.index.refresh()
+
+    # Query for each instrument name that IS in the array relation
+    # Note: This may fail if array internal relations aren't dumped correctly
+    for instrument_name in ["Spectrometer A", "Centrifuge C"]:
+        hits = service.search(
+            identity_simple, q=f'metadata.used_instruments.name:"{instrument_name}"', size=25, page=1
+        )
+        assert hits.total == 1, f"Expected 1 hit for {instrument_name}, got {hits.total}. This test exposes whether array internal relations are dumped correctly."
+        assert next(iter(hits.hits))["id"] == rec.id
+
+    # Query for an instrument name that is in the record but NOT in the relation
+    no_hits = service.search(
+        identity_simple, q='metadata.used_instruments.name:"Microscope B"', size=25, page=1
+    )
+    assert no_hits.total == 0
+
+
+def test_internal_relation_validate_nonexistent_id(
+    app,
+    identity_simple,
+    internal_relation_model,
+    search,
+    search_clear,
+    location,
+    db,
+):
+    """Internal relations should validate that referenced ids actually exist.
+
+    ir.md TODO 1: Verify that validation raises InvalidRelationValue when
+    referencing an id that doesn't exist in any of the field's target_paths.
+    """
+    from invenio_records.systemfields.relations.errors import InvalidRelationValue
+
+    Record = internal_relation_model.Record
+    service = internal_relation_model.proxies.current_service
+
+    # First, create a valid record to use as a base
+    valid_rec = service.create(
+        identity_simple,
+        {
+            "files": {"enabled": False},
+            "metadata": {
+                "proteins": [{"id": "p1", "name": "Protein One"}],
+                "instruments": [{"id": "i1", "name": "Instrument One"}],
+                "primary_protein": {"id": "p1"},
+            },
+        },
+    )
+
+    # Try to update with a non-existent protein id - should fail validation
+    with pytest.raises(InvalidRelationValue) as exc_info:
+        service.update(
+            identity_simple,
+            valid_rec.id,
+            {
+                "files": {"enabled": False},
+                "metadata": {
+                    "proteins": [{"id": "p1", "name": "Protein One"}],
+                    "instruments": [{"id": "i1", "name": "Instrument One"}],
+                    "primary_protein": {"id": "nonexistent"},  # This id doesn't exist
+                },
+            },
+        )
+
+    # The error message should mention the invalid id
+    assert "nonexistent" in str(exc_info.value)
+
+
+def test_internal_relation_add_and_reference_same_request(
+    app,
+    identity_simple,
+    internal_relation_model,
+    search,
+    search_clear,
+    location,
+    db,
+):
+    """Can add a new item and reference it in the same service.create() call.
+
+    ir.md TODO 1: Test that adding a new protein and referencing it as
+    primary_protein in the same request works correctly. The lookup table
+    should be built after all data is in place, so newly added items should
+    be resolvable.
+    """
+    Record = internal_relation_model.Record
+    service = internal_relation_model.proxies.current_service
+
+    # Create a record with a NEW protein and reference it immediately
+    rec = service.create(
+        identity_simple,
+        {
+            "files": {"enabled": False},
+            "metadata": {
+                "proteins": [
+                    {"id": "p-new", "name": "Brand New Protein"},
+                    {"id": "p-existing", "name": "Existing Protein"},
+                ],
+                "instruments": [{"id": "i1", "name": "Instrument One"}],
+                "primary_protein": {"id": "p-new"},  # Reference the newly added protein
+            },
+        },
+    )
+
+    md = rec.data["metadata"]
+    # The newly added protein should be resolvable in the create response
+    assert md["primary_protein"]["id"] == "p-new"
+    assert md["primary_protein"]["name"] == "Brand New Protein"
+
+    # Refresh and verify it was dumped correctly
+    # Note: This assertion may fail if internal relations aren't dumped correctly
+    Record.index.refresh()
+    hits = service.search(
+        identity_simple, q='metadata.primary_protein.name:"Brand New Protein"', size=25, page=1
+    )
+    assert hits.total == 1, (
+        f"Expected 1 hit for 'Brand New Protein', got {hits.total}. "
+        "This test exposes whether internal relations are dumped to OpenSearch correctly."
+    )
+    assert next(iter(hits.hits))["id"] == rec.id
