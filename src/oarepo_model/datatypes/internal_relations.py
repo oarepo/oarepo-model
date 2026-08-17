@@ -255,7 +255,7 @@ class LazyProxiedInternalMarshmallowSchema(LazyProxiedMarshmallowSchema):
                     raise TypeError(f"Field {part!r} is not a nested field.")
                 source_schema = nested.schema
             return source_schema.fields[parts[-1]]
-        except (KeyError, TypeError):
+        except KeyError, TypeError:
             return None
 
     @classmethod

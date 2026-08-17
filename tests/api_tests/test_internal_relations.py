@@ -250,9 +250,7 @@ def test_internal_relation_array_service_create_and_search(
     # Query for each instrument name that IS in the array relation
     # Note: This may fail if array internal relations aren't dumped correctly
     for instrument_name in ["Spectrometer A", "Centrifuge C"]:
-        hits = service.search(
-            identity_simple, q=f'metadata.used_instruments.name:"{instrument_name}"', size=25, page=1
-        )
+        hits = service.search(identity_simple, q=f'metadata.used_instruments.name:"{instrument_name}"', size=25, page=1)
         assert hits.total == 1, (
             f"Expected 1 hit for {instrument_name}, got {hits.total}. "
             "This test exposes whether array internal relations are dumped correctly."
@@ -260,9 +258,7 @@ def test_internal_relation_array_service_create_and_search(
         assert next(iter(hits.hits))["id"] == rec.id
 
     # Query for an instrument name that is in the record but NOT in the relation
-    no_hits = service.search(
-        identity_simple, q='metadata.used_instruments.name:"Microscope B"', size=25, page=1
-    )
+    no_hits = service.search(identity_simple, q='metadata.used_instruments.name:"Microscope B"', size=25, page=1)
     assert no_hits.total == 0
 
 
@@ -358,9 +354,7 @@ def test_internal_relation_add_and_reference_same_request(
     # Refresh and verify it was dumped correctly
     # Note: This assertion may fail if internal relations aren't dumped correctly
     Record.index.refresh()
-    hits = service.search(
-        identity_simple, q='metadata.primary_protein.name:"Brand New Protein"', size=25, page=1
-    )
+    hits = service.search(identity_simple, q='metadata.primary_protein.name:"Brand New Protein"', size=25, page=1)
     assert hits.total == 1, (
         f"Expected 1 hit for 'Brand New Protein', got {hits.total}. "
         "This test exposes whether internal relations are dumped to OpenSearch correctly."

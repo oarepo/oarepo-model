@@ -250,7 +250,7 @@ class LazyUIModelChildren(Mapping):
         LazyInternalUIModelChildren in datatypes/internal_relations.py.
         """
         namespace = cast("SimpleNamespace", current_runtime.models[self._model].namespace)
-        return cast("dict[str, Any]", namespace.ui_model).get("children", {})
+        return cast("dict[str, Any]", namespace.ui_model.get("children", {}))
 
     def _ensure(self) -> None:
         """Resolve the ui model children on first use."""
