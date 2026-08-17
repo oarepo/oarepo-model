@@ -117,8 +117,8 @@ def test_internal_relation_model_features(
     import oarepo_runtime
 
     # check version of oarepo-runtime package, the actual provider of
-    # InternalRelation/InternalRelations (see ir.md) - unlike "relations",
-    # which is backed by invenio-records-resources
+    # InternalRelation/InternalRelations - unlike "relations", which is
+    # backed by invenio-records-resources
     assert (
         app.extensions["oarepo-runtime"].models["ir_test"].features["internal-relations"]["version"]
         == oarepo_runtime.__version__

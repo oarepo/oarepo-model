@@ -41,8 +41,7 @@ from .sorter import sort_presets
 #: absent/None outside of a `_internal_model` call). Lets code that runs
 #: synchronously during a build (e.g. DataType.create_* methods) find out
 #: which model they are being built for without it being threaded explicitly
-#: through every call - see InternalRelationDataType for the motivating case
-#: (ir.md, "The `model` key").
+#: through every call - see InternalRelationDataType for the motivating case.
 current_model: threading.local = threading.local()
 
 

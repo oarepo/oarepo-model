@@ -23,11 +23,10 @@ always resolved lazily, reusing the Lazy* helpers PIDRelation already uses for
 its own self-referencing case - see relations.py.
 
 The `internal_relations = InternalRelations()` lookup-table system field itself
-(needed on the Record class for this data type's fields to actually resolve at
-runtime) is wired up by `presets.internal_relations.internal_relations_preset`
-- see that package's `InternalRelationsLookupPreset`. See ir.md (repository
-root) for the remaining design discussion and TODO list (most notably: the
-same wiring for the Draft class).
+(needed on the Record and Draft classes for this data type's fields to
+actually resolve at runtime) is wired up by
+`presets.internal_relations.internal_relations_preset` - see that package's
+`InternalRelationsLookupPreset`/`InternalRelationsDraftLookupPreset`.
 """
 
 from __future__ import annotations
@@ -156,11 +155,13 @@ class LazyInternalMapping(LazyModelJSONFile):
 
     @override
     def _get_source_properties(self, loaded: Any) -> dict[str, Any]:
+        """Return the mapping "properties" found by walking target_path down the loaded mapping."""
         root = cast("dict[str, Any]", loaded["mappings"]["properties"])
         return _walk_mapping_path(root, self._target_path) or {}
 
     @override
     def _ensure(self) -> None:
+        """Resolve the mapping data on first use, then add the "@v" marker field."""
         super()._ensure()
         # see the matching comment in relations.py's LazyMapping._ensure - the
         # "@v" marker is always present on a dereferenced relation object.
@@ -178,11 +179,13 @@ class LazyInternalJSONSchema(LazyModelJSONFile):
 
     @override
     def _get_source_properties(self, loaded: Any) -> dict[str, Any]:
+        """Return the "properties" found by walking target_path down the loaded json schema."""
         root = cast("dict[str, Any]", loaded["properties"])
         return _walk_type_tree_path(root, self._target_path) or {}
 
     @override
     def _ensure(self) -> None:
+        """Resolve the json schema data on first use, then add the "@v" marker field."""
         super()._ensure()
         # see the matching comment in relations.py's LazyJSONSchema._ensure.
         if "@v" not in self._data:
@@ -199,6 +202,7 @@ class LazyInternalUIModelChildren(LazyUIModelChildren):
 
     @override
     def _get_source_properties(self) -> dict[str, Any]:
+        """Return the ui model "children" found by walking target_path down the target's own children."""
         root = super()._get_source_properties()
         return _walk_ui_model_path(root, self._target_path) or {}
 
@@ -235,6 +239,12 @@ class LazyProxiedInternalMarshmallowSchema(LazyProxiedMarshmallowSchema):
         target_schema: marshmallow.Schema | None,
         parts: list[str],
     ) -> marshmallow.fields.Field | None:
+        """Resolve a dotted 'keys' entry (e.g. "metadata.title") against target_schema.
+
+        Descends one nested schema per part (unwrapping array-wrapped fields
+        via _unwrap_nested_field along the way), returning the final field, or
+        None if any part along the way is missing or not resolvable.
+        """
         if target_schema is None:
             return None
         source_schema = target_schema
@@ -251,6 +261,7 @@ class LazyProxiedInternalMarshmallowSchema(LazyProxiedMarshmallowSchema):
     @classmethod
     @override
     def _create_proxied_marshmallow(cls) -> type[marshmallow.Schema]:
+        """Build the real marshmallow schema by resolving 'keys' against target_path."""
         own_schema = cls._get_target_schema()
         target_schema = cls._descend(own_schema, cls.target_path)
 
@@ -272,6 +283,7 @@ class LazyInternalMarshmallowSchema(LazyProxiedInternalMarshmallowSchema):
     @classmethod
     @override
     def _get_target_schema(cls) -> marshmallow.Schema:
+        """Return the (self-referencing) model's own, by-now-built, record marshmallow schema."""
         schema_cls = cast(
             "type[marshmallow.Schema]",
             current_runtime.models[cls.model].service_config.schema,
@@ -285,12 +297,14 @@ class LazyInternalUIMarshmallowSchema(LazyProxiedInternalMarshmallowSchema):
     @classmethod
     @override
     def _get_target_schema(cls) -> marshmallow.Schema:
+        """Return the (self-referencing) model's own, by-now-built, UI marshmallow schema."""
         namespace = cast("SimpleNamespace", current_runtime.models[cls.model].namespace)
         return namespace.RecordUISchema()
 
     @classmethod
     @override
     def _missing_field(cls, key: str) -> marshmallow.fields.Field:
+        """Return a permissive fallback field for a 'keys' entry with no UI-specific counterpart."""
         # not every field has a UI-specific counterpart - see the matching
         # LazyUIMarshmallowSchema._missing_field in relations.py.
         return marshmallow.fields.Raw()
@@ -315,7 +329,7 @@ class InternalRelationDataType(ObjectDataType):
     Note: for this to actually resolve at runtime, the model must also include
     `presets.internal_relations.internal_relations_preset`, which adds the
     `internal_relations = InternalRelations()` lookup-table system field to
-    the Record class (Draft support is still a TODO - see ir.md).
+    the Record class (and, if the model uses drafts, the Draft class too).
     """
 
     TYPE = "internal-relation"
@@ -338,13 +352,13 @@ class InternalRelationDataType(ObjectDataType):
         record it is declared on) - read from api.current_model, the
         thread-local `_internal_model` populates for the whole duration of
         the build, rather than requiring an explicit (and always redundant)
-        'model' element key - see ir.md ("The `model` key").
+        'model' element key.
         """
         model = getattr(current_model, "value", None)
         if model is None:
             raise RuntimeError(
                 "InternalRelationDataType can only be used while a model is "
-                "being built (api.current_model is not set) - see ir.md.",
+                "being built (api.current_model is not set).",
             )
         return cast("str", model.name)
 
@@ -434,6 +448,12 @@ class InternalRelationDataType(ObjectDataType):
 
     @override
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Create a mapping for the data type.
+
+        Always lazy (see the module docstring) - the "properties" key is
+        backed by a LazyInternalMapping that only resolves target_path once
+        the model currently being built has been fully built and registered.
+        """
         return {
             **DataType.create_mapping(self, element),
             "dynamic": "strict",
@@ -446,6 +466,13 @@ class InternalRelationDataType(ObjectDataType):
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Create a json schema for the data type.
+
+        Always lazy (see the module docstring) - the "properties" key is
+        backed by a LazyInternalJSONSchema that only resolves target_path
+        once the model currently being built has been fully built and
+        registered.
+        """
         return {
             **DataType.create_json_schema(self, element),
             "unevaluatedProperties": False,
@@ -458,6 +485,12 @@ class InternalRelationDataType(ObjectDataType):
 
     @override
     def create_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
+        """Create a marshmallow schema for the data type.
+
+        Always lazy (see the module docstring) - returns a
+        LazyInternalMarshmallowSchema subclass that only builds the real
+        schema on first load()/dump(), once target_path can be resolved.
+        """
         return type(
             self.name,
             (LazyInternalMarshmallowSchema,),
@@ -470,6 +503,12 @@ class InternalRelationDataType(ObjectDataType):
 
     @override
     def create_ui_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
+        """Create a UI marshmallow schema for the data type.
+
+        Always lazy (see the module docstring) - returns a
+        LazyInternalUIMarshmallowSchema subclass that only builds the real
+        schema on first load()/dump(), once target_path can be resolved.
+        """
         return type(
             self.name,
             (LazyInternalUIMarshmallowSchema,),
@@ -486,6 +525,12 @@ class InternalRelationDataType(ObjectDataType):
         element: dict[str, Any],
         path: list[str],
     ) -> dict[str, Any]:
+        """Create a UI model for the data type.
+
+        Always lazy (see the module docstring) - the "children" key is backed
+        by a LazyInternalUIModelChildren that only resolves target_path once
+        the model currently being built has been fully built and registered.
+        """
         ret = DataType.create_ui_model(self, element, path)
         ret["children"] = LazyInternalUIModelChildren(
             self._model(),
@@ -500,6 +545,16 @@ class InternalRelationDataType(ObjectDataType):
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],
     ) -> list[Customization]:
+        """Build the customizations that register this relation and discover any nested ones.
+
+        Always emits an AddInternalRelation for the field itself. Nested
+        relations inside the resolved target's own 'keys' are then either
+        discovered eagerly (if 'properties' was declared explicitly) or
+        deferred via AddLazyRelation until the model currently being built is
+        fully built and registered (mirrors PIDRelation's self-referencing
+        branch, since an internal relation's target is always the model
+        currently being built).
+        """
         relation_path = relation_path_from_customization_path(path)
         relation_name = relation_name_from_path(relation_path)
         target_path = self._target_path(element)

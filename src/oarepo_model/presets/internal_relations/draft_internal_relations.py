@@ -51,7 +51,11 @@ class InternalRelationsDraftLookupPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
+        """Prepend an `internal_relations = InternalRelations()` mixin onto the Draft class."""
+
         class DraftWithInternalRelationsMixin:
+            """Mixin adding the internal-relations lookup-table field to the Draft class."""
+
             internal_relations = InternalRelations()
 
         yield PrependMixin(

@@ -12,8 +12,8 @@ This module provides the AddInternalRelation customization that creates an
 `oarepo_runtime.records.systemfields.relations.InternalRelation` system field -
 a relation that resolves against a part of the *same* record (via its
 `InternalRelations` lookup table system field) instead of an externally
-PID-resolved record. See datatypes/internal_relations.py for the data type that
-generates these customizations, and ir.md for the overall design/TODO list.
+PID-resolved record. See datatypes/internal_relations.py for the data type
+that generates these customizations.
 """
 
 from __future__ import annotations
@@ -61,6 +61,7 @@ class AddInternalRelation(RelationFieldCustomization):
 
     @override
     def build_relation_fields(self) -> Mapping[str, RelationBase]:
+        """Build the `InternalRelation` system field described by this customization."""
         relation_field, array_paths = merge_paths_between_arrays(self.path)
 
         # InternalRelation extends oarepo_runtime's ArbitraryPathRelation (not

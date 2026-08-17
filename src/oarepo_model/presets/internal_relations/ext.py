@@ -33,8 +33,8 @@ class InternalRelationsFeaturePreset(Preset):
 
     Mirrors `presets/relations/ext.py`'s `RelationsFeaturePreset` - records the
     `oarepo_runtime` version (the package `InternalRelation`/`InternalRelations`
-    actually come from, see ir.md) under the "internal-relations" feature key,
-    so consumers can introspect whether/which version of internal relations a
+    actually come from) under the "internal-relations" feature key, so
+    consumers can introspect whether/which version of internal relations a
     model has enabled via its `features` metadata, the same way they already
     can for "relations".
     """
@@ -48,7 +48,11 @@ class InternalRelationsFeaturePreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
+        """Prepend a mixin recording the "internal-relations" feature onto the Ext class."""
+
         class InternalRelationsFeatureMixin(RecordExtensionProtocol):
+            """Mixin adding the "internal-relations" entry to the extension's `features`."""
+
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""

@@ -140,10 +140,10 @@ def test_internal_relation_service_create_and_search(
 ):
     """An internal relation should survive the full service create/index/dump cycle.
 
-    ir.md TODO 1: `test_internal_relation_resolve` only exercises `.resolve()`/
-    `()` against an in-memory `Record()` - it never goes through
-    `RelationDumperExt`/the real create -> index -> dump pipeline. This builds
-    a record via the actual service (mirroring
+    `test_internal_relation_resolve` only exercises `.resolve()`/`()` against
+    an in-memory `Record()` - it never goes through `RelationDumperExt`/the
+    real create -> index -> dump pipeline. This builds a record via the
+    actual service (mirroring
     test_recursive_relations.py::test_recursive_relations and
     test_relations.py::test_relations, the "normal"/"recursive" counterparts
     of this same end-to-end check), confirms the dereferenced
@@ -206,10 +206,10 @@ def test_internal_relation_array_service_create_and_search(
 ):
     """Array internal relations should also survive the full service create/index/dump cycle.
 
-    ir.md TODO 1: Test the array case (used_instruments) in addition to the
-    scalar case (primary_protein). This creates a record with multiple
-    instruments and an array internal relation referencing them, then confirms
-    all dereferenced instrument names are queryable in OpenSearch.
+    Tests the array case (used_instruments) in addition to the scalar case
+    (primary_protein). This creates a record with multiple instruments and an
+    array internal relation referencing them, then confirms all dereferenced
+    instrument names are queryable in OpenSearch.
     """
     Record = internal_relation_array_model.Record
     service = internal_relation_array_model.proxies.current_service
@@ -253,7 +253,10 @@ def test_internal_relation_array_service_create_and_search(
         hits = service.search(
             identity_simple, q=f'metadata.used_instruments.name:"{instrument_name}"', size=25, page=1
         )
-        assert hits.total == 1, f"Expected 1 hit for {instrument_name}, got {hits.total}. This test exposes whether array internal relations are dumped correctly."
+        assert hits.total == 1, (
+            f"Expected 1 hit for {instrument_name}, got {hits.total}. "
+            "This test exposes whether array internal relations are dumped correctly."
+        )
         assert next(iter(hits.hits))["id"] == rec.id
 
     # Query for an instrument name that is in the record but NOT in the relation
@@ -274,12 +277,11 @@ def test_internal_relation_validate_nonexistent_id(
 ):
     """Internal relations should validate that referenced ids actually exist.
 
-    ir.md TODO 1: Verify that validation raises InvalidRelationValue when
-    referencing an id that doesn't exist in any of the field's target_paths.
+    Verifies that validation raises InvalidRelationValue when referencing an
+    id that doesn't exist in any of the field's target_paths.
     """
     from invenio_records.systemfields.relations.errors import InvalidRelationValue
 
-    Record = internal_relation_model.Record
     service = internal_relation_model.proxies.current_service
 
     # First, create a valid record to use as a base
@@ -325,10 +327,9 @@ def test_internal_relation_add_and_reference_same_request(
 ):
     """Can add a new item and reference it in the same service.create() call.
 
-    ir.md TODO 1: Test that adding a new protein and referencing it as
-    primary_protein in the same request works correctly. The lookup table
-    should be built after all data is in place, so newly added items should
-    be resolvable.
+    Tests that adding a new protein and referencing it as primary_protein in
+    the same request works correctly. The lookup table should be built after
+    all data is in place, so newly added items should be resolvable.
     """
     Record = internal_relation_model.Record
     service = internal_relation_model.proxies.current_service
