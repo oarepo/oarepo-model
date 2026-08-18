@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2025 CESNET z.s.p.o.
+# Copyright (c) 2026 University of West Bohemia
 #
 # This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
 #
