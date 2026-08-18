@@ -70,9 +70,6 @@ class AddInternalRelation(RelationFieldCustomization):
         # array_paths/relation_field alone - unlike AddPIDRelation.build_relation_fields,
         # there is no need to branch on how many array markers were in the path.
         #
-        # InternalRelation's own target_paths kwarg is a list (it can try
-        # several paths at runtime) - oarepo-model only exposes a single
-        # target_path, so it is wrapped in a one-element list here.
         # RelationBase (the invenio_records base class InternalRelation ultimately
         # extends) stores its first positional arg as `self.key` - the record-relative
         # path at which the *whole* relation value lives, used by RelationDumperExt
@@ -88,7 +85,7 @@ class AddInternalRelation(RelationFieldCustomization):
             key,
             array_paths=array_paths,
             relation_field=relation_field,
-            target_paths=[self.target_path],
+            target_path=self.target_path,
             keys=self.keys,
             **self.kwargs,
         )

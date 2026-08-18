@@ -71,7 +71,7 @@ def test_internal_relation_field_registered(app, internal_relation_model):
 
     field = internal_relation_model.Record.relations._fields["metadata.primary_protein"]
     assert isinstance(field, InternalRelation)
-    assert field.target_paths == ["metadata.proteins"]
+    assert field.target_path == "metadata.proteins"
 
 
 def test_internal_relation_resolve(app, internal_relation_model):
@@ -274,7 +274,7 @@ def test_internal_relation_validate_nonexistent_id(
     """Internal relations should validate that referenced ids actually exist.
 
     Verifies that validation raises InvalidRelationValue when referencing an
-    id that doesn't exist in any of the field's target_paths.
+    id that doesn't exist at the field's target_path.
     """
     from invenio_records.systemfields.relations.errors import InvalidRelationValue
 
