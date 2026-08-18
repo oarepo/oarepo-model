@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..utils import dump_to_json
+from ..utils import JSONContent
 from .add_file_to_module import AddFileToModule
 
 
@@ -38,10 +38,13 @@ class AddJSONFile(AddFileToModule):
         :param name: The name of the list to be added.
         :param exists_ok: Whether to ignore if the list already exists.
         """
+        # payload is serialized lazily, only when the file is actually read from
+        # the module's namespace - it might contain values (such as relation
+        # mappings) that can not be resolved yet while the model is being built.
         super().__init__(
             symbolic_name=symbolic_name,
             module_name=module_name,
             file_path=file_path,
-            file_content=dump_to_json(payload),
+            file_content=JSONContent(payload),
             exists_ok=exists_ok,
         )

@@ -20,6 +20,7 @@ from oarepo_model.customizations import (
     PatchIndexSettings,
 )
 from oarepo_model.customizations.high_level.index_mapping import recursively_remove_none
+from oarepo_model.utils import resolve_file_content
 
 
 def test_index_customizations():
@@ -29,12 +30,12 @@ def test_index_customizations():
     AddModule("blah").apply(builder, model)
     AddJSONFile("record-mapping", "blah", "blah.json", {}, exists_ok=True).apply(builder, model)
     PatchIndexSettings({"a": 1, "b": [1, 2], "c": {"d": 4, "e": 5}, "f": "blah"}).apply(builder, model)
-    assert json.loads(builder.get_file("record-mapping").content) == {
+    assert json.loads(resolve_file_content(builder.get_file("record-mapping").content)) == {
         "settings": {"a": 1, "b": [1, 2], "c": {"d": 4, "e": 5}, "f": "blah"}
     }
 
     PatchIndexSettings({"a": 5, "b": [4], "c": {"d": 1, "e": None}, "f": "abc"}).apply(builder, model)
-    assert json.loads(builder.get_file("record-mapping").content) == {
+    assert json.loads(resolve_file_content(builder.get_file("record-mapping").content)) == {
         "settings": {
             "a": 5,
             "b": [1, 2, 4],
@@ -43,7 +44,7 @@ def test_index_customizations():
         }
     }
     PatchIndexSettings({"a": 1}).apply(builder, model)
-    assert json.loads(builder.get_file("record-mapping").content) == {
+    assert json.loads(resolve_file_content(builder.get_file("record-mapping").content)) == {
         "settings": {
             "a": 5,
             "b": [1, 2, 4],
@@ -89,7 +90,7 @@ def test_index_mapping_customizations():
             }
         }
     ).apply(builder, model)
-    assert json.loads(builder.get_file("record-mapping").content) == {
+    assert json.loads(resolve_file_content(builder.get_file("record-mapping").content)) == {
         "mappings": {
             "properties": {
                 "a": {"type": "keyword"},
@@ -134,7 +135,7 @@ def test_patch_index_property_mapping():
     PatchIndexPropertyMapping("a", {"type": "keyword"}).apply(builder, model)
     PatchIndexPropertyMapping("c.d", {"type": "float"}).apply(builder, model)
     PatchIndexPropertyMapping("c.e", None).apply(builder, model)
-    assert json.loads(builder.get_file("record-mapping").content) == {
+    assert json.loads(resolve_file_content(builder.get_file("record-mapping").content)) == {
         "mappings": {
             "properties": {
                 "a": {

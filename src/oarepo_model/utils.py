@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import keyword
 import re
-from types import MappingProxyType
+from collections.abc import Callable, Mapping
 from typing import Any, override
 
 import marshmallow
@@ -152,8 +152,34 @@ def dump_to_json(obj: Any) -> str:
     """Dump an object to a JSON string."""
 
     def default_serializer(o: Any) -> Any:
-        if isinstance(o, MappingProxyType):
+        # covers MappingProxyType as well as any lazily-resolved mapping
+        # (e.g. LazyMapping), which are only realized into a plain dict here.
+        if isinstance(o, Mapping):
             return dict(o)
         raise TypeError(f"Object of type {type(o)} is not JSON serializable")
 
     return json.dumps(obj, default=default_serializer)
+
+
+class JSONContent:
+    """A callable wrapper around a JSON-serializable payload.
+
+    Used as a module file's content so that serialization (via dump_to_json)
+    only happens when the file is actually read, instead of while the payload
+    is still being assembled/patched during model building - the payload can
+    contain values (such as lazily-resolved relation mappings) that are not
+    safe to touch yet at that point.
+    """
+
+    def __init__(self, payload: Any) -> None:
+        """Initialize with the payload to serialize on call."""
+        self.payload = payload
+
+    def __call__(self) -> str:
+        """Serialize the payload to a JSON string."""
+        return dump_to_json(self.payload)
+
+
+def resolve_file_content(content: str | Callable[[], str]) -> str:
+    """Resolve a module file's content, calling it if it is lazily produced."""
+    return content() if callable(content) else content

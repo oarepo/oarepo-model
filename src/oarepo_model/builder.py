@@ -30,7 +30,7 @@ from oarepo_model.errors import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
 
     from .datatypes.registry import DataTypeRegistry
 
@@ -208,7 +208,7 @@ class BuilderModule(Partial, SimpleNamespace):
     def __init__(self, module_name: str):
         """Initialize the BuilderModule customization."""
         super().__init__(module_name)
-        self.files: dict[str, str] = {}
+        self.files: dict[str, str | Callable[[], str]] = {}
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
@@ -233,7 +233,7 @@ class BuilderModule(Partial, SimpleNamespace):
                 ) from e
         return ret
 
-    def add_file(self, file_path: str, content: str) -> None:
+    def add_file(self, file_path: str, content: str | Callable[[], str]) -> None:
         """Add a file to the module."""
         self.files[file_path] = content
 
@@ -247,7 +247,7 @@ class BuilderModule(Partial, SimpleNamespace):
 class BuilderFile(Partial):
     """Builder for files in the model."""
 
-    def __init__(self, name: str, module_name: str, file_path: str, content: str):
+    def __init__(self, name: str, module_name: str, file_path: str, content: str | Callable[[], str]):
         """Initialize the BuilderFile customization."""
         super().__init__(name)
         self.module_name = module_name
@@ -394,7 +394,7 @@ class InvenioModelBuilder:
         symbolic_name: str,
         module_name: str,
         file_path: str,
-        content: str,
+        content: str | Callable[[], str],
         exists_ok: bool = False,
     ) -> BuilderFile:
         """Add a file to the builder."""
