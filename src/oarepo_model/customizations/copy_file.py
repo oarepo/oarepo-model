@@ -16,6 +16,7 @@ modules or locations.
 
 from __future__ import annotations
 
+import copy
 from typing import TYPE_CHECKING, override
 
 from .base import Customization
@@ -54,6 +55,6 @@ class CopyFile(Customization):
             self.target_symbolic_name,
             self.target_module_name,
             self.target_file_path,
-            source.content,
+            copy.deepcopy(source.content),
             self.exists_ok,
         )
