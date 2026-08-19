@@ -360,3 +360,83 @@ def test_internal_relation_add_and_reference_same_request(
         "This test exposes whether internal relations are dumped to OpenSearch correctly."
     )
     assert next(iter(hits.hits))["id"] == rec.id
+
+
+def test_internal_relation_nested_relation_field_registered(app, internal_relation_nested_model):
+    """A relation declared inside an internal-relation's own target should be discovered too.
+
+    `primary_protein` targets `metadata.proteins`, whose items each also
+    declare a "producer" pid-relation of their own (see
+    `internal_relation_nested_model` in conftest.py) - unlike every other
+    `internal_relation_*` fixture, whose targets only ever have plain keyword
+    keys. This exercises the (otherwise never taken)
+    InternalRelationDataType._resolve_nested_relation_fields inner loop that
+    turns such a nested relation's own customizations into real relation
+    fields, registered here under "metadata.primary_protein.producer".
+    """
+    record = internal_relation_nested_model.Record(
+        {
+            "metadata": {
+                "proteins": [
+                    {"id": "p1", "name": "Protein One", "producer": "some-record-id"},
+                ],
+                "instruments": [{"id": "i1", "name": "Instrument One"}],
+                "primary_protein": {"id": "p1"},
+            },
+        },
+    )
+
+    fields = record.relations._fields
+    assert "metadata.primary_protein.producer" in fields
+
+    resolved = getattr(record.relations, "metadata.primary_protein")()
+    assert resolved["name"] == "Protein One"
+    assert resolved["producer"] == "some-record-id"
+
+
+def test_internal_relation_ui_marshmallow_dump(
+    app,
+    identity_simple,
+    internal_relation_model,
+    search,
+    search_clear,
+    location,
+    db,
+    client,
+    headers,
+):
+    """The UI ('vnd.inveniordm.v1+json') response should resolve 'name' via the target's UI schema.
+
+    Exercises LazyInternalUIMarshmallowSchema (create_ui_marshmallow_schema),
+    distinct from the "record" marshmallow schema already covered by
+    `test_internal_relation_marshmallow_schema` - in particular
+    LazyInternalUIMarshmallowSchema._get_target_schema (looked up via the
+    model's own RecordUISchema, not the service's record schema) and its
+    _missing_field fallback for "id" (which has no UI-specific counterpart -
+    mirrors the analogous self-referencing-relation case in
+    test_recursive_relations.py).
+    """
+    res = client.post(
+        "/ir-test",
+        headers=headers.ui,
+        data=json.dumps(
+            {
+                "files": {"enabled": False},
+                "metadata": {
+                    "proteins": [{"id": "p1", "name": "Protein One"}],
+                    "instruments": [{"id": "i1", "name": "Instrument One"}],
+                    "primary_protein": {"id": "p1"},
+                },
+            },
+        ),
+    )
+    assert res.status_code == 201
+
+    ui = res.json["ui"]
+    pp_ui = ui["primary_protein"]
+    # "id" has no UI-specific counterpart and falls back to a raw passthrough
+    # field (_missing_field) instead of crashing.
+    assert pp_ui["id"] == "p1"
+    # "name" is a plain keyword with a real UI field on the target's own
+    # RecordUISchema, and resolves to its actual (UI-formatted) value.
+    assert pp_ui["name"] == "Protein One"

@@ -924,6 +924,95 @@ def internal_relation_array_model(empty_model):
     return im
 
 
+# Model types for testing nested-relation discovery inside an internal
+# relation's own target: "producer" is a self-referencing pid-relation (points
+# back at this same model, by name - the same pattern recursive_relation_model
+# uses) declared *inside* the "proteins" array items - i.e. inside
+# "primary_protein"'s own target schema, not on "primary_protein" itself. This
+# exercises InternalRelationDataType._resolve_nested_relation_fields actually
+# discovering and registering such a nested relation field (not just plain
+# keyword keys, which is all every other internal_relation_* fixture has) -
+# and, because "producer" is itself self-referencing and lacks an explicit
+# 'properties', PIDRelation.create_relations's own lazy branch (AddLazyRelation)
+# for it, so resolving "producer" also exercises the "a nested customization is
+# itself lazily-resolved" branch (see the matching comment in
+# PIDRelation._resolve_nested_relation_fields, relations.py).
+internal_relation_nested_model_types = {
+    "Metadata": {
+        "properties": {
+            "proteins": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "keyword"},
+                        "name": {"type": "keyword"},
+                        "producer": {
+                            "type": "pid-relation",
+                            "keys": ["id"],
+                            "model": "ir_nested_test",
+                        },
+                    },
+                },
+            },
+            "instruments": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "keyword"},
+                        "name": {"type": "keyword"},
+                    },
+                },
+            },
+            "primary_protein": {
+                "type": "internal-relation",
+                "target": "metadata.proteins",
+                "keys": ["id", "name", "producer"],
+            },
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def internal_relation_nested_model(empty_model):
+    """Model whose internal-relation target itself contains a further relation.
+
+    "producer" self-references this same model ("ir_nested_test") by name,
+    the same pattern `recursive_relation_model` uses. This is safe to resolve
+    lazily (see `internal_relation_nested_model_types` above for why an
+    internal-relation nested inside another internal-relation's target would
+    *not* be safe here) - PIDRelation's own lazy nested-relation resolution
+    only ever needs `current_runtime.models[...]` (populated once a model is
+    registered, regardless of when it's read), never `api.current_model` (only
+    set for the duration of *this* model's own build, long gone by the time
+    `_resolve_nested_relation_fields` actually runs).
+    """
+    from oarepo_model.api import model
+    from oarepo_model.presets.internal_relations import internal_relations_preset
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
+    from oarepo_model.presets.ui import ui_preset
+
+    t1 = time.time()
+
+    im = model(
+        name="ir_nested_test",
+        version="1.0.0",
+        presets=[records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
+        types=[internal_relation_nested_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    im.register()
+
+    t2 = time.time()
+    log.info("Model created in %.2f seconds", t2 - t1)
+
+    return im
+
+
 @pytest.fixture(scope="session")
 def recursive_relation_model(empty_model):
     from oarepo_model.api import model
@@ -1187,6 +1276,7 @@ def extra_entry_points(
     internal_relation_model,
     internal_relation_draft_model,
     internal_relation_array_model,
+    internal_relation_nested_model,
 ):
     return {
         "invenio_base.blueprints": [
