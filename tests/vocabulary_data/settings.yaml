@@ -35,11 +35,20 @@ awards:
       args: 
         service_or_name: awards
 subjects:
-  readers: 
+  readers:
     - type: yaml
-      args: 
+      args:
         regex: "\\.yaml$"
   writers:
     - type: service
-      args: 
+      args:
         service_or_name: subjects
+chemicals:
+  readers:
+    - type: yaml
+      args:
+        regex: "\\.yaml$"
+  writers:
+    - type: service
+      args:
+        service_or_name: vocabularies

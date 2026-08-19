@@ -106,3 +106,24 @@ def test_ui_links_model_features(
     # check unknown version of oarepo-ui package
     assert app.extensions["oarepo-runtime"].models["test_ui_links"].features["ui-links"]["version"] == "unknown"
     assert app.extensions["test_ui_links"].model_arguments["features"]["ui-links"]["version"] == "unknown"
+
+
+def test_internal_relation_model_features(
+    app,
+    identity_simple,
+    internal_relation_model,
+    search,
+):
+    import oarepo_runtime
+
+    # check version of oarepo-runtime package, the actual provider of
+    # InternalRelation/InternalRelations - unlike "relations", which is
+    # backed by invenio-records-resources
+    assert (
+        app.extensions["oarepo-runtime"].models["ir_test"].features["internal-relations"]["version"]
+        == oarepo_runtime.__version__
+    )
+    assert (
+        app.extensions["ir_test"].model_arguments["features"]["internal-relations"]["version"]
+        == oarepo_runtime.__version__
+    )

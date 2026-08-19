@@ -242,12 +242,21 @@ class LazyUIModelChildren(Mapping):
         """
         return {"help": {"und": ""}, "label": {"und": key}, "hint": {"und": ""}, "input": "keyword"}
 
+    def _get_source_properties(self) -> dict[str, Any]:
+        """Return the target's ui model 'children' mapping to look keys up in.
+
+        Factored out of _ensure so a subclass can look keys up in a different
+        (e.g. merged, multi-path) 'children' mapping instead - see
+        LazyInternalUIModelChildren in datatypes/internal_relations.py.
+        """
+        namespace = cast("SimpleNamespace", current_runtime.models[self._model].namespace)
+        return cast("dict[str, Any]", namespace.ui_model.get("children", {}))
+
     def _ensure(self) -> None:
         """Resolve the ui model children on first use."""
         if self._data:
             return
-        namespace = cast("SimpleNamespace", current_runtime.models[self._model].namespace)
-        source_properties = cast("dict[str, Any]", namespace.ui_model).get("children", {})
+        source_properties = self._get_source_properties()
 
         generated: dict[str, Any] = {}
         self._data = generated
@@ -729,25 +738,7 @@ class PIDRelation(ObjectDataType):
         (e.g. it was declared only via 'pid_field', or isn't an oarepo_model
         -built model) - callers fall back to "keyword" per key in that case.
         """
-        target = self._target_reference(element)
-        if target is None:
-            return {}
-
-        # 'target' may be "module:attr" (record_cls) or just "module" (model) -
-        # either way, the model's namespace module itself is what carries
-        # 'oarepo_model_arguments', so only the module part is needed here.
-        imported = obj_or_import_string(target.split(":", 1)[0])
-        model_metadata = getattr(imported, "oarepo_model_arguments", {}).get("model_metadata")
-        if model_metadata is None:
-            return {}
-
-        properties: dict[str, Any] = {}
-        if model_metadata.record_type:
-            record_root = model_metadata.types.get(model_metadata.record_type, {})
-            properties.update(record_root.get("properties", {}))
-        if model_metadata.metadata_type:
-            properties["metadata"] = model_metadata.types.get(model_metadata.metadata_type, {})
-        return properties
+        return resolve_declared_root_properties(self._target_reference(element))
 
     @override
     def create_relations(
@@ -842,21 +833,14 @@ class PIDRelation(ObjectDataType):
         path: list[tuple[str, dict[str, Any]]],
     ) -> list:
         """Get the relation path for the PID relation."""
-        relation_path: list[str | type[ARRAY_PATH_ITEM]] = []
-        for pth in path:
-            if pth[0] == "":
-                relation_path.append(ARRAY_PATH_ITEM)
-            else:
-                relation_path.append(pth[0])
-        return relation_path
+        return relation_path_from_customization_path(path)
 
     def _relation_name(
         self,
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],
     ) -> str:
-        relation_path = self._relation_path(element, path)
-        return ".".join(str(k) for k in relation_path if k is not ARRAY_PATH_ITEM)
+        return relation_name_from_path(self._relation_path(element, path))
 
     def _pid_field(
         self,
@@ -917,15 +901,77 @@ class PIDRelation(ObjectDataType):
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002
     ) -> list[str]:
-        keys = set()
-        for key in element.get("keys", []):
-            if isinstance(key, str):
-                keys.add(key)
-            elif isinstance(key, dict):
-                keys.update(key.keys())
-            else:
-                raise TypeError(f"Invalid key type: {type(key)}")
-        return list(keys)
+        return key_names_from_keys(element.get("keys", []))
+
+
+def relation_path_from_customization_path(
+    path: list[tuple[str, dict[str, Any]]],
+) -> list[str | type[ARRAY_PATH_ITEM]]:
+    """Turn a create_relations '(name, element)' path into an AddPIDRelation-style path.
+
+    Shared between PIDRelation and InternalRelationDataType (see
+    datatypes/internal_relations.py) - the path shape create_relations walks
+    the schema tree with is the same for any relation-like data type.
+    """
+    relation_path: list[str | type[ARRAY_PATH_ITEM]] = []
+    for pth in path:
+        if pth[0] == "":
+            relation_path.append(ARRAY_PATH_ITEM)
+        else:
+            relation_path.append(pth[0])
+    return relation_path
+
+
+def relation_name_from_path(relation_path: list[str | type[ARRAY_PATH_ITEM]]) -> str:
+    """Turn a relation path (see relation_path_from_customization_path) into a dotted relation name."""
+    return ".".join(str(k) for k in relation_path if k is not ARRAY_PATH_ITEM)
+
+
+def key_names_from_keys(keys: list[Any]) -> list[str]:
+    """Flatten a relation's 'keys' list (string or {name: element} entries) into plain key names."""
+    names = set()
+    for key in keys:
+        if isinstance(key, str):
+            names.add(key)
+        elif isinstance(key, dict):
+            names.update(key.keys())
+        else:
+            raise TypeError(f"Invalid key type: {type(key)}")
+    return list(names)
+
+
+def resolve_declared_root_properties(target: str | None) -> dict[str, Any]:
+    """Resolve the record+metadata root properties tree declared for an already-built model.
+
+    `target` is an import string identifying a model (see
+    PIDRelation._target_reference) - "module:attr" (record_cls) or "module"
+    (in-memory model package name). Returns a "properties"-style mapping (field
+    name -> its declarative element dict), merged from the target's record- and
+    metadata-level schemas.
+
+    Returns an empty dict if `target` is falsy, or the target can't be
+    introspected this way (e.g. it was declared only via 'pid_field', or isn't
+    an oarepo_model-built model) - callers fall back to "keyword" per key in
+    that case.
+    """
+    if not target:
+        return {}
+
+    # 'target' may be "module:attr" (record_cls) or just "module" (model) -
+    # either way, the model's namespace module itself is what carries
+    # 'oarepo_model_arguments', so only the module part is needed here.
+    imported = obj_or_import_string(target.split(":", 1)[0])
+    model_metadata = getattr(imported, "oarepo_model_arguments", {}).get("model_metadata")
+    if model_metadata is None:
+        return {}
+
+    properties: dict[str, Any] = {}
+    if model_metadata.record_type:
+        record_root = model_metadata.types.get(model_metadata.record_type, {})
+        properties.update(record_root.get("properties", {}))
+    if model_metadata.metadata_type:
+        properties["metadata"] = model_metadata.types.get(model_metadata.metadata_type, {})
+    return properties
 
 
 def set_key_model(properties: dict[str, Any], key: str, value: Any) -> None:

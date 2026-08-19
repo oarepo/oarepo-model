@@ -483,9 +483,12 @@ class DynamicObjectDataType(ObjectDataType):
         # Use the base DataType args, not ObjectDataType's override, because
         # ObjectDataType._get_marshmallow_field_args injects 'nested' which is
         # only meaningful for Nested fields and causes a marshmallow warning on Raw.
+        # Calling it via the base class (rather than self) deliberately bypasses
+        # the subclass override, hence the explicit private-method access below.
         from .base import DataType
+
         return marshmallow.fields.Raw(
-            **DataType._get_marshmallow_field_args(self, field_name, element),
+            **DataType._get_marshmallow_field_args(self, field_name, element),  # noqa: SLF001
         )
 
     @override

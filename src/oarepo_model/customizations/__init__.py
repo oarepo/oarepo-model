@@ -34,6 +34,7 @@ from .base import Customization
 from .change_base import ReplaceBaseClass
 from .copy_file import CopyFile
 from .high_level import (
+    AddInternalRelation,
     AddMetadataExport,
     AddMetadataImport,
     AddPIDRelation,
@@ -59,6 +60,7 @@ __all__ = [
     "AddEntryPoint",
     "AddFacetGroup",
     "AddFileToModule",
+    "AddInternalRelation",
     "AddJSONFile",
     "AddList",
     "AddMetadataExport",

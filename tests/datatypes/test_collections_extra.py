@@ -19,30 +19,33 @@ Covers:
 - DynamicObjectDataType JSON schema and mapping
 - ArrayDataType create_mapping delegates to items (skips the array wrapper)
 """
+
+# Test methods below are self-documenting via their names; skip the
+# missing-docstring-in-public-method requirement for this whole file.
+# ruff: noqa: D102
 from __future__ import annotations
 
-import pytest
 import marshmallow as ma
+import pytest
 
 from oarepo_model.datatypes.collections import unique_validator
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def make_schema(datatype_registry, element, extra_types=None):
     if extra_types:
         datatype_registry.add_types(extra_types)
-    field = datatype_registry.get_type(element).create_marshmallow_field(
-        field_name="a", element=element
-    )
+    field = datatype_registry.get_type(element).create_marshmallow_field(field_name="a", element=element)
     return ma.Schema.from_dict({"a": field})()
 
 
 # ===========================================================================
-# unique_validator (unit-level)
+# unique_validator - unit-level tests
 # ===========================================================================
+
 
 class TestUniqueValidator:
     """unique_validator must raise only when duplicates are present."""
@@ -73,6 +76,7 @@ class TestUniqueValidator:
 # unique_items=True through array schema
 # ===========================================================================
 
+
 class TestUniqueItemsInArray:
     """unique_items=True on an array element must reject duplicate entries."""
 
@@ -102,6 +106,7 @@ class TestUniqueItemsInArray:
 # ===========================================================================
 # Array min_items / max_items
 # ===========================================================================
+
 
 class TestArrayLengthConstraints:
     """min_items and max_items must be enforced via marshmallow.validate.Length."""
@@ -141,21 +146,18 @@ class TestArrayLengthConstraints:
 # NestedDataType
 # ===========================================================================
 
+
 class TestNestedDataType:
     """nested type must produce ES mapping type 'nested', not 'object'."""
 
     def test_nested_mapping_type_is_nested(self, datatype_registry):
         dt = datatype_registry.get_type({"type": "nested"})
-        mapping = dt.create_mapping(
-            {"type": "nested", "properties": {"x": {"type": "keyword"}}}
-        )
+        mapping = dt.create_mapping({"type": "nested", "properties": {"x": {"type": "keyword"}}})
         assert mapping["type"] == "nested"
 
     def test_nested_mapping_contains_properties(self, datatype_registry):
         dt = datatype_registry.get_type({"type": "nested"})
-        mapping = dt.create_mapping(
-            {"type": "nested", "properties": {"score": {"type": "int"}}}
-        )
+        mapping = dt.create_mapping({"type": "nested", "properties": {"score": {"type": "int"}}})
         assert "score" in mapping["properties"]
 
     def test_nested_schema_round_trip(self, datatype_registry):
@@ -177,6 +179,7 @@ class TestNestedDataType:
 # ObjectDataType error paths
 # ===========================================================================
 
+
 class TestObjectDataTypeErrorPaths:
     """ObjectDataType must raise clear errors for invalid configurations."""
 
@@ -193,14 +196,13 @@ class TestObjectDataTypeErrorPaths:
         """marshmallow_schema_class pointing to a non-Schema class must raise ValueError."""
         dt = datatype_registry.get_type({"type": "object"})
         with pytest.raises((ValueError, ImportError, AttributeError, Exception)):
-            dt.create_marshmallow_schema(
-                {"type": "object", "marshmallow_schema_class": "this.does.not.exist:Foo"}
-            )
+            dt.create_marshmallow_schema({"type": "object", "marshmallow_schema_class": "this.does.not.exist:Foo"})
 
 
 # ===========================================================================
 # [] shortcut and dict shortcuts in get_type
 # ===========================================================================
+
 
 class TestRegistryShortcuts:
     """The registry must resolve 'properties' and 'items' dict shortcuts."""
@@ -208,18 +210,22 @@ class TestRegistryShortcuts:
     def test_get_type_with_properties_dict_resolves_to_object(self, datatype_registry):
         """A dict with 'properties' but no 'type' key must resolve to ObjectDataType."""
         from oarepo_model.datatypes.collections import ObjectDataType
+
         dt = datatype_registry.get_type({"properties": {"x": {"type": "keyword"}}})
         assert isinstance(dt, ObjectDataType)
 
     def test_get_type_with_items_dict_resolves_to_array(self, datatype_registry):
         """A dict with 'items' but no 'type' key must resolve to ArrayDataType."""
         from oarepo_model.datatypes.collections import ArrayDataType
+
         dt = datatype_registry.get_type({"items": {"type": "keyword"}})
         assert isinstance(dt, ArrayDataType)
 
     def test_array_bracket_shortcut_in_nested_properties(self, datatype_registry):
-        """A property key ending in '[]' inside an object's 'properties' dict must
-        be expanded to type=array when the type is registered and later referenced.
+        """A property key ending in '[]' inside an object's 'properties' dict.
+
+        Must be expanded to type=array when the type is registered and later
+        referenced.
         """
         datatype_registry.add_types(
             {
@@ -243,13 +249,14 @@ class TestRegistryShortcuts:
         list_fields = [f for f in inner_schema.fields.values() if isinstance(f, ma.fields.List)]
         assert list_fields, (
             f"Expected a List field in the inner schema, got: "
-            f"{{{k}: type(v).__name__ for k, v in inner_schema.fields.items()}}"
+            f"{ {k: type(v).__name__ for k, v in inner_schema.fields.items()} }"
         )
 
 
 # ===========================================================================
 # DynamicObjectDataType JSON schema and mapping
 # ===========================================================================
+
 
 class TestDynamicObjectDataType:
     """dynamic-object must advertise open schema and dynamic mapping."""
@@ -269,19 +276,16 @@ class TestDynamicObjectDataType:
 # ArrayDataType create_mapping delegates to items
 # ===========================================================================
 
+
 class TestArrayMappingDelegation:
     """Arrays are transparent in ES: create_mapping must return the items mapping."""
 
     def test_array_of_keywords_produces_keyword_mapping(self, datatype_registry):
         dt = datatype_registry.get_type({"type": "array"})
-        mapping = dt.create_mapping(
-            {"type": "array", "items": {"type": "keyword"}}
-        )
+        mapping = dt.create_mapping({"type": "array", "items": {"type": "keyword"}})
         assert mapping["type"] == "keyword"
 
     def test_array_of_ints_produces_integer_mapping(self, datatype_registry):
         dt = datatype_registry.get_type({"type": "array"})
-        mapping = dt.create_mapping(
-            {"type": "array", "items": {"type": "int"}}
-        )
+        mapping = dt.create_mapping({"type": "array", "items": {"type": "int"}})
         assert mapping["type"] == "integer"

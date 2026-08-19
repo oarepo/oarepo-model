@@ -17,26 +17,29 @@ Covers:
 - mapping types for all three string types
 - JSON schema type for all three string types
 """
+
+# Test methods below are self-documenting via their names; skip the
+# missing-docstring-in-public-method requirement for this whole file.
+# ruff: noqa: D102
 from __future__ import annotations
 
-import pytest
 import marshmallow as ma
-
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def make_schema(datatype_registry, element):
-    field = datatype_registry.get_type(element).create_marshmallow_field(
-        field_name="a", element=element
-    )
+    field = datatype_registry.get_type(element).create_marshmallow_field(field_name="a", element=element)
     return ma.Schema.from_dict({"a": field})()
 
 
 # ===========================================================================
 # Enum validation
 # ===========================================================================
+
 
 class TestEnumValidation:
     """enum constraint must limit accepted values for string types."""
@@ -72,6 +75,7 @@ class TestEnumValidation:
 # Pattern validation
 # ===========================================================================
 
+
 class TestPatternValidation:
     """pattern constraint must limit accepted values for string types."""
 
@@ -91,7 +95,7 @@ class TestPatternValidation:
             schema.load({"a": "not-four-digits"})
 
     def test_pattern_and_enum_can_coexist(self, datatype_registry):
-        """enum and pattern validators are both applied."""
+        """Enum and pattern validators are both applied."""
         schema = make_schema(
             datatype_registry,
             {"type": "keyword", "enum": ["abc", "def"], "pattern": r"^[a-z]+$"},
@@ -106,9 +110,12 @@ class TestPatternValidation:
 # required + implicit min_length
 # ===========================================================================
 
+
 class TestRequiredImpliesMinLength:
-    """When required=True and no explicit min_length, the field must reject
-    the empty string — because a min_length=1 validator is injected.
+    """When required=True and no explicit min_length is given.
+
+    The field must reject the empty string — because a min_length=1
+    validator is injected.
     """
 
     def test_required_rejects_empty_string(self, datatype_registry):
@@ -148,19 +155,20 @@ class TestRequiredImpliesMinLength:
 # Field options: dump_only / load_only / allow_none
 # ===========================================================================
 
+
 class TestFieldOptions:
     """dump_only, load_only, and allow_none must be forwarded to the marshmallow field."""
 
     def test_dump_only_field_is_ignored_on_load(self, datatype_registry):
-        field = datatype_registry.get_type(
-            {"type": "keyword", "dump_only": True}
-        ).create_marshmallow_field(field_name="a", element={"type": "keyword", "dump_only": True})
+        field = datatype_registry.get_type({"type": "keyword", "dump_only": True}).create_marshmallow_field(
+            field_name="a", element={"type": "keyword", "dump_only": True}
+        )
         assert field.dump_only is True
 
     def test_load_only_field_is_ignored_on_dump(self, datatype_registry):
-        field = datatype_registry.get_type(
-            {"type": "keyword", "load_only": True}
-        ).create_marshmallow_field(field_name="a", element={"type": "keyword", "load_only": True})
+        field = datatype_registry.get_type({"type": "keyword", "load_only": True}).create_marshmallow_field(
+            field_name="a", element={"type": "keyword", "load_only": True}
+        )
         assert field.load_only is True
 
     def test_allow_none_field_accepts_null(self, datatype_registry):
@@ -180,6 +188,7 @@ class TestFieldOptions:
 # Facet generation
 # ===========================================================================
 
+
 class TestStringFacets:
     """Facet behaviour differs across string types."""
 
@@ -198,8 +207,9 @@ class TestStringFacets:
         assert "metadata.status" in result, "keyword must produce a facet"
 
     def test_fulltext_keyword_facet_uses_keyword_suffix(self, datatype_registry):
-        """The facet entry for fulltext+keyword must reference the .keyword sub-field
-        in its field descriptor, even though the facet dict key keeps the original path.
+        """The facet entry for fulltext+keyword must reference the .keyword sub-field.
+
+        This holds even though the facet dict key keeps the original path.
         """
         dt = datatype_registry.get_type({"type": "fulltext+keyword"})
         facets = {}
@@ -207,13 +217,8 @@ class TestStringFacets:
         assert "metadata.title" in result
         # The TermsFacet 'field' value must point to the .keyword sub-field
         facet_def = result["metadata.title"]
-        field_values = [
-            entry.get("field", "")
-            for entry in (facet_def if isinstance(facet_def, list) else [facet_def])
-        ]
-        assert any(".keyword" in f for f in field_values), (
-            f"Expected .keyword in facet field, got: {field_values}"
-        )
+        field_values = [entry.get("field", "") for entry in (facet_def if isinstance(facet_def, list) else [facet_def])]
+        assert any(".keyword" in f for f in field_values), f"Expected .keyword in facet field, got: {field_values}"
 
     def test_fulltext_keyword_facet_path_structure(self, datatype_registry):
         """The facet field for fulltext+keyword must be 'original_path.keyword'."""
@@ -230,6 +235,7 @@ class TestStringFacets:
 # ===========================================================================
 # Mapping types
 # ===========================================================================
+
 
 class TestStringMappings:
     """Each string type must produce its correct Elasticsearch mapping."""

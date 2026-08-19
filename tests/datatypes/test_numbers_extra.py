@@ -16,26 +16,29 @@ Covers:
 - Number facet generation
 - FormatNumber UI field presence
 """
+
+# Test methods below are self-documenting via their names; skip the
+# missing-docstring-in-public-method requirement for this whole file.
+# ruff: noqa: D102
 from __future__ import annotations
 
-import pytest
 import marshmallow as ma
-
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def make_schema(datatype_registry, element):
-    field = datatype_registry.get_type(element).create_marshmallow_field(
-        field_name="a", element=element
-    )
+    field = datatype_registry.get_type(element).create_marshmallow_field(field_name="a", element=element)
     return ma.Schema.from_dict({"a": field})()
 
 
 # ===========================================================================
 # LongDataType
 # ===========================================================================
+
 
 class TestLongDataType:
     """64-bit integer type — distinct from int (32-bit)."""
@@ -101,6 +104,7 @@ class TestLongDataType:
 # DoubleDataType
 # ===========================================================================
 
+
 class TestDoubleDataType:
     """Double-precision floating-point type."""
 
@@ -150,45 +154,36 @@ class TestDoubleDataType:
 # Exclusive range boundaries (shared by int, long, float, double)
 # ===========================================================================
 
+
 class TestExclusiveRangeBoundaries:
     """min_exclusive / max_exclusive must exclude the boundary value."""
 
     def test_int_min_exclusive_rejects_boundary(self, datatype_registry):
-        schema = make_schema(
-            datatype_registry, {"type": "int", "min_exclusive": 0}
-        )
+        schema = make_schema(datatype_registry, {"type": "int", "min_exclusive": 0})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": 0})
         assert schema.load({"a": 1}) == {"a": 1}
 
     def test_int_max_exclusive_rejects_boundary(self, datatype_registry):
-        schema = make_schema(
-            datatype_registry, {"type": "int", "max_exclusive": 10}
-        )
+        schema = make_schema(datatype_registry, {"type": "int", "max_exclusive": 10})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": 10})
         assert schema.load({"a": 9}) == {"a": 9}
 
     def test_float_min_exclusive_rejects_boundary(self, datatype_registry):
-        schema = make_schema(
-            datatype_registry, {"type": "float", "min_exclusive": 0.0}
-        )
+        schema = make_schema(datatype_registry, {"type": "float", "min_exclusive": 0.0})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": 0.0})
         assert schema.load({"a": 0.001})["a"] == pytest.approx(0.001)
 
     def test_int_min_inclusive_accepts_boundary(self, datatype_registry):
-        schema = make_schema(
-            datatype_registry, {"type": "int", "min_inclusive": 5}
-        )
+        schema = make_schema(datatype_registry, {"type": "int", "min_inclusive": 5})
         assert schema.load({"a": 5}) == {"a": 5}
         with pytest.raises(ma.ValidationError):
             schema.load({"a": 4})
 
     def test_int_max_inclusive_accepts_boundary(self, datatype_registry):
-        schema = make_schema(
-            datatype_registry, {"type": "int", "max_inclusive": 5}
-        )
+        schema = make_schema(datatype_registry, {"type": "int", "max_inclusive": 5})
         assert schema.load({"a": 5}) == {"a": 5}
         with pytest.raises(ma.ValidationError):
             schema.load({"a": 6})
@@ -197,6 +192,7 @@ class TestExclusiveRangeBoundaries:
 # ===========================================================================
 # strict_validation=False — coerce strings to numbers
 # ===========================================================================
+
 
 class TestStrictValidation:
     """strict_validation=False must allow string-to-number coercion."""
@@ -207,15 +203,11 @@ class TestStrictValidation:
             schema.load({"a": "42"})
 
     def test_int_non_strict_coerces_string(self, datatype_registry):
-        schema = make_schema(
-            datatype_registry, {"type": "int", "strict_validation": False}
-        )
+        schema = make_schema(datatype_registry, {"type": "int", "strict_validation": False})
         assert schema.load({"a": "42"}) == {"a": 42}
 
     def test_float_non_strict_coerces_string(self, datatype_registry):
-        schema = make_schema(
-            datatype_registry, {"type": "float", "strict_validation": False}
-        )
+        schema = make_schema(datatype_registry, {"type": "float", "strict_validation": False})
         result = schema.load({"a": "3.14"})
         assert result["a"] == pytest.approx(3.14)
 
@@ -223,6 +215,7 @@ class TestStrictValidation:
 # ===========================================================================
 # Number facets
 # ===========================================================================
+
 
 class TestNumberFacets:
     """Numeric types must generate facet definitions via FacetMixin."""
@@ -237,6 +230,4 @@ class TestNumberFacets:
             nested_facets=[],
             facets=facets,
         )
-        assert "metadata.score" in result, (
-            f"{type_name} should produce a facet at the given path"
-        )
+        assert "metadata.score" in result, f"{type_name} should produce a facet at the given path"
