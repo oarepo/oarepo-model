@@ -484,18 +484,18 @@ class EDTFDateOrIntervalDataType(DataType):
     TYPE = "edtf-date-or-interval"
 
     marshmallow_field_class = marshmallow.fields.String
-    jsonschema_type = MappingProxyType({"type": "string", "format": "date"})
-    mapping_type = MappingProxyType(
+    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date"})
+    mapping_type = ReadOnlyDict(
         {
             "type": "keyword",
         }
     )
 
     @override
-    def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> MappingProxyType[str, Any]:
+    def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> Mapping[str, Any]:
         """Create RDM-style sibling date_range mapping."""
         _ = element
-        return MappingProxyType(
+        return ReadOnlyDict(
             {
                 f"{field_name}_range": {
                     "type": "date_range",
