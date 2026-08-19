@@ -11,10 +11,16 @@
 Bug 2 — dynamic-object: arbitrary data loaded correctly but dump always returned {}
     because PermissiveSchema has no declared fields (collections.py).
 """
+
+# Test methods below are self-documenting via their names, and deliberately
+# reach into marshmallow's private _serialize() to test the Raw field's
+# low-level behaviour directly; skip the missing-docstring-in-public-method
+# and private-member-access requirements for this whole file.
+# ruff: noqa: D102, SLF001
 from __future__ import annotations
 
-import pytest
 import marshmallow as ma
+import pytest
 
 
 def make_schema(datatype_registry, element):
@@ -27,25 +33,23 @@ def make_schema(datatype_registry, element):
 
 
 class TestDynamicObjectRoundTrip:
-    """Storing arbitrary data in a dynamic-object field and reading it back
-    must produce the original value unchanged.  Before the fix, dump() always
+    """Storing arbitrary data in a dynamic-object field and reading it back.
+
+    Must produce the original value unchanged. Before the fix, dump() always
     returned {} because PermissiveSchema declared no fields.
     """
 
     @pytest.fixture
     def dynamic_field(self, datatype_registry):
         element = {"type": "dynamic-object"}
-        return datatype_registry.get_type(element).create_marshmallow_field(
-            field_name="a", element=element
-        )
+        return datatype_registry.get_type(element).create_marshmallow_field(field_name="a", element=element)
 
     def test_field_is_raw(self, dynamic_field):
-        """The marshmallow field for dynamic-object must be fields.Raw, not Nested,
-        so that both load and dump pass data through without transformation.
+        """The marshmallow field for dynamic-object must be fields.Raw, not Nested.
+
+        This way both load and dump pass data through without transformation.
         """
-        assert isinstance(dynamic_field, ma.fields.Raw), (
-            f"Expected fields.Raw, got {type(dynamic_field).__name__}"
-        )
+        assert isinstance(dynamic_field, ma.fields.Raw), f"Expected fields.Raw, got {type(dynamic_field).__name__}"
 
     def test_load_flat_data(self, dynamic_field):
         """Arbitrary flat key-value pairs must be accepted on load."""
@@ -80,9 +84,7 @@ class TestDynamicObjectRoundTrip:
         original = {"a": {"nested": {"deep": "value"}, "count": 42, "tags": ["a", "b"]}}
         loaded = schema.load(original)
         dumped = schema.dump(loaded)
-        assert dumped == original, (
-            f"Round-trip failed: got {dumped!r}, expected {original!r}"
-        )
+        assert dumped == original, f"Round-trip failed: got {dumped!r}, expected {original!r}"
 
     def test_full_schema_round_trip_with_varied_types(self, datatype_registry):
         """Round-trip must work for all JSON-serialisable value types."""
