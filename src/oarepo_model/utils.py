@@ -10,15 +10,75 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import keyword
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from typing import Any, override
 
 import marshmallow
 
 from oarepo_model.c3linearize import LinearizationError, mro_without_class_construction
+
+
+class ReadOnlyDict(Mapping):
+    """An immutable, deep-copyable dict-like object for shared class-level constants.
+
+    Used instead of types.MappingProxyType for values (e.g. a DataType's
+    `mapping_type`/`jsonschema_type`, see datatypes/date.py, datatypes/strings.py)
+    that are shared by reference across every field of that type and can later
+    end up embedded, by reference, in a JSON tree that CopyFile (see
+    customizations/copy_file.py) deep-copies. MappingProxyType itself can't be
+    used for this: it can't be subclassed (CPython rejects it as a base type),
+    and copy.deepcopy has no built-in support for it either - for any type it
+    doesn't recognize, it falls back to pickling, and mappingproxy explicitly
+    can't be pickled ("TypeError: cannot pickle 'mappingproxy' object"). This is
+    a plain, subclassable Mapping instead, with __deepcopy__ implemented
+    directly - the standard, documented copy.deepcopy extension point - so
+    plain copy.deepcopy() just works on it (and anything embedding it),
+    without touching copy's internals.
+
+    This also matters for PatchJSONFile (see customizations/patch_json_file.py),
+    which merges patches into existing file content via deepmerge's
+    always_merger - deepmerge only merges recursively when both sides of a key
+    are the same recognized container type (dict/list/set). Since a
+    ReadOnlyDict is neither a dict nor a MutableMapping, deepmerge can never
+    match it against a plain dict patch value and never attempts to merge
+    "into" it (which would need item assignment and fail); it instead falls
+    back to its type-conflict strategy ("override") and produces a brand new,
+    independent dict for that key - so a patch touching this subtree always
+    duplicates/replaces it wholesale rather than mutating this shared
+    instance in place.
+    """
+
+    __slots__ = ("_data",)
+
+    _data: dict[str, Any]
+
+    def __init__(self, data: Mapping[str, Any]) -> None:
+        """Initialize from a mapping, storing our own private copy of it."""
+        self._data = dict(data)
+
+    def __getitem__(self, key: str) -> Any:
+        """Get an item by key."""
+        return self._data[key]
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over keys."""
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        """Return the number of items."""
+        return len(self._data)
+
+    def __repr__(self) -> str:
+        """Return a debug representation."""
+        return f"{self.__class__.__name__}({self._data!r})"
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> ReadOnlyDict:
+        """Deep-copy by deep-copying the underlying dict into a new instance."""
+        return ReadOnlyDict(copy.deepcopy(self._data, memo))
 
 
 def is_mro_consistent(class_list: list[type]) -> bool:
