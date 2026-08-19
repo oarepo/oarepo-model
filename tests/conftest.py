@@ -1109,6 +1109,85 @@ def vocabulary_model(empty_model):
     return vocabulary_model
 
 
+reagent_model_types = {
+    "Metadata": {
+        "properties": {
+            "reagent": {
+                "type": "object",
+                "properties": {
+                    "chemical": {
+                        "type": "vocabulary",
+                        "vocabulary-type": "chemicals",
+                        "keys": [
+                            {
+                                "props": {
+                                    "type": "object",
+                                    "properties": {"inchi": {"type": "keyword"}},
+                                },
+                            },
+                        ],
+                    },
+                    "concentration": {"type": "double"},
+                },
+            },
+        },
+    },
+}
+reagent_relation_model_types = {
+    "Metadata": {
+        "properties": {
+            "b": {
+                "type": "pid-relation",
+                "keys": ["id", "metadata.reagent"],
+                "record_cls": "runtime_models_reagent_test:Record",
+            },
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def reagent_model(empty_model):
+    """Model B: has a vocabulary (chemical) nested inside a plain object (reagent)."""
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
+    from oarepo_model.presets.ui import ui_preset
+
+    reagent_model = model(
+        name="reagent_test",
+        version="1.0.0",
+        presets=[records_resources_preset, relations_preset, ui_preset],
+        types=[reagent_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    reagent_model.register()
+
+    return reagent_model
+
+
+@pytest.fixture(scope="session")
+def reagent_relation_model(reagent_model):
+    """Model A: pid-relation to model B, pulling in the whole 'metadata.reagent' subtree."""
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
+    from oarepo_model.presets.ui import ui_preset
+
+    reagent_relation_model = model(
+        name="reagent_relation_test",
+        version="1.0.0",
+        presets=[records_resources_preset, relations_preset, ui_preset],
+        types=[reagent_relation_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    reagent_relation_model.register()
+
+    return reagent_relation_model
+
+
 @pytest.fixture(scope="session")
 def multilingual_model(empty_model):
     from oarepo_model.api import model
@@ -1277,6 +1356,8 @@ def extra_entry_points(
     internal_relation_draft_model,
     internal_relation_array_model,
     internal_relation_nested_model,
+    reagent_model,
+    reagent_relation_model,
 ):
     return {
         "invenio_base.blueprints": [
@@ -1294,6 +1375,7 @@ def extra_entry_points(
 def vocabulary_fixtures(app, db, search_clear, search):
     """Import vocabulary fixtures."""
     VocabularyType.create(id="languages", pid_type="lng")
+    VocabularyType.create(id="chemicals", pid_type="chm")
     db.session.commit()
 
     for vocabulary in (
@@ -1302,6 +1384,7 @@ def vocabulary_fixtures(app, db, search_clear, search):
         "affiliations",
         "funders",
         "awards",
+        "chemicals",
     ):
         settings = Path(__file__).parent / "vocabulary_data/settings.yaml"
         filepath = Path(__file__).parent / f"vocabulary_data/{vocabulary}.yaml"
