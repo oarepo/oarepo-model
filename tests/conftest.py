@@ -580,11 +580,17 @@ relation_model_types = {
 recursive_relation_model_types = {
     "Metadata": {
         "properties": {
+            "array_key": {
+                "type": "pid-relation",
+                "keys": ["id", "metadata.additional_titles.title"],
+                "model": "recursive_relation_test",
+            },
             "direct": {
                 "type": "pid-relation",
                 "keys": ["id", "metadata.title", "metadata.multilingual"],
                 "model": "recursive_relation_test",
             },
+
             "array": {
                 "type": "array",
                 "items": {
@@ -657,6 +663,15 @@ recursive_relation_model_types = {
             },
             "title": {
                 "type": "keyword",
+            },
+            "additional_titles": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "keyword"}},
+                        "language": {"type": "keyword"},
+                    }
             },
         },
     },

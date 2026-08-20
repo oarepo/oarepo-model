@@ -141,7 +141,7 @@ class LazyModelJSONFile(Mapping):
             set_key_model(generated, key, value)
 
         # original code for reference
-        """
+
         for key in self._keys or []:
             if "." not in key:
                 # no nesting - just copy the field's definition as-is
@@ -158,7 +158,7 @@ class LazyModelJSONFile(Mapping):
                 source = source[part]["properties"]
                 dest = dest.setdefault(part, {"type": "object", "properties": {}})["properties"]
             dest[parts[-1]] = source[parts[-1]]
-        """
+
 
         self._data = generated
 
@@ -536,7 +536,7 @@ class PIDRelation(ObjectDataType):
         which is only importable once that model has been built and
         `.register()`-ed.
         """
-        if "record_cls" in element:
+        if "record_cls" in element: # TODO: look only on model; no lazy access
             target = element["record_cls"]
         elif "model" in element:
             target = element["model"]
