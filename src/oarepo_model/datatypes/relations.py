@@ -54,7 +54,6 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("oarepo_model")
 
-
 class LazyModelPIDField:
     """Lazily resolves a model PID field by name."""
 
@@ -91,7 +90,7 @@ class LazyRecordPIDField:
         """Resolve the model PID field by name."""
         return self._real_field.resolve(*args, **kwargs)
 
-
+# TODO: just in case, deepmerge does not work on these things
 class LazyModelJSONFile(Mapping):
     """Lazily loads and exposes a JSON file from another model's namespace.
 
@@ -123,14 +122,26 @@ class LazyModelJSONFile(Mapping):
 
     def _ensure(self) -> None:
         """Resolve the data on first use."""
+        # TODO: _ensure sentinel bug (relations.py:123-148, 248-276): self._data = {} is assigned before population, so a KeyError midway leaves a truthy partial dict served silently forever;     LSP
+        # an empty keys list re-runs resolution on every access (LazyUIModelChildren never caches).
         if self._data:
             return
         loaded = self._load_json()
 
-        self._data = generated = {}
+        generated = {}
 
-        source_properties = self._get_source_properties(loaded)
+        source_properties = self._get_source_properties(loaded) # TODO: perhaps rename this to disambiguate [oarepo-model] properties and built mappings/jsonschemas?
 
+        for key in self._keys or []:
+
+            # TODO: in case of explicit properties; the key.split will be called on a dict
+            # keys are a dict (before refactor version has a different failure mode)
+            # also what in case of arrays in key path?
+            value = _lookup_property(source_properties, key) # TODO: is the difference between original version (crash on missing) vs in eager branch - use {type: keyword} intentional
+            set_key_model(generated, key, value)
+
+        # original code for reference
+        """
         for key in self._keys or []:
             if "." not in key:
                 # no nesting - just copy the field's definition as-is
@@ -147,6 +158,9 @@ class LazyModelJSONFile(Mapping):
                 source = source[part]["properties"]
                 dest = dest.setdefault(part, {"type": "object", "properties": {}})["properties"]
             dest[parts[-1]] = source[parts[-1]]
+        """
+
+        self._data = generated
 
     def __getitem__(self, key: str) -> Any:
         """Get an item from the mapping, resolving it first."""
@@ -162,7 +176,6 @@ class LazyModelJSONFile(Mapping):
         """Get the number of items in the mapping, resolving it first."""
         self._ensure()
         return len(self._data)
-
 
 class LazyMapping(LazyModelJSONFile):
     """Lazily resolves a relation's mapping properties from the target model's mapping."""
@@ -184,6 +197,7 @@ class LazyMapping(LazyModelJSONFile):
         # dereferenced relation object (see RelationResult._dereference_one in
         # invenio_records), regardless of what is listed in "keys" - it must be
         # declared here too, or a strict mapping rejects it at index time.
+
         if "@v" not in self._data:
             self._data["@v"] = {"type": "keyword", "ignore_above": 256}
 
@@ -206,6 +220,7 @@ class LazyJSONSchema(LazyModelJSONFile):
 
         # see the matching comment in LazyMapping._ensure - the "@v" marker is
         # always present on a dereferenced relation object.
+
         if "@v" not in self._data:
             self._data["@v"] = {"type": "string"}
 
@@ -287,7 +302,7 @@ class LazyUIModelChildren(Mapping):
         self._ensure()
         return len(self._data)
 
-
+# TODO: the schema is proxied only to load/dump; can't this cause issues potentially?
 class LazyProxiedMarshmallowSchema(marshmallow.Schema):
     """A marshmallow schema that lazily builds and delegates to the real schema.
 
@@ -547,6 +562,7 @@ class PIDRelation(ObjectDataType):
             return True
         return False
 
+    # TODO: consider common super method for the next five methods?
     @override
     def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
         """Create a mapping for the data type.
@@ -665,6 +681,7 @@ class PIDRelation(ObjectDataType):
         return ret
 
     def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+
         if "properties" in element:
             if not isinstance(element["properties"], dict):
                 raise TypeError(
@@ -707,7 +724,9 @@ class PIDRelation(ObjectDataType):
                     set_key_model(ret, k, v)
             else:
                 raise TypeError(f"Invalid key type: {type(key)}")
+
         # if 'id' is not in keys, add it as a keyword field
+        # TODO: this is specifically added to relation fields in the eager branch but not in the lazy one
         if "id" not in ret:
             ret["id"] = {"type": "keyword"}
         # if @v is not in keys, add it as a keyword field, set marshmallow as dump only
@@ -729,7 +748,7 @@ class PIDRelation(ObjectDataType):
         (e.g. it was declared only via 'pid_field', or isn't an oarepo_model
         -built model) - callers fall back to "keyword" per key in that case.
         """
-        target = self._target_reference(element)
+        target = self._target_reference(element) # TODO: use _target_reference for model field bug too
         if target is None:
             return {}
 
@@ -886,7 +905,7 @@ class PIDRelation(ObjectDataType):
             return rec.pid
         if "model" in element:
             try:
-                imported_model = obj_or_import_string(element["model"])
+                imported_model = obj_or_import_string(f"runtime_models_{element['model']}") # TODO: this can't work - use f"runtime_models_{element['model']}" instead?
             except ImportError:
                 return LazyModelPIDField(element["model"])
 
