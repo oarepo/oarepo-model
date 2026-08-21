@@ -17,6 +17,7 @@ customizations for the model builder.
 
 from __future__ import annotations
 
+import copy
 from typing import TYPE_CHECKING, Any, cast, override
 
 import marshmallow
@@ -26,6 +27,7 @@ from oarepo_model.customizations.high_level.add_pid_relation import (
     ARRAY_PATH_ITEM,
     AddPIDRelation,
 )
+from oarepo_model.utils import import_runtime_model
 
 from .collections import ObjectDataType
 
@@ -60,6 +62,7 @@ class PIDRelation(ObjectDataType):
 
     marshmallow_field_class = marshmallow.fields.Nested
 
+    @override
     def get_facet(
         self,
         path: str,
@@ -67,35 +70,113 @@ class PIDRelation(ObjectDataType):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
-        """Create facets for the data type."""
-        _, _, _, _, _ = path, element, nested_facets, facets, path_suffix
+        return super().get_facet(
+            path, element, nested_facets, facets, path_suffix, ignored_keys={*(ignored_keys or ()), "@v"}
+        )
 
-        return facets
+    def _get_properties(self, element: dict[str, Any], ignore_missing: bool = False) -> dict[str, Any]:
+        """Get the properties for the recursive pid relation data type.
 
-    def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
-        if "properties" in element:
-            if not isinstance(element["properties"], dict):
-                raise TypeError(
-                    f"Expected 'properties' to be a dict, got {type(element['properties'])}.",
-                )
-            return cast("dict[str, Any]", element["properties"])
+        Note: we can not introspect the target's schema at this point, so
+        we return only the explicitly defined properties. There is no fallback
+        to 'keyword'.
+        """
+        model_name = element.get("model")
+        try:
+            target_properties = self._get_target_properties(element)
+        except ModuleNotFoundError:
+            if ignore_missing:
+                target_properties = {}
+            else:
+                raise
+
+        fallbacks = {
+            "id": {"type": "keyword", "searchable": False},
+            "@v": {"type": "keyword", "skip_marshmallow": True, "searchable": False},
+        }
+
         ret: dict[str, Any] = {}
         for key in element["keys"]:
             if isinstance(key, str):
-                set_key_model(ret, key, {"type": "keyword"})
+                prop = self._lookup_property(target_properties, key)
+                if prop is None and not ignore_missing:
+                    if key in fallbacks:
+                        prop = fallbacks[key]
+                    else:
+                        if model_name is not None:
+                            raise KeyError(f"Property not found: {key} in target properties of {model_name}")
+                        raise KeyError(
+                            f"Model name is not available, cannot determine target properties for '{key}'. "
+                            "Either provide model or define the props explicitly."
+                        )
+                if prop is not None:
+                    set_key_model(
+                        ret,
+                        key,
+                        copy.deepcopy(prop),
+                    )
             elif isinstance(key, dict):
                 for k, v in key.items():
                     set_key_model(ret, k, v)
             else:
                 raise TypeError(f"Invalid key type: {type(key)}")
-        # if 'id' is not in keys, add it as a keyword field
-        if "id" not in ret:
-            ret["id"] = {"type": "keyword"}
-        # if @v is not in keys, add it as a keyword field, set marshmallow as dump only
-        if "@v" not in ret:
-            ret["@v"] = {"type": "keyword", "skip_marshmallow": True}
+
+        for k, v in fallbacks.items():
+            if k not in ret:
+                ret[k] = v
         return ret
+
+    def _lookup_property(self, properties: dict[str, Any], key: str) -> dict[str, Any] | None:
+        """Walk a dotted key path down a properties tree, mirroring set_key_model.
+
+        Returns None if any segment of the path is missing, so callers can fall
+        back to a default rather than failing outright (e.g. for system fields
+        like "id" that are never part of the declared properties tree).
+        """
+        parts = key.split(".")
+        node = properties
+        for part in parts[:-1]:
+            prop = node.get(part)
+            if not isinstance(prop, dict):
+                return None
+            node = prop.get("properties", {})
+            if not isinstance(node, dict):
+                return None
+        return node.get(parts[-1])
+
+    def _get_target_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Look up the already-built target model's real declarative schema tree.
+
+        Returns a "properties"-style mapping (field name -> its declarative
+        element dict, the same shape as this project's own model type dicts),
+        merged from the target's record- and metadata-level schemas, so dotted
+        'keys' entries like "metadata.title" can be resolved against the
+        target's *real* field types (e.g. "vocabulary", "multilingual")
+        instead of a hardcoded "keyword" guess.
+
+        Returns an empty dict if the target can't be introspected this way
+        (e.g. it was declared only via 'pid_field', or isn't an oarepo_model
+        -built model) - callers fall back to "keyword" per key in that case.
+        """
+        model_name = element.get("model")
+        if not model_name:
+            return {}
+
+        imported = import_runtime_model(model_name)
+
+        model_metadata = getattr(imported, "oarepo_model_arguments", {}).get("model_metadata")
+        if model_metadata is None:
+            return {}
+
+        properties: dict[str, Any] = {}
+        if model_metadata.record_type:
+            record_root = model_metadata.types.get(model_metadata.record_type, {})
+            properties.update(record_root.get("properties", {}))
+        if model_metadata.metadata_type:
+            properties["metadata"] = model_metadata.types.get(model_metadata.metadata_type, {})
+        return properties
 
     @override
     def create_relations(
@@ -105,9 +186,9 @@ class PIDRelation(ObjectDataType):
     ) -> list[Customization]:
         relation_path = self._relation_path(element, path)
         relation_name = self._relation_name(element, path)
-        pid_field = self._pid_field(element, path)
-        cache_key = self._cache_key(element, path)
-        key_names = self._key_names(element, path)
+        pid_field = self._relation_pid_field(element, path)
+        cache_key = self._relation_cache_key(element, path)
+        key_names = self._relation_key_names(element, path)
 
         relations: list[Customization] = [
             AddPIDRelation(
@@ -132,7 +213,7 @@ class PIDRelation(ObjectDataType):
 
     def _relation_path(
         self,
-        element: dict[str, Any],  # noqa: ARG002 for overriding
+        element: dict[str, Any],  # noqa: ARG002
         path: list[tuple[str, dict[str, Any]]],
     ) -> list:
         """Get the relation path for the PID relation."""
@@ -152,10 +233,10 @@ class PIDRelation(ObjectDataType):
         relation_path = self._relation_path(element, path)
         return ".".join(str(k) for k in relation_path if k is not ARRAY_PATH_ITEM)
 
-    def _pid_field(
+    def _relation_pid_field(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002 for overriding
+        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002
     ) -> PIDFieldContext:
         """Get the PID field from the element."""
         if "pid_field" in element:
@@ -176,20 +257,20 @@ class PIDRelation(ObjectDataType):
                 )
             return rec.pid
         raise ValueError(
-            "Either 'pid_field' or 'record_cls' must be provided in the pid-relation element.",
+            f"Either 'pid_field' or 'record_cls' must be provided in {element=}",
         )
 
-    def _cache_key(
+    def _relation_cache_key(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002 for overriding
+        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002
     ) -> str | None:
         return element.get("cache_key")
 
-    def _key_names(
+    def _relation_key_names(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002 for overriding
+        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002
     ) -> list[str]:
         keys = set()
         for key in element.get("keys", []):
