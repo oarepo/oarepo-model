@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import functools
 from datetime import datetime
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, override
 
 import edtf
@@ -26,6 +25,8 @@ import marshmallow.fields
 import marshmallow.validate
 import marshmallow_utils.fields
 from marshmallow_utils.fields.edtfdatestring import EDTFValidator
+
+from oarepo_model.utils import ReadOnlyDict
 
 from .base import DataType, FacetMixin
 
@@ -75,8 +76,8 @@ class DateDataType(FacetMixin, DataType):
     TYPE = "date"
 
     marshmallow_field_class = DateString
-    jsonschema_type = MappingProxyType({"type": "string", "format": "date"})
-    mapping_type = MappingProxyType(
+    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date"})
+    mapping_type = ReadOnlyDict(
         {"type": "date", "format": "basic_date||strict_date"},
     )
 
@@ -137,8 +138,8 @@ class DateTimeDataType(FacetMixin, DataType):
     TYPE = "datetime"
 
     marshmallow_field_class = DateTimeString
-    jsonschema_type = MappingProxyType({"type": "string", "format": "date-time"})
-    mapping_type = MappingProxyType(
+    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date-time"})
+    mapping_type = ReadOnlyDict(
         {
             "type": "date",
             "format": "strict_date_time||strict_date_time_no_millis||basic_date_time||"
@@ -205,8 +206,8 @@ class TimeDataType(FacetMixin, DataType):
     TYPE = "time"
 
     marshmallow_field_class = TimeString
-    jsonschema_type = MappingProxyType({"type": "string", "format": "time"})
-    mapping_type = MappingProxyType(
+    jsonschema_type = ReadOnlyDict({"type": "string", "format": "time"})
+    mapping_type = ReadOnlyDict(
         {
             "type": "date",
             "format": "strict_time||strict_time_no_millis||basic_time||"
@@ -293,8 +294,8 @@ class EDTFTimeDataType(FacetMixin, DataType):
     TYPE = "edtf-time"
 
     marshmallow_field_class = marshmallow_utils.fields.edtfdatestring.EDTFDateTimeString
-    jsonschema_type = MappingProxyType({"type": "string", "format": "date-time"})
-    mapping_type = MappingProxyType(
+    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date-time"})
+    mapping_type = ReadOnlyDict(
         {
             "type": "date",
             "format": "strict_date_time||strict_date_time_no_millis||strict_date||yyyy-MM||yyyy",
@@ -354,8 +355,8 @@ class EDTFDataType(FacetMixin, DataType):
     TYPE = "edtf"
 
     marshmallow_field_class = marshmallow.fields.String
-    jsonschema_type = MappingProxyType({"type": "string", "format": "date"})
-    mapping_type = MappingProxyType(
+    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date"})
+    mapping_type = ReadOnlyDict(
         {
             "type": "date",
             "format": "strict_date||yyyy-MM||yyyy",
@@ -415,8 +416,8 @@ class EDTFIntervalType(DataType):
     TYPE = "edtf-interval"
 
     marshmallow_field_class = marshmallow.fields.String
-    jsonschema_type = MappingProxyType({"type": "string", "format": "date"})
-    mapping_type = MappingProxyType(
+    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date"})
+    mapping_type = ReadOnlyDict(
         {
             "type": "date_range",
             "format": "strict_date||yyyy-MM||yyyy",
@@ -483,18 +484,18 @@ class EDTFDateOrIntervalDataType(DataType):
     TYPE = "edtf-date-or-interval"
 
     marshmallow_field_class = marshmallow.fields.String
-    jsonschema_type = MappingProxyType({"type": "string", "format": "date"})
-    mapping_type = MappingProxyType(
+    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date"})
+    mapping_type = ReadOnlyDict(
         {
             "type": "keyword",
         }
     )
 
     @override
-    def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> MappingProxyType[str, Any]:
+    def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> ReadOnlyDict[str, Any]:
         """Create RDM-style sibling date_range mapping."""
         _ = element
-        return MappingProxyType(
+        return ReadOnlyDict(
             {
                 f"{field_name}_range": {
                     "type": "date_range",

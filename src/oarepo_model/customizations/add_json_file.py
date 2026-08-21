@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..utils import dump_to_json
 from .add_file_to_module import AddFileToModule
 
 
@@ -38,6 +37,8 @@ class AddJSONFile(AddFileToModule):
         :param name: The name of the list to be added.
         :param exists_ok: Whether to ignore if the list already exists.
         """
+        from ..utils import dump_to_json
+
         super().__init__(
             symbolic_name=symbolic_name,
             module_name=module_name,
