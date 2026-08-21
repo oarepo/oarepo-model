@@ -492,7 +492,7 @@ class EDTFDateOrIntervalDataType(DataType):
     )
 
     @override
-    def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> ReadOnlyDict[str, Any]:
+    def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> ReadOnlyDict:
         """Create RDM-style sibling date_range mapping."""
         _ = element
         return ReadOnlyDict(

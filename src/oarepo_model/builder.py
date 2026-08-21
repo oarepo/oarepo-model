@@ -30,11 +30,11 @@ from oarepo_model.errors import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Iterable
 
     from .datatypes.registry import DataTypeRegistry
 
-from .model import InvenioModel, RuntimeDependencies
+from .model import FileContent, InvenioModel, RuntimeDependencies
 from .utils import (
     is_mro_consistent,
     make_mro_consistent,
@@ -208,7 +208,7 @@ class BuilderModule(Partial, SimpleNamespace):
     def __init__(self, module_name: str):
         """Initialize the BuilderModule customization."""
         super().__init__(module_name)
-        self.files: dict[str, str | Callable[[], str]] = {}
+        self.files: dict[str, FileContent] = {}
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
@@ -233,7 +233,7 @@ class BuilderModule(Partial, SimpleNamespace):
                 ) from e
         return ret
 
-    def add_file(self, file_path: str, content: str | Callable[[], str]) -> None:
+    def add_file(self, file_path: str, content: FileContent) -> None:
         """Add a file to the module."""
         self.files[file_path] = content
 
@@ -247,7 +247,7 @@ class BuilderModule(Partial, SimpleNamespace):
 class BuilderFile(Partial):
     """Builder for files in the model."""
 
-    def __init__(self, name: str, module_name: str, file_path: str, content: str | Callable[[], str]):
+    def __init__(self, name: str, module_name: str, file_path: str, content: FileContent):
         """Initialize the BuilderFile customization."""
         super().__init__(name)
         self.module_name = module_name
@@ -414,7 +414,7 @@ class InvenioModelBuilder:
         symbolic_name: str,
         module_name: str,
         file_path: str,
-        content: str | Callable[[], str],
+        content: FileContent,
         exists_ok: bool = False,
     ) -> BuilderFile:
         """Add a file to the builder."""
@@ -433,11 +433,11 @@ class InvenioModelBuilder:
         module_name: str,
         file_path: str,
         exists_ok: bool = False,
-    ) -> BuilderFile:
+    ) -> BuilderSymbolicLink:
         """Add a symlink to the builder."""
         if symbolic_name in self.partials:
             if exists_ok:
-                return cast("BuilderFile", self.partials[symbolic_name])
+                return cast("BuilderSymbolicLink", self.partials[symbolic_name])
             raise AlreadyRegisteredError(f"Module {symbolic_name} already exists.")
 
         ret = BuilderSymbolicLink(symbolic_name, module_name, file_path)

@@ -84,7 +84,7 @@ class ReferenceMappingProperties(LazyJSONNamespaceFilePart):
         for p in path.split("."):
             data = data["properties"]
             data = data[p]
-        return data
+        return cast("dict[str, Any]", data)
 
     @override
     def _set_path(self, data: Any, path: str, value: Any) -> None:
@@ -113,7 +113,7 @@ class ReferenceJSONSchemaProperties(ReferenceMappingProperties):
         for p in path.split("."):
             data = data["properties"]
             data = data[p]
-        return data
+        return cast("dict[str, Any]", data)
 
     @override
     def _set_path(self, data: Any, path: str, value: Any) -> None:
@@ -158,7 +158,7 @@ class ReferenceUIModel(LazyJSONNamespaceFilePart):
     @override
     def _load_original_json(self) -> dict[str, Any]:
         """Load the original JSON content from the namespace file."""
-        return import_runtime_model(self._model).ui_model
+        return cast("dict[str, Any]", import_runtime_model(self._model).ui_model)
 
     @override
     def _get_path(self, data: Any, path: str) -> dict[str, Any]:
@@ -166,7 +166,7 @@ class ReferenceUIModel(LazyJSONNamespaceFilePart):
         for p in path.split("."):
             data = data.get("children", {})
             data = data.get(p, {})
-        return data
+        return cast("dict[str, Any]", data)
 
     @override
     def _set_path(self, data: Any, path: str, value: Any) -> None:
@@ -296,7 +296,7 @@ class LazyPIDRelation(PIDRelation):
         )
 
     @override
-    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+    def create_mapping(self, element: dict[str, Any]) -> Mapping[str, Any]:
         """Create a mapping for the data type."""
         model = element["model"]
         keys = element.get("keys", [])
@@ -313,7 +313,7 @@ class LazyPIDRelation(PIDRelation):
         )
 
     @override
-    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+    def create_json_schema(self, element: dict[str, Any]) -> Mapping[str, Any]:
         """Create a json schema for the data type."""
         model = element["model"]
         keys = element.get("keys", [])
@@ -374,11 +374,20 @@ class LazyPIDRelation(PIDRelation):
         # element (help/label/hint/input/children) - see create_mapping above
         # for why the lazy object itself is returned rather than nested under
         # a "children" key of a separately-built node.
-        return ReferenceUIModel(
-            model,
-            keys,
-            filename="record-ui-model-link",
-            initial_content=super().create_ui_model(element, path),
+        #
+        # Unlike create_mapping/create_json_schema, create_ui_model's return
+        # type can't be widened to Mapping[str, Any] without a wider ripple -
+        # several other overrides (ObjectDataType, ArrayDataType, numbers.py,
+        # strings.py) mutate the parent's returned dict in place. The lazy
+        # object is never mutated by any caller, so the cast is safe.
+        return cast(
+            "dict[str, Any]",
+            ReferenceUIModel(
+                model,
+                keys,
+                filename="record-ui-model-link",
+                initial_content=super().create_ui_model(element, path),
+            ),
         )
 
     #

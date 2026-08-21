@@ -21,7 +21,7 @@ from oarepo_model.presets import Preset
 from oarepo_model.datatypes.tree import resolve_schema_type
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
@@ -73,7 +73,7 @@ class RecordJSONSchemaPreset(Preset):
         )
 
 
-def get_json_schema(builder: InvenioModelBuilder, schema_type: Any) -> dict[str, Any]:
+def get_json_schema(builder: InvenioModelBuilder, schema_type: Any) -> Mapping[str, Any]:
     """Get the JSON schema for a given schema type."""
     datatype, element = resolve_schema_type(builder, schema_type)
     return cast("Any", datatype).create_json_schema(element)

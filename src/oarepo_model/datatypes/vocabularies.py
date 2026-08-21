@@ -89,10 +89,11 @@ class VocabularyDataType(FacetMixin, PIDRelation):
             ret["@v"] = {"type": "keyword", "skip_marshmallow": True}
         return ret
 
-    def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+    @override
+    def _get_properties(self, element: dict[str, Any], ignore_missing: bool = False) -> dict[str, Any]:
         self._resolve_keys(element)
 
-        return super()._get_properties(element)
+        return super()._get_properties(element, ignore_missing=ignore_missing)
 
     @override
     def create_marshmallow_schema(self, element: dict[str, Any]) -> type[Schema]:
@@ -192,7 +193,13 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
+        # MRO puts FacetMixin before PIDRelation (see class VocabularyDataType
+        # bases below), so super() here is FacetMixin.get_facet - a leaf
+        # implementation that produces a single facet for this vocabulary
+        # reference itself (not a recursive property walk), and has no
+        # 'ignored_keys' concept to forward to.
         return super().get_facet(
             path,
             element,

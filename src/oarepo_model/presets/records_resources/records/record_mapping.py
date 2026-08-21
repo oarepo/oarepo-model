@@ -21,7 +21,7 @@ from oarepo_model.datatypes.collections import ObjectDataType
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel

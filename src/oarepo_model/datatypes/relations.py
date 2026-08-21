@@ -76,7 +76,11 @@ class PIDRelation(ObjectDataType):
             path, element, nested_facets, facets, path_suffix, ignored_keys={*(ignored_keys or ()), "@v"}
         )
 
-    def _get_properties(self, element: dict[str, Any], ignore_missing: bool = False) -> dict[str, Any]:
+    def _get_properties(  # noqa: PLR0912,C901 too many branches
+        self,
+        element: dict[str, Any],
+        ignore_missing: bool = False,
+    ) -> dict[str, Any]:
         """Get the properties for the recursive pid relation data type.
 
         Note: we can not introspect the target's schema at this point, so

@@ -70,7 +70,7 @@ class LazyJSONNamespaceFilePart(LazyPythonMapping, abc.ABC):
     extra_fields: Mapping[str, Any] = {}
 
     def __init__(
-        self, model: str, keys: list[str] | None, filename: str, initial_content: dict[str, Any] | None = None
+        self, model: str, keys: list[str] | None, filename: str, initial_content: Mapping[str, Any] | None = None
     ) -> None:
         """Initialize with the model name, keys and namespace file name to resolve."""
         super().__init__()

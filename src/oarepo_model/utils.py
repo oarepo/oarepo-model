@@ -24,7 +24,7 @@ from invenio_records_resources.records import Record
 from .model import FileContent, JSONContent
 
 if TYPE_CHECKING:
-    from oarepo_model.api import ModelNamespace
+    from oarepo_model.model import ModelNamespace
 
 from oarepo_model.c3linearize import LinearizationError, mro_without_class_construction
 
@@ -252,8 +252,8 @@ def import_runtime_json(model_name: str, filename: str) -> dict[str, Any]:
         filename = ns_links[filename]
     file_content = ns_files[filename]
     if isinstance(file_content, JSONContent):
-        return file_content.payload
-    return json.loads(file_content)
+        return cast("dict[str, Any]", file_content.payload)
+    return cast("dict[str, Any]", json.loads(file_content))
 
 
 def deeply_copy_to_mutable(obj: Any) -> Any:

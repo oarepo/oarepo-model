@@ -16,9 +16,12 @@ them to the module.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .add_file_to_module import AddFileToModule
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class AddJSONFile(AddFileToModule):
@@ -29,7 +32,7 @@ class AddJSONFile(AddFileToModule):
         symbolic_name: str,
         module_name: str,
         file_path: str,
-        payload: dict[str, Any],
+        payload: Mapping[str, Any],
         exists_ok: bool = False,
     ) -> None:
         """Add a json to the model.
