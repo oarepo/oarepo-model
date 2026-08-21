@@ -44,7 +44,10 @@ class MetadataMappingPreset(Preset):
                 {
                     "mappings": {
                         "properties": {
-                            "metadata": mapping,
+                            "metadata": {
+                                "type": "object",
+                                **mapping,
+                            },
                         },
                     },
                 },

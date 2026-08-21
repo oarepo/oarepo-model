@@ -13,28 +13,29 @@ Covers:
 - MultilingualDataType: load and dump round-trip, duplicate language rejection
 - I18nDictDataType: field type, load/dump of language-keyed dicts, JSON schema, mapping
 """
+# ruff: noqa: D102
+
 from __future__ import annotations
 
-import pytest
 import marshmallow as ma
+import pytest
 
 from oarepo_model.datatypes.multilingual import multilingual_validator
-
 
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
 
+
 def make_schema(datatype_registry, element):
-    field = datatype_registry.get_type(element).create_marshmallow_field(
-        field_name="a", element=element
-    )
+    field = datatype_registry.get_type(element).create_marshmallow_field(field_name="a", element=element)
     return ma.Schema.from_dict({"a": field})()
 
 
 # ===========================================================================
 # multilingual_validator (unit tests)
 # ===========================================================================
+
 
 class TestMultilingualValidator:
     """multilingual_validator must reject lists that contain duplicate language codes."""
@@ -60,11 +61,13 @@ class TestMultilingualValidator:
 
     def test_duplicate_among_many_raises(self):
         with pytest.raises(ma.ValidationError):
-            multilingual_validator([
-                self._entry("en"),
-                self._entry("fi"),
-                self._entry("en"),  # duplicate
-            ])
+            multilingual_validator(
+                [
+                    self._entry("en"),
+                    self._entry("fi"),
+                    self._entry("en"),  # duplicate
+                ]
+            )
 
     def test_two_different_duplicates_raises(self):
         """Even a single duplicate triggers the error."""
@@ -75,6 +78,7 @@ class TestMultilingualValidator:
 # ===========================================================================
 # MultilingualDataType — integration via the registry
 # ===========================================================================
+
 
 class TestMultilingualDataType:
     """multilingual type (registered via entry-points) must validate language uniqueness."""
@@ -91,28 +95,36 @@ class TestMultilingualDataType:
         assert ml_schema.load(data) == data
 
     def test_multiple_distinct_languages_load(self, ml_schema):
-        data = {"titles": [
-            {"lang": {"id": "en"}, "value": "Hello"},
-            {"lang": {"id": "fi"}, "value": "Hei"},
-        ]}
+        data = {
+            "titles": [
+                {"lang": {"id": "en"}, "value": "Hello"},
+                {"lang": {"id": "fi"}, "value": "Hei"},
+            ]
+        }
         assert ml_schema.load(data) == data
 
     def test_duplicate_language_raises_validation_error(self, ml_schema):
         with pytest.raises(ma.ValidationError) as exc_info:
-            ml_schema.load({"titles": [
-                {"lang": {"id": "en"}, "value": "Hello"},
-                {"lang": {"id": "en"}, "value": "World"},
-            ]})
+            ml_schema.load(
+                {
+                    "titles": [
+                        {"lang": {"id": "en"}, "value": "Hello"},
+                        {"lang": {"id": "en"}, "value": "World"},
+                    ]
+                }
+            )
         assert "en" in str(exc_info.value.messages)
 
     def test_empty_list_is_accepted(self, ml_schema):
         assert ml_schema.load({"titles": []}) == {"titles": []}
 
     def test_dump_round_trip(self, ml_schema):
-        original = {"titles": [
-            {"lang": {"id": "en"}, "value": "Hello"},
-            {"lang": {"id": "fi"}, "value": "Hei"},
-        ]}
+        original = {
+            "titles": [
+                {"lang": {"id": "en"}, "value": "Hello"},
+                {"lang": {"id": "fi"}, "value": "Hei"},
+            ]
+        }
         loaded = ml_schema.load(original)
         dumped = ml_schema.dump(loaded)
         assert dumped == original
@@ -121,6 +133,7 @@ class TestMultilingualDataType:
 # ===========================================================================
 # I18nDictDataType
 # ===========================================================================
+
 
 class TestI18nDictDataType:
     """i18ndict type represents a simple {lang_code: text} dictionary."""

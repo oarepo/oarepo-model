@@ -16,6 +16,7 @@ nested structures, and dynamic objects for use in OARepo models.
 
 from __future__ import annotations
 
+import contextlib
 import json
 from typing import TYPE_CHECKING, Any, override
 
@@ -23,7 +24,7 @@ import marshmallow
 from invenio_base.utils import obj_or_import_string
 from invenio_i18n import gettext as _
 
-from oarepo_model.utils import MultiFormatField, convert_to_python_identifier
+from oarepo_model.utils import ARRAY_PATH_ITEM, ArrayPathMember, MultiFormatField, convert_to_python_identifier
 
 from .base import ARRAY_ITEM_PATH, DataType, FacetMixin
 
@@ -31,6 +32,10 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from oarepo_model.customizations.base import Customization
+
+
+class NoPropertiesError(Exception):
+    """Raised when no properties are found for a data type."""
 
 
 class ObjectDataType(DataType):
@@ -51,7 +56,7 @@ class ObjectDataType(DataType):
         This method can be overridden by subclasses to provide specific properties logic.
         """
         if "properties" not in element:
-            raise ValueError(f"Element must contain 'properties' key. Got {element}")  # pragma: no cover
+            raise NoPropertiesError(f"Element must contain 'properties' key. Got {element}")  # pragma: no cover
         if not isinstance(element["properties"], dict):
             raise TypeError(
                 "Element 'properties' must be a dictionary.",
@@ -85,8 +90,7 @@ class ObjectDataType(DataType):
                 imported = obj_or_import_string(mixin)
                 if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
                     raise TypeError(
-                        f"marshmallow_schema_mixins {mixin} "
-                        "must be a subclass of marshmallow.Schema",
+                        f"marshmallow_schema_mixins {mixin} must be a subclass of marshmallow.Schema",
                     )
                 mixins.append(imported)
 
@@ -139,6 +143,7 @@ class ObjectDataType(DataType):
         properties_fields["Meta"] = Meta
         return type(self.name, (marshmallow.Schema,), properties_fields)
 
+    @override
     def get_facet(
         self,
         path: str,
@@ -146,12 +151,15 @@ class ObjectDataType(DataType):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Create facets for the data type."""
         _ = path_suffix  # path suffix is not used for objects
-        if "properties" in element:
+        with contextlib.suppress(NoPropertiesError):
             properties = self._get_properties(element)
             for key, value in properties.items():
+                if ignored_keys is not None and key in ignored_keys:
+                    continue
                 if path == "":
                     _path = key
                 elif path.endswith(key):
@@ -200,7 +208,7 @@ class ObjectDataType(DataType):
         }
 
     @override
-    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+    def create_json_schema(self, element: dict[str, Any]) -> Mapping[str, Any]:
         properties = self._get_properties(element)
         return {
             **super().create_json_schema(element),
@@ -211,7 +219,7 @@ class ObjectDataType(DataType):
         }
 
     @override
-    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+    def create_mapping(self, element: dict[str, Any]) -> Mapping[str, Any]:
         properties = self._get_properties(element)
         mapping_properties = {}
         for key, value in properties.items():
@@ -236,7 +244,7 @@ class ObjectDataType(DataType):
     def create_relations(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],
+        path: list[ArrayPathMember],
     ) -> list[Customization]:
         """Iterate through the properties of this object and create relations."""
         ret = []
@@ -244,7 +252,7 @@ class ObjectDataType(DataType):
             ret.extend(
                 self._registry.get_type(value).create_relations(
                     value,
-                    [*path, (key, value)],
+                    [*path, key],
                 ),
             )
         return ret
@@ -273,6 +281,7 @@ class NestedDataType(ObjectDataType):
     TYPE = "nested"
     mapping_type = "nested"
 
+    @override
     def get_facet(
         self,
         path: str,
@@ -280,12 +289,15 @@ class NestedDataType(ObjectDataType):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Create facets for the data type."""
         _ = path_suffix  # path suffix is not used for nested objects
-        if "properties" in element:
+        with contextlib.suppress(NoPropertiesError):
             properties = self._get_properties(element)
             for key, value in properties.items():
+                if ignored_keys is not None and key in ignored_keys:
+                    continue
                 _path = path if path.endswith(key) else f"{path}.{key}"
 
                 facets.update(
@@ -434,11 +446,11 @@ class ArrayDataType(FacetMixin, DataType):
     def create_relations(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],
+        path: list[ArrayPathMember],
     ) -> list[Customization]:
         return self._registry.get_type(element["items"]).create_relations(
             element["items"],
-            [*path, ("", element)],
+            [*path, ARRAY_PATH_ITEM],
         )
 
     def get_facet(
@@ -499,7 +511,7 @@ class DynamicObjectDataType(ObjectDataType):
         from .base import DataType
 
         return marshmallow.fields.Raw(
-            **DataType._get_marshmallow_field_args(self, field_name, element),
+            **DataType._get_marshmallow_field_args(self, field_name, element),  # noqa: SLF001
         )
 
     @override
@@ -525,7 +537,7 @@ class DynamicObjectDataType(ObjectDataType):
     def create_relations(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],
+        path: list[ArrayPathMember],
     ) -> list[Customization]:
         # can not get relations for dynamic objects
         return []

@@ -20,26 +20,26 @@ Covers:
 - DynamicObjectDataType JSON schema and mapping
 - ArrayDataType create_mapping delegates to items (skips the array wrapper)
 """
+# ruff: noqa: D102
+
 from __future__ import annotations
 
 from typing import Any
 
-import pytest
 import marshmallow as ma
+import pytest
 
-from oarepo_model.datatypes.collections import unique_validator
-
+from oarepo_model.datatypes.collections import NoPropertiesError, unique_validator
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def make_schema(datatype_registry, element, extra_types=None):
     if extra_types:
         datatype_registry.add_types(extra_types)
-    field = datatype_registry.get_type(element).create_marshmallow_field(
-        field_name="a", element=element
-    )
+    field = datatype_registry.get_type(element).create_marshmallow_field(field_name="a", element=element)
     return ma.Schema.from_dict({"a": field})()
 
 
@@ -47,8 +47,7 @@ def object_element(mixins, properties=None):
     """Build an object element with the given marshmallow_schema_mixins."""
     return {
         "type": "object",
-        "properties": properties
-        or {"start": {"type": "keyword"}, "end": {"type": "keyword"}},
+        "properties": properties or {"start": {"type": "keyword"}, "end": {"type": "keyword"}},
         "marshmallow_schema_mixins": mixins,
     }
 
@@ -99,8 +98,9 @@ class PlainSchema(ma.Schema):
 
 
 # ===========================================================================
-# unique_validator (unit-level)
+# unique_validator  - unit-level
 # ===========================================================================
+
 
 class TestUniqueValidator:
     """unique_validator must raise only when duplicates are present."""
@@ -131,6 +131,7 @@ class TestUniqueValidator:
 # unique_items=True through array schema
 # ===========================================================================
 
+
 class TestUniqueItemsInArray:
     """unique_items=True on an array element must reject duplicate entries."""
 
@@ -160,6 +161,7 @@ class TestUniqueItemsInArray:
 # ===========================================================================
 # Array min_items / max_items
 # ===========================================================================
+
 
 class TestArrayLengthConstraints:
     """min_items and max_items must be enforced via marshmallow.validate.Length."""
@@ -199,21 +201,18 @@ class TestArrayLengthConstraints:
 # NestedDataType
 # ===========================================================================
 
+
 class TestNestedDataType:
     """nested type must produce ES mapping type 'nested', not 'object'."""
 
     def test_nested_mapping_type_is_nested(self, datatype_registry):
         dt = datatype_registry.get_type({"type": "nested"})
-        mapping = dt.create_mapping(
-            {"type": "nested", "properties": {"x": {"type": "keyword"}}}
-        )
+        mapping = dt.create_mapping({"type": "nested", "properties": {"x": {"type": "keyword"}}})
         assert mapping["type"] == "nested"
 
     def test_nested_mapping_contains_properties(self, datatype_registry):
         dt = datatype_registry.get_type({"type": "nested"})
-        mapping = dt.create_mapping(
-            {"type": "nested", "properties": {"score": {"type": "int"}}}
-        )
+        mapping = dt.create_mapping({"type": "nested", "properties": {"score": {"type": "int"}}})
         assert "score" in mapping["properties"]
 
     def test_nested_schema_round_trip(self, datatype_registry):
@@ -235,13 +234,14 @@ class TestNestedDataType:
 # ObjectDataType error paths
 # ===========================================================================
 
+
 class TestObjectDataTypeErrorPaths:
     """ObjectDataType must raise clear errors for invalid configurations."""
 
     def test_missing_properties_raises_value_error(self, datatype_registry):
         """create_marshmallow_field on an object without 'properties' must raise ValueError."""
         dt = datatype_registry.get_type({"type": "object"})
-        with pytest.raises((ValueError, TypeError)):
+        with pytest.raises(NoPropertiesError):
             dt.create_marshmallow_field(
                 field_name="a",
                 element={"type": "object"},  # no properties
@@ -251,14 +251,13 @@ class TestObjectDataTypeErrorPaths:
         """marshmallow_schema_class pointing to a non-Schema class must raise ValueError."""
         dt = datatype_registry.get_type({"type": "object"})
         with pytest.raises((ValueError, ImportError, AttributeError, Exception)):
-            dt.create_marshmallow_schema(
-                {"type": "object", "marshmallow_schema_class": "this.does.not.exist:Foo"}
-            )
+            dt.create_marshmallow_schema({"type": "object", "marshmallow_schema_class": "this.does.not.exist:Foo"})
 
 
 # ===========================================================================
 # ObjectDataType marshmallow_schema_mixins
 # ===========================================================================
+
 
 class TestMarshmallowSchemaMixins:
     """marshmallow_schema_mixins must be mixed into the generated object schema.
@@ -309,17 +308,13 @@ class TestMarshmallowSchemaMixins:
         data = {"a": {"start": "2024-05-01", "end": "2024-01-01"}}
         assert schema.load(data) == data
 
-    def test_mixin_schema_validator_is_skipped_without_the_relevant_properties(
-        self, datatype_registry
-    ):
+    def test_mixin_schema_validator_is_skipped_without_the_relevant_properties(self, datatype_registry):
         """The mixin validator must not invent errors for unrelated data."""
         element = object_element([DATE_RANGE_MIXIN], properties={"start": {"type": "keyword"}})
         schema = make_schema(datatype_registry, element)
         assert schema.load({"a": {"start": "2024-05-01"}}) == {"a": {"start": "2024-05-01"}}
 
-    def test_mixin_error_message_is_reported_for_the_offending_property(
-        self, datatype_registry
-    ):
+    def test_mixin_error_message_is_reported_for_the_offending_property(self, datatype_registry):
         """The message raised by the mixin must reach the client for the right property."""
         schema = make_schema(datatype_registry, object_element([DATE_RANGE_MIXIN]))
         with pytest.raises(ma.ValidationError) as exc_info:
@@ -354,9 +349,7 @@ class TestMarshmallowSchemaMixins:
         element = object_element([EXTRA_FIELD_MIXIN])
         schema = make_schema(datatype_registry, element)
         assert "stamped" in schema.fields["a"].schema.fields
-        assert schema.load({"a": {"start": "x", "end": "y"}}) == {
-            "a": {"start": "x", "end": "y", "stamped": "unknown"}
-        }
+        assert schema.load({"a": {"start": "x", "end": "y"}}) == {"a": {"start": "x", "end": "y", "stamped": "unknown"}}
 
     def test_mixins_are_applied_to_array_items(self, datatype_registry):
         """The mixin must be applied when the object is used as array items."""
@@ -431,25 +424,26 @@ class TestMarshmallowSchemaMixins:
 # [] shortcut and dict shortcuts in get_type
 # ===========================================================================
 
+
 class TestRegistryShortcuts:
     """The registry must resolve 'properties' and 'items' dict shortcuts."""
 
     def test_get_type_with_properties_dict_resolves_to_object(self, datatype_registry):
         """A dict with 'properties' but no 'type' key must resolve to ObjectDataType."""
         from oarepo_model.datatypes.collections import ObjectDataType
+
         dt = datatype_registry.get_type({"properties": {"x": {"type": "keyword"}}})
         assert isinstance(dt, ObjectDataType)
 
     def test_get_type_with_items_dict_resolves_to_array(self, datatype_registry):
         """A dict with 'items' but no 'type' key must resolve to ArrayDataType."""
         from oarepo_model.datatypes.collections import ArrayDataType
+
         dt = datatype_registry.get_type({"items": {"type": "keyword"}})
         assert isinstance(dt, ArrayDataType)
 
     def test_array_bracket_shortcut_in_nested_properties(self, datatype_registry):
-        """A property key ending in '[]' inside an object's 'properties' dict must
-        be expanded to type=array when the type is registered and later referenced.
-        """
+        """Expand property key ending in '[]' to type=array when type is registered."""
         datatype_registry.add_types(
             {
                 "TaggedItem": {
@@ -470,15 +464,14 @@ class TestRegistryShortcuts:
         inner_schema = field.schema
         # Field names are converted to Python identifiers; 'tags[]' → 'tags_91__93_'
         list_fields = [f for f in inner_schema.fields.values() if isinstance(f, ma.fields.List)]
-        assert list_fields, (
-            f"Expected a List field in the inner schema, got: "
-            f"{{{k}: type(v).__name__ for k, v in inner_schema.fields.items()}}"
-        )
+        field_names = list(inner_schema.fields)
+        assert list_fields, f"Expected a List field in the inner schema, got fields: {field_names}"
 
 
 # ===========================================================================
 # DynamicObjectDataType JSON schema and mapping
 # ===========================================================================
+
 
 class TestDynamicObjectDataType:
     """dynamic-object must advertise open schema and dynamic mapping."""
@@ -498,19 +491,16 @@ class TestDynamicObjectDataType:
 # ArrayDataType create_mapping delegates to items
 # ===========================================================================
 
+
 class TestArrayMappingDelegation:
     """Arrays are transparent in ES: create_mapping must return the items mapping."""
 
     def test_array_of_keywords_produces_keyword_mapping(self, datatype_registry):
         dt = datatype_registry.get_type({"type": "array"})
-        mapping = dt.create_mapping(
-            {"type": "array", "items": {"type": "keyword"}}
-        )
+        mapping = dt.create_mapping({"type": "array", "items": {"type": "keyword"}})
         assert mapping["type"] == "keyword"
 
     def test_array_of_ints_produces_integer_mapping(self, datatype_registry):
         dt = datatype_registry.get_type({"type": "array"})
-        mapping = dt.create_mapping(
-            {"type": "array", "items": {"type": "int"}}
-        )
+        mapping = dt.create_mapping({"type": "array", "items": {"type": "int"}})
         assert mapping["type"] == "integer"

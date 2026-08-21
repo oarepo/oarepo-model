@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     import marshmallow
 
     from oarepo_model.customizations.base import Customization
+    from oarepo_model.utils import ArrayPathMember
 
     from .collections import ObjectDataType
     from .registry import DataTypeRegistry
@@ -161,7 +162,7 @@ class WrappedDataType(DataType):
     def create_relations(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],
+        path: list[ArrayPathMember],
     ) -> list[Customization]:
         return self.impl.create_relations(self._merge_type_dict(element), path)
 
