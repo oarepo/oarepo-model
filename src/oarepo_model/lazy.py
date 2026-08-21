@@ -36,7 +36,7 @@ class LazyPythonMapping(Mapping, abc.ABC):
     @abc.abstractmethod
     def _load_data(self) -> dict[str, Any]:
         """Load the data from the namespace file."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def _ensure(self) -> None:
         """Resolve the data on first use."""
@@ -82,12 +82,12 @@ class LazyJSONNamespaceFilePart(LazyPythonMapping, abc.ABC):
     @abc.abstractmethod
     def _get_path(self, data: Any, path: str) -> dict[str, Any]:
         """Get the value at the given path in the data."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     @abc.abstractmethod
     def _set_path(self, data: Any, path: str, value: Any) -> None:
         """Set the value at the given path in the data."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def _load_original_json(self) -> dict[str, Any]:
         """Load the original JSON content from the namespace file."""
