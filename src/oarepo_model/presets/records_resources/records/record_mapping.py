@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, cast, override
 from deepmerge import always_merger
 
 from oarepo_model.customizations import AddJSONFile, Customization
+from oarepo_model.customizations.add_file_link import AddFileSymlink
 from oarepo_model.datatypes.collections import ObjectDataType
 from oarepo_model.presets import Preset
 
@@ -72,6 +73,11 @@ class RecordMappingPreset(Preset):
             "mappings",
             f"os-v2/{model.base_name}/metadata-v{model.version}.json",
             mapping,
+        )
+        yield AddFileSymlink(
+            "record-mapping-link",
+            "mappings",
+            f"os-v2/{model.base_name}/metadata-v{model.version}.json",
         )
 
 

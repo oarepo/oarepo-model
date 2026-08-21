@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, cast, override
 from deepmerge import always_merger
 
 from oarepo_model.customizations import AddJSONFile, Customization
+from oarepo_model.customizations.add_file_link import AddFileSymlink
 from oarepo_model.datatypes.collections import ObjectDataType
 from oarepo_model.presets import Preset
 
@@ -63,6 +64,11 @@ class RecordJSONSchemaPreset(Preset):
             "jsonschemas",
             f"{model.base_name}-v{model.version}.json",
             jsonschema,
+        )
+        yield AddFileSymlink(
+            "record-jsonschema-link",
+            "jsonschemas",
+            f"{model.base_name}-v{model.version}.json",
         )
 
 
