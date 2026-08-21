@@ -20,7 +20,7 @@ from oarepo_model.datatypes.collections import ObjectDataType
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
@@ -83,7 +83,7 @@ class RecordMappingPreset(Preset):
 
 def get_mapping(builder: InvenioModelBuilder, schema_type: Any) -> dict[str, Any]:
     """Get the mapping for the given schema type."""
-    base_mapping: dict[str, Any]
+    base_mapping: Mapping[str, Any]
     if isinstance(schema_type, (str, dict)):
         datatype = builder.type_registry.get_type(schema_type)
         base_mapping = cast("Any", datatype).create_mapping(

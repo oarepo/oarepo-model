@@ -196,7 +196,7 @@ class ObjectDataType(DataType):
         }
 
     @override
-    def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+    def create_json_schema(self, element: dict[str, Any]) -> Mapping[str, Any]:
         properties = self._get_properties(element)
         return {
             **super().create_json_schema(element),
@@ -207,7 +207,7 @@ class ObjectDataType(DataType):
         }
 
     @override
-    def create_mapping(self, element: dict[str, Any]) -> dict[str, Any]:
+    def create_mapping(self, element: dict[str, Any]) -> Mapping[str, Any]:
         properties = self._get_properties(element)
         mapping_properties = {}
         for key, value in properties.items():
