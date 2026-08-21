@@ -54,6 +54,7 @@ class VocabularyDataType(FacetMixin, PIDRelation):
     TYPE = "vocabulary"
 
     def _resolve_keys(self, element: dict[str, Any]) -> dict[str, Any]:  # noqa: C901
+        """Resolve keys for the vocabulary."""
         ret: dict[str, Any] = {}
         keys = element.setdefault("keys", [])
         known_keys = set()
@@ -137,7 +138,7 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         return cast("type[Schema]", VocabularyL10Schema)
 
     @override
-    def _key_names(
+    def _relation_key_names(
         self,
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],
@@ -145,7 +146,7 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         return sorted(self._resolve_keys(element).keys())
 
     @override
-    def _pid_field(
+    def _relation_pid_field(
         self,
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],
@@ -175,12 +176,13 @@ class VocabularyDataType(FacetMixin, PIDRelation):
                     cast("VocabularyPIDFieldContext", Vocabulary.pid).with_type_ctx(vocab_type),
                 )
 
-    def _cache_key(
+    @override
+    def _relation_cache_key(
         self,
         element: dict[str, Any],
         path: list[tuple[str, dict[str, Any]]],
     ) -> str | None:
-        return super()._cache_key(element, path) or element["vocabulary-type"]
+        return super()._relation_cache_key(element, path) or element["vocabulary-type"]
 
     @override
     def get_facet(
