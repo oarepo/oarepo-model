@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.customizations import Customization
     from oarepo_model.model import InvenioModel
+    from oarepo_model.utils import ArrayPathMember
 
 
 class RecordRelationsPreset(Preset):
@@ -41,7 +42,7 @@ class RecordRelationsPreset(Preset):
                 builder,
                 model.metadata_type,
                 [
-                    ("metadata", {"type": "object"}),
+                    "metadata",
                 ],
             )
         if model.record_type is not None:
@@ -51,7 +52,7 @@ class RecordRelationsPreset(Preset):
 def get_relations_fields(
     builder: InvenioModelBuilder,
     schema_type: Any,
-    path: list[tuple[str, dict[str, Any]]],
+    path: list[ArrayPathMember],
 ) -> Generator[Customization]:
     """Get the relations fields for a given record type."""
     datatype, element = resolve_schema_type(builder, schema_type)

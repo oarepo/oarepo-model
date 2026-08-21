@@ -18,6 +18,7 @@ Covers:
 - mapping types for all three string types
 - JSON schema type for all three string types
 """
+# ruff: noqa: D102
 
 from __future__ import annotations
 
@@ -128,9 +129,7 @@ class TestPatternValidation:
 
 
 class TestRequiredImpliesMinLength:
-    """When required=True and no explicit min_length, the field must reject
-    the empty string — because a min_length=1 validator is injected.
-    """
+    """Required fields with no explicit min_length reject empty strings."""
 
     def test_required_rejects_empty_string(self, datatype_registry):
         schema = make_schema(
@@ -399,9 +398,7 @@ class TestStringFacets:
         assert "metadata.status" in result, "keyword must produce a facet"
 
     def test_fulltext_keyword_facet_uses_keyword_suffix(self, datatype_registry):
-        """The facet entry for fulltext+keyword must reference the .keyword sub-field
-        in its field descriptor, even though the facet dict key keeps the original path.
-        """
+        """Fulltext+keyword facet references the .keyword sub-field in its descriptor."""
         dt = datatype_registry.get_type({"type": "fulltext+keyword"})
         facets = {}
         result = dt.get_facet("metadata.title", {"type": "fulltext+keyword"}, [], facets)

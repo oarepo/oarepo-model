@@ -17,13 +17,13 @@ from __future__ import annotations
 
 import dataclasses
 from contextlib import suppress
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast, override
 
-from .utils import title_case
+from invenio_records_resources.records import Record
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from types import SimpleNamespace
 
 
 @dataclasses.dataclass
@@ -56,6 +56,9 @@ class InvenioModel:
         """Return the title case version of the model name."""
         if "title_name" in self.configuration:
             return cast("str", self.configuration["title_name"])
+
+        from .utils import title_case
+
         return title_case(self.base_name)
 
     @property
@@ -291,3 +294,38 @@ class RuntimeDependencies:
         if ret is None:
             raise ValueError(f"Dependency {key} is None, but expected a value.")
         return ret
+
+
+class JSONContent:
+    """A callable wrapper around a JSON-serializable payload.
+
+    Used as a module file's content so that serialization (via dump_to_json)
+    only happens when the file is actually read, instead of while the payload
+    is still being assembled/patched during model building - the payload can
+    contain values (such as lazily-resolved relation mappings) that are not
+    safe to touch yet at that point.
+    """
+
+    def __init__(self, payload: Any) -> None:
+        """Initialize with the payload to serialize on call."""
+        self.payload = payload
+
+    def resolve(self) -> str:
+        """Serialize the payload to a JSON string."""
+        from oarepo_model.utils import dump_to_json
+
+        return dump_to_json(self.payload)
+
+
+# File content can either be the literal file text, or a lazy json content,
+# in which case it is only resolved (and cached) when the file is actually read -
+# used for content that is not safe/possible to compute before the model has
+# finished building (e.g. self-referencing relation mappings).
+type FileContent = str | JSONContent
+
+
+class ModelNamespace[R: Record](SimpleNamespace):
+    """A namespace for a runtime model."""
+
+    __files__: dict[str, str | FileContent]
+    Record: type[R]

@@ -24,6 +24,7 @@ from oarepo_runtime.services.facets.utils import get_basic_facet
 
 if TYPE_CHECKING:
     from oarepo_model.customizations.base import Customization
+    from oarepo_model.utils import ArrayPathMember
 
     from .registry import DataTypeRegistry
 
@@ -175,8 +176,10 @@ class DataType:
         if isinstance(validate_decl, str):
             return obj_or_import_string(validate_decl)
         constructor = obj_or_import_string(validate_decl[0])
-        args = []
-        kwargs = {}
+        if constructor is None:
+            raise ValueError(f"Could not import validator {validate_decl[0]} - None returned")
+        args: list[Any] = []
+        kwargs: dict[str, Any] = {}
         for param in validate_decl[1:]:
             if isinstance(param, (list, tuple)):
                 # arguments may come from a JSON/YAML array, so they are not necessarily a tuple
@@ -240,7 +243,7 @@ class DataType:
     def create_relations(
         self,
         element: dict[str, Any],  # noqa: ARG002 for override
-        path: list[tuple[str, dict[str, Any]]],  # noqa: ARG002 for override
+        path: list[ArrayPathMember],  # noqa: ARG002 for override
     ) -> list[Customization]:
         """Create relations for the data type.
 

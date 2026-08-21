@@ -29,6 +29,8 @@ if TYPE_CHECKING:
     from invenio_vocabularies.records.systemfields.pid import VocabularyPIDFieldContext
     from marshmallow import Schema
 
+    from oarepo_model.utils import ArrayPathMember
+
 
 #: Vocabulary types that ship their own (invenio contrib) relation schema and
 #: representation. They must not fall back to the generic ``{id, title_l10n}``
@@ -54,6 +56,7 @@ class VocabularyDataType(FacetMixin, PIDRelation):
     TYPE = "vocabulary"
 
     def _resolve_keys(self, element: dict[str, Any]) -> dict[str, Any]:  # noqa: C901
+        """Resolve keys for the vocabulary."""
         ret: dict[str, Any] = {}
         keys = element.setdefault("keys", [])
         known_keys = set()
@@ -88,10 +91,11 @@ class VocabularyDataType(FacetMixin, PIDRelation):
             ret["@v"] = {"type": "keyword", "skip_marshmallow": True}
         return ret
 
-    def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+    @override
+    def _get_properties(self, element: dict[str, Any], ignore_missing: bool = False) -> dict[str, Any]:
         self._resolve_keys(element)
 
-        return super()._get_properties(element)
+        return super()._get_properties(element, ignore_missing=ignore_missing)
 
     @override
     def create_marshmallow_schema(self, element: dict[str, Any]) -> type[Schema]:
@@ -137,18 +141,18 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         return cast("type[Schema]", VocabularyL10Schema)
 
     @override
-    def _key_names(
+    def _relation_key_names(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],
+        path: list[ArrayPathMember],
     ) -> list[str]:
         return sorted(self._resolve_keys(element).keys())
 
     @override
-    def _pid_field(
+    def _relation_pid_field(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],
+        path: list[ArrayPathMember],
     ) -> PIDFieldContext:
         match element["vocabulary-type"]:
             case "affiliations":
@@ -175,12 +179,13 @@ class VocabularyDataType(FacetMixin, PIDRelation):
                     cast("VocabularyPIDFieldContext", Vocabulary.pid).with_type_ctx(vocab_type),
                 )
 
-    def _cache_key(
+    @override
+    def _relation_cache_key(
         self,
         element: dict[str, Any],
-        path: list[tuple[str, dict[str, Any]]],
+        path: list[ArrayPathMember],
     ) -> str | None:
-        return super()._cache_key(element, path) or element["vocabulary-type"]
+        return super()._relation_cache_key(element, path) or element["vocabulary-type"]
 
     @override
     def get_facet(
@@ -190,7 +195,13 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
+        # MRO puts FacetMixin before PIDRelation (see class VocabularyDataType
+        # bases below), so super() here is FacetMixin.get_facet - a leaf
+        # implementation that produces a single facet for this vocabulary
+        # reference itself (not a recursive property walk), and has no
+        # 'ignored_keys' concept to forward to.
         return super().get_facet(
             path,
             element,
