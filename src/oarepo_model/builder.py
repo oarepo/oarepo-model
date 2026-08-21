@@ -30,7 +30,7 @@ from oarepo_model.errors import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
 
     from .datatypes.registry import DataTypeRegistry
 
@@ -208,7 +208,7 @@ class BuilderModule(Partial, SimpleNamespace):
     def __init__(self, module_name: str):
         """Initialize the BuilderModule customization."""
         super().__init__(module_name)
-        self.files: dict[str, str] = {}
+        self.files: dict[str, str | Callable[[], str]] = {}
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
@@ -233,7 +233,7 @@ class BuilderModule(Partial, SimpleNamespace):
                 ) from e
         return ret
 
-    def add_file(self, file_path: str, content: str) -> None:
+    def add_file(self, file_path: str, content: str | Callable[[], str]) -> None:
         """Add a file to the module."""
         self.files[file_path] = content
 
@@ -247,7 +247,7 @@ class BuilderModule(Partial, SimpleNamespace):
 class BuilderFile(Partial):
     """Builder for files in the model."""
 
-    def __init__(self, name: str, module_name: str, file_path: str, content: str):
+    def __init__(self, name: str, module_name: str, file_path: str, content: str | Callable[[], str]):
         """Initialize the BuilderFile customization."""
         super().__init__(name)
         self.module_name = module_name
@@ -262,6 +262,26 @@ class BuilderFile(Partial):
             "module-name": self.module_name,
             "file-path": self.file_path,
             "content": self.content,
+        }
+
+
+class BuilderSymbolicLink(Partial):
+    """Builder for symbolic links in the model."""
+
+    def __init__(self, name: str, module_name: str, file_path: str):
+        """Initialize the BuilderSymbolicLink customization."""
+        super().__init__(name)
+        self.module_name = module_name
+        self.file_path = file_path
+
+    @override
+    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
+        self.built = True
+
+        return {
+            "name": self.key,
+            "module-name": self.module_name,
+            "file-path": self.file_path,
         }
 
 
@@ -394,7 +414,7 @@ class InvenioModelBuilder:
         symbolic_name: str,
         module_name: str,
         file_path: str,
-        content: str,
+        content: str | Callable[[], str],
         exists_ok: bool = False,
     ) -> BuilderFile:
         """Add a file to the builder."""
@@ -404,6 +424,23 @@ class InvenioModelBuilder:
             raise AlreadyRegisteredError(f"Module {symbolic_name} already exists.")
 
         ret = BuilderFile(symbolic_name, module_name, file_path, content)
+        self.partials[symbolic_name] = ret
+        return ret
+
+    def add_symlink(
+        self,
+        symbolic_name: str,
+        module_name: str,
+        file_path: str,
+        exists_ok: bool = False,
+    ) -> BuilderFile:
+        """Add a symlink to the builder."""
+        if symbolic_name in self.partials:
+            if exists_ok:
+                return cast("BuilderFile", self.partials[symbolic_name])
+            raise AlreadyRegisteredError(f"Module {symbolic_name} already exists.")
+
+        ret = BuilderSymbolicLink(symbolic_name, module_name, file_path)
         self.partials[symbolic_name] = ret
         return ret
 
@@ -472,12 +509,19 @@ class InvenioModelBuilder:
     def collect_files(self) -> None:
         """Collect all files from the partials into the namespace."""
         self.ns.__files__ = {}
+        self.ns.__symlinks__ = {}
 
         for partial in self.partials.values():
             if not isinstance(partial, BuilderFile):
                 continue
 
             self.ns.__files__[f"{partial.module_name}/{partial.file_path}"] = partial.content
+
+        for partial in self.partials.values():
+            if not isinstance(partial, BuilderSymbolicLink):
+                continue
+
+            self.ns.__symlinks__[partial.key] = f"{partial.module_name}/{partial.file_path}"
 
     def build(self) -> SimpleNamespace:
         """Build the model from the collected partials."""

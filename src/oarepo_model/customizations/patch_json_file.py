@@ -17,11 +17,12 @@ the current file content as input.
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from deepmerge import always_merger
 
-from ..utils import dump_to_json
+from oarepo_model.model import JSONContent
+
 from .base import Customization
 
 if TYPE_CHECKING:
@@ -50,9 +51,15 @@ class PatchJSONFile(Customization):
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         ret = builder.get_file(self.name)
-        previous_data = json.loads(ret.content)
+        # if the file's content is a lazily-serialized JSONContent, patch its
+        # underlying payload directly instead of going through a json.dumps/
+        # json.loads round-trip - the payload might contain values (such as
+        # lazily-resolved relation mappings) that are not safe to serialize yet.
+        previous_data = (
+            ret.content.payload if isinstance(ret.content, JSONContent) else json.loads(cast("str", ret.content))
+        )
         if callable(self.payload):
             new_data = self.payload(previous_data)
         else:
             new_data = always_merger.merge(previous_data, self.payload)
-        ret.content = dump_to_json(new_data)
+        ret.content = JSONContent(new_data)

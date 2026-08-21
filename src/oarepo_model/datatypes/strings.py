@@ -15,11 +15,12 @@ keywords, full text fields, and editable text areas for use in OARepo models.
 
 from __future__ import annotations
 
-from types import MappingProxyType
 from typing import Any, override
 
 import marshmallow.fields
 import marshmallow.validate
+
+from oarepo_model.utils import ReadOnlyDict
 
 from .base import DataType, FacetMixin
 
@@ -31,7 +32,7 @@ class KeywordDataType(FacetMixin, DataType):
 
     marshmallow_field_class = marshmallow.fields.String
     jsonschema_type = "string"
-    mapping_type = MappingProxyType(
+    mapping_type = ReadOnlyDict(
         {
             "type": "keyword",
             "ignore_above": 256,
@@ -89,7 +90,7 @@ class FullTextDataType(KeywordDataType):
     """
 
     TYPE = "fulltext"
-    mapping_type = MappingProxyType(
+    mapping_type = ReadOnlyDict(
         {
             "type": "text",
         },
@@ -122,7 +123,7 @@ class FulltextWithKeywordDataType(KeywordDataType):
     """
 
     TYPE = "fulltext+keyword"
-    mapping_type = MappingProxyType(
+    mapping_type = ReadOnlyDict(
         {
             "type": "text",
             "fields": {
