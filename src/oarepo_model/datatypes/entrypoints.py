@@ -33,6 +33,7 @@ from .date import (
     EDTFTimeDataType,
     TimeDataType,
 )
+from .internal_relations import InternalRelationDataType
 from .lazy_relations import LazyPIDRelation
 from .multilingual import I18nDictDataType, MultilingualDataType
 from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataType
@@ -69,6 +70,7 @@ DATA_TYPES: dict[str, type[DataType] | dict[str, Any]] = {
     PolymorphicDataType.TYPE: PolymorphicDataType,
     EDTFDateOrIntervalDataType.TYPE: EDTFDateOrIntervalDataType,
     LazyPIDRelation.TYPE: LazyPIDRelation,
+    InternalRelationDataType.TYPE: InternalRelationDataType,
     "multilingual-type": MultilingualDataType,
     "multilingual": {
         "type": "multilingual-type",
