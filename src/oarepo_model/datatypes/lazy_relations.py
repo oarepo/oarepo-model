@@ -504,10 +504,3 @@ class LazyPIDRelation(PIDRelation):
                 ),
             )
         return result
-
-    def _get_relation_model(self, element: dict[str, Any], must_exist: bool = False) -> str:
-        """Get the model for the relation."""
-        model = element.get("model")
-        if must_exist and model is None:
-            raise KeyError("model is required")
-        return cast("str", model)
