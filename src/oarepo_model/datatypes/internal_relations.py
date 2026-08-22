@@ -42,7 +42,6 @@ import marshmallow
 from oarepo_model.api import current_model
 from oarepo_model.customizations.high_level.add_internal_relation import AddInternalRelation
 from oarepo_model.customizations.high_level.add_pid_relation import AddLazyRelation
-from oarepo_model.utils import import_runtime_model
 
 from .collections import ObjectDataType
 from .lazy_relations import (
@@ -302,21 +301,12 @@ class InternalRelationDataType(LazyPIDRelation):
     def _get_target_properties(self, element: dict[str, Any]) -> dict[str, Any]:
         """Resolve the (currently-being-built) model's own declared properties at target_path.
 
-        Mirrors PIDRelation._get_target_properties, but anchored on this same
-        model (self._get_relation_model()) instead of an externally-named
-        one, and further descended to this relation's target_path.
+        PIDRelation._get_target_properties already resolves the target model
+        (via self._get_relation_model, overridden above to mean "the model
+        currently being built") down to its merged record/metadata root -
+        this only needs to further descend that root to target_path.
         """
-        imported = import_runtime_model(self._get_relation_model(element, must_exist=True))
-        model_metadata = getattr(imported, "oarepo_model_arguments", {}).get("model_metadata")
-        if model_metadata is None:
-            return {}
-
-        root: dict[str, Any] = {}
-        if model_metadata.record_type:
-            root.update(model_metadata.types.get(model_metadata.record_type, {}).get("properties", {}))
-        if model_metadata.metadata_type:
-            root["metadata"] = model_metadata.types.get(model_metadata.metadata_type, {})
-
+        root = super()._get_target_properties(element)
         return _walk_type_tree_path(root, self._target_path(element)) or {}
 
     @override

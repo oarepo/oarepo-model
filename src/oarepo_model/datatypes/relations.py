@@ -76,6 +76,19 @@ class PIDRelation(ObjectDataType):
             path, element, nested_facets, facets, path_suffix, ignored_keys={*(ignored_keys or ()), "@v"}
         )
 
+    def _get_relation_model(self, element: dict[str, Any], must_exist: bool = False) -> str:
+        """Get the model for the relation.
+
+        The single seam every other method routes target-model resolution
+        through, so subclasses that determine the target differently (e.g.
+        InternalRelationDataType, which is always a self-reference) only
+        need to override this one method.
+        """
+        model = element.get("model")
+        if must_exist and model is None:
+            raise KeyError("model is required")
+        return cast("str", model)
+
     def _get_properties(  # noqa: PLR0912,C901 too many branches
         self,
         element: dict[str, Any],
@@ -87,7 +100,7 @@ class PIDRelation(ObjectDataType):
         we return only the explicitly defined properties. There is no fallback
         to 'keyword'.
         """
-        model_name = element.get("model")
+        model_name = self._get_relation_model(element)
         try:
             target_properties = self._get_target_properties(element)
         except ModuleNotFoundError:
@@ -164,7 +177,7 @@ class PIDRelation(ObjectDataType):
         (e.g. it was declared only via 'pid_field', or isn't an oarepo_model
         -built model) - callers fall back to "keyword" per key in that case.
         """
-        model_name = element.get("model")
+        model_name = self._get_relation_model(element)
         if not model_name:
             return {}
 
