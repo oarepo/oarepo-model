@@ -15,11 +15,12 @@ from typing import TYPE_CHECKING, Any, cast, override
 from deepmerge import always_merger
 
 from oarepo_model.customizations import AddJSONFile, Customization
+from oarepo_model.customizations.add_file_link import AddFileSymlink
 from oarepo_model.datatypes.collections import ObjectDataType
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
@@ -73,11 +74,16 @@ class RecordMappingPreset(Preset):
             f"os-v2/{model.base_name}/metadata-v{model.version}.json",
             mapping,
         )
+        yield AddFileSymlink(
+            "record-mapping-link",
+            "mappings",
+            f"os-v2/{model.base_name}/metadata-v{model.version}.json",
+        )
 
 
 def get_mapping(builder: InvenioModelBuilder, schema_type: Any) -> dict[str, Any]:
     """Get the mapping for the given schema type."""
-    base_mapping: dict[str, Any]
+    base_mapping: Mapping[str, Any]
     if isinstance(schema_type, (str, dict)):
         datatype = builder.type_registry.get_type(schema_type)
         base_mapping = cast("Any", datatype).create_mapping(

@@ -16,10 +16,12 @@ them to the module.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..utils import dump_to_json
 from .add_file_to_module import AddFileToModule
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class AddJSONFile(AddFileToModule):
@@ -30,7 +32,7 @@ class AddJSONFile(AddFileToModule):
         symbolic_name: str,
         module_name: str,
         file_path: str,
-        payload: dict[str, Any],
+        payload: Mapping[str, Any],
         exists_ok: bool = False,
     ) -> None:
         """Add a json to the model.
@@ -38,6 +40,8 @@ class AddJSONFile(AddFileToModule):
         :param name: The name of the list to be added.
         :param exists_ok: Whether to ignore if the list already exists.
         """
+        from ..utils import dump_to_json
+
         super().__init__(
             symbolic_name=symbolic_name,
             module_name=module_name,
