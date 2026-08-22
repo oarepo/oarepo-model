@@ -49,6 +49,44 @@ class ARRAY_PATH_ITEM:  # noqa: N801
     """
 
 
+def merge_paths_between_arrays(
+    path: list[str | type[ARRAY_PATH_ITEM]],
+) -> tuple[str | None, list[str]]:
+    """Merge path segments between array markers.
+
+    This function processes the path to identify segments between array markers
+    and merges them into dot-separated strings. It also determines the relation
+    field (the segment after the last array marker) if it exists.
+
+    A free function (rather than an AddPIDRelation method) so it can also be
+    used by AddInternalRelation.build_relation_fields, which needs the same
+    array/relation-field split for InternalRelation but isn't an
+    AddPIDRelation itself.
+    """
+    merged_paths_with_array_markers: list[Any] = []
+    joined: list[str] = []
+    for x in path:
+        if isinstance(x, str):
+            joined.append(x)
+        else:
+            if joined:
+                merged_paths_with_array_markers.append(".".join(joined))
+                joined = []
+            merged_paths_with_array_markers.append(ARRAY_PATH_ITEM)
+    if joined:
+        merged_paths_with_array_markers.append(".".join(joined))
+
+    # pop the relation field if the last item is not an array
+    relation_field = (
+        None if merged_paths_with_array_markers[-1] is ARRAY_PATH_ITEM else merged_paths_with_array_markers.pop()
+    )
+
+    # filter out array markers
+    array_paths = [x for x in merged_paths_with_array_markers if x is not ARRAY_PATH_ITEM]
+
+    return relation_field, array_paths
+
+
 class RelationFieldCustomization(Customization, ABC):
     """Base class for customizations that contribute to the model's 'relations' dict.
 
@@ -100,7 +138,7 @@ class AddPIDRelation(RelationFieldCustomization):
     def build_relation_fields(self) -> Mapping[str, RelationBase | RelationsField]:
         array_count = self.path.count(ARRAY_PATH_ITEM)
 
-        relation_field, array_paths = self._merge_paths_between_arrays()
+        relation_field, array_paths = merge_paths_between_arrays(self.path)
 
         match array_count:
             case 0:
@@ -153,36 +191,6 @@ class AddPIDRelation(RelationFieldCustomization):
                     **self.kwargs,
                 )
         return {self.name: relation}
-
-    def _merge_paths_between_arrays(self) -> tuple[str | None, list[str]]:
-        """Merge path segments between array markers.
-
-        This method processes the path to identify segments between array markers
-        and merges them into dot-separated strings. It also determines the relation
-        field (the segment after the last array marker) if it exists.
-        """
-        merged_paths_with_array_markers: list[Any] = []
-        joined: list[str] = []
-        for x in self.path:
-            if isinstance(x, str):
-                joined.append(x)
-            else:
-                if joined:
-                    merged_paths_with_array_markers.append(".".join(joined))
-                    joined = []
-                merged_paths_with_array_markers.append(ARRAY_PATH_ITEM)
-        if joined:
-            merged_paths_with_array_markers.append(".".join(joined))
-
-        # pop the relation field if the last item is not an array
-        relation_field = (
-            None if merged_paths_with_array_markers[-1] is ARRAY_PATH_ITEM else merged_paths_with_array_markers.pop()
-        )
-
-        # filter out array markers
-        array_paths = [x for x in merged_paths_with_array_markers if x is not ARRAY_PATH_ITEM]
-
-        return relation_field, array_paths
 
 
 class LazyRelationsField(RelationsField):

@@ -284,7 +284,7 @@ class LazyPIDRelation(PIDRelation):
             "- the target model %r could not be resolved (likely a "
             "self-referencing relation still being built).",
             path,
-            element.get("model"),
+            self._get_relation_model(element),
         )
         return super().get_facet(
             path,
@@ -298,7 +298,7 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_mapping(self, element: dict[str, Any]) -> Mapping[str, Any]:
         """Create a mapping for the data type."""
-        model = element["model"]
+        model = self._get_relation_model(element, must_exist=True)
         keys = element.get("keys", [])
 
         # super().create_mapping already returns the full container for this
@@ -315,7 +315,7 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_json_schema(self, element: dict[str, Any]) -> Mapping[str, Any]:
         """Create a json schema for the data type."""
-        model = element["model"]
+        model = self._get_relation_model(element, must_exist=True)
         keys = element.get("keys", [])
 
         return ReferenceJSONSchemaProperties(
@@ -331,7 +331,7 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
         """Create a marshmallow schema for the data type."""
-        model = element["model"]
+        model = self._get_relation_model(element, must_exist=True)
         keys = element.get("keys", [])
 
         return type(
@@ -347,7 +347,7 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_ui_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
         """Create a UI marshmallow schema for the data type."""
-        model = element["model"]
+        model = self._get_relation_model(element, must_exist=True)
         keys = element.get("keys", [])
 
         return type(
@@ -367,7 +367,7 @@ class LazyPIDRelation(PIDRelation):
         path: list[str],
     ) -> dict[str, Any]:
         """Create a UI model for the data type."""
-        model = element["model"]
+        model = self._get_relation_model(element, must_exist=True)
         keys = element.get("keys", [])
 
         # super().create_ui_model already returns the full node for this
@@ -409,9 +409,9 @@ class LazyPIDRelation(PIDRelation):
         if "pid_field" in element or "record_cls" in element:
             return super()._relation_pid_field(element, path)
         try:
-            imported_model = obj_or_import_string(element["model"])
+            imported_model = obj_or_import_string(self._get_relation_model(element, must_exist=True))
         except ImportError:
-            return LazyModelPIDFieldContext(element["model"])
+            return LazyModelPIDFieldContext(self._get_relation_model(element, must_exist=True))
 
         if imported_model is None:
             raise ValueError(
@@ -461,22 +461,27 @@ class LazyPIDRelation(PIDRelation):
             ),
         ]
 
-        def _resolve_nested_relation_fields() -> dict[str, RelationBase]:
-            fields: dict[str, RelationBase] = {}
-            for customization in self._build_nested_relation_customizations(element, path):
-                if not isinstance(customization, RelationFieldCustomization):
-                    continue
-                for name, field in customization.build_relation_fields().items():
-                    if isinstance(field, RelationsField):
-                        fields.update(field._fields)
-                    else:
-                        fields[name] = field
-            return fields
-
         relations.append(
-            AddLazyRelation(_resolve_nested_relation_fields),
+            AddLazyRelation(lambda: self._resolve_nested_relation_fields(element, path)),
         )
         return relations
+
+    def _resolve_nested_relation_fields(
+        self,
+        element: dict[str, Any],
+        path: list[tuple[str, dict[str, Any]]],
+    ) -> dict[str, RelationBase]:
+        """Materialize this relation's nested relation fields, called lazily."""
+        fields: dict[str, RelationBase] = {}
+        for customization in self._build_nested_relation_customizations(element, path):
+            if not isinstance(customization, RelationFieldCustomization):
+                continue
+            for name, field in customization.build_relation_fields().items():
+                if isinstance(field, RelationsField):
+                    fields.update(field._fields)
+                else:
+                    fields[name] = field
+        return fields
 
     def _build_nested_relation_customizations(
         self,
@@ -499,3 +504,10 @@ class LazyPIDRelation(PIDRelation):
                 ),
             )
         return result
+
+    def _get_relation_model(self, element: dict[str, Any], must_exist: bool = False) -> str:
+        """Get the model for the relation."""
+        model = element.get("model")
+        if must_exist and model is None:
+            raise KeyError("model is required")
+        return cast("str", model)
