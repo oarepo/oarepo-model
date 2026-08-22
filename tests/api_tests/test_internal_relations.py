@@ -442,3 +442,133 @@ def test_internal_relation_ui_marshmallow_dump(
     # "name" is a plain keyword with a real UI field on the target's own
     # RecordUISchema, and resolves to its actual (UI-formatted) value.
     assert pp_ui["name"] == "Protein One"
+
+
+# ============================================================================
+# Tests for internal relations with nested keys (e.g., "provider.name")
+# ============================================================================
+
+
+def test_internal_relation_nested_key_mapping_and_jsonschema(app, internal_relation_nested_key_model):
+    """The lazily-resolved mapping/json schema should reflect nested target fields like 'provider.name'."""
+    m = internal_relation_nested_key_model
+    files = m.__files__
+    links = m.__symlinks__
+
+    mapping = json.loads(resolve_file_content(files[links["record-mapping-link"]]))
+    pp_mapping = mapping["mappings"]["properties"]["metadata"]["properties"]["primary_protein"]
+
+    # Check that nested field provider.name is properly resolved in mapping
+    assert pp_mapping["properties"]["id"] == {"type": "keyword", "ignore_above": 256}
+    assert pp_mapping["properties"]["name"] == {"type": "keyword", "ignore_above": 256}
+    assert pp_mapping["properties"]["provider"] == {
+        "type": "object",
+        "properties": {"name": {"type": "keyword", "ignore_above": 256}},
+    }
+    assert "@v" in pp_mapping["properties"]
+
+    jsonschema = json.loads(resolve_file_content(files[links["record-jsonschema-link"]]))
+    pp_schema = jsonschema["properties"]["metadata"]["properties"]["primary_protein"]
+    assert pp_schema["properties"]["id"] == {"type": "string"}
+    assert pp_schema["properties"]["name"] == {"type": "string"}
+    # Nested field should be present in JSON schema
+    assert pp_schema["properties"]["provider"] == {"type": "object", "properties": {"name": {"type": "string"}}}
+
+
+def test_internal_relation_nested_key_marshmallow_schema(app, internal_relation_nested_key_model):
+    """LazyInternalMarshmallowSchema should resolve nested 'keys' like 'provider.name'."""
+    schema_cls = internal_relation_nested_key_model.proxies.current_service.schema.schema
+    field = schema_cls().fields["metadata"].schema.fields["primary_protein"]
+
+    # Test that nested field provider.name is properly included in dump
+    dumped = field.schema.dump(
+        {"id": "p1", "name": "Protein One", "provider": {"name": "Acme Corp"}, "extra": "dropped"}
+    )
+    assert dumped == {"id": "p1", "name": "Protein One", "provider": {"name": "Acme Corp"}}
+
+
+def test_internal_relation_nested_key_field_registered(app, internal_relation_nested_key_model):
+    """The InternalRelation system field should be registered with nested keys."""
+    from oarepo_runtime.records.systemfields.relations import InternalRelation
+
+    field = internal_relation_nested_key_model.Record.relations._fields["metadata.primary_protein"]
+    assert isinstance(field, InternalRelation)
+    assert field.target_path == "metadata.proteins"
+    # Verify the nested key is part of the field configuration
+    assert "provider.name" in field.keys
+
+
+def test_internal_relation_nested_key_resolve(app, internal_relation_nested_key_model):
+    """The relation should resolve nested fields like 'provider.name' correctly."""
+    record = internal_relation_nested_key_model.Record(
+        {
+            "metadata": {
+                "proteins": [
+                    {"id": "p1", "name": "Protein One", "provider": {"name": "Acme Corp"}},
+                    {"id": "p2", "name": "Protein Two", "provider": {"name": "Beta Labs"}},
+                ],
+                "primary_protein": {"id": "p1"},
+            },
+        },
+    )
+
+    resolved = getattr(record.relations, "metadata.primary_protein")()
+    assert resolved["name"] == "Protein One"
+    # Verify nested field resolution
+    assert resolved["provider"]["name"] == "Acme Corp"
+
+
+def test_internal_relation_nested_key_service_create_and_search(
+    app,
+    identity_simple,
+    internal_relation_nested_key_model,
+    search,
+    search_clear,
+    location,
+    db,
+):
+    """Internal relation with nested keys should survive the full service create/index/dump cycle.
+
+    This test verifies that nested fields like 'provider.name' are:
+    1. Properly dereferenced on create response
+    2. Correctly dumped to OpenSearch index
+    3. Queryable via search
+    """
+    Record = internal_relation_nested_key_model.Record
+    service = internal_relation_nested_key_model.proxies.current_service
+
+    rec = service.create(
+        identity_simple,
+        {
+            "files": {"enabled": False},
+            "metadata": {
+                "proteins": [
+                    {"id": "p1", "name": "Protein One", "provider": {"name": "Acme Corp"}},
+                    {"id": "p2", "name": "Protein Two", "provider": {"name": "Beta Labs"}},
+                ],
+                "primary_protein": {"id": "p1"},
+            },
+        },
+    )
+
+    md = rec.data["metadata"]
+    # Verify basic fields
+    assert md["primary_protein"]["id"] == "p1"
+    assert md["primary_protein"]["name"] == "Protein One"
+    # Verify nested field is dereferenced
+    assert md["primary_protein"]["provider"]["name"] == "Acme Corp"
+
+    # Refresh to make changes live
+    Record.index.refresh()
+
+    # Query by nested field - this confirms the nested value was dumped to index
+    hits = service.search(identity_simple, q='metadata.primary_protein.provider.name:"Acme Corp"', size=25, page=1)
+    assert hits.total == 1, (
+        f"Expected 1 hit for 'Acme Corp', got {hits.total}. "
+        "This test exposes whether nested internal relation fields are dumped correctly."
+    )
+    assert next(iter(hits.hits))["id"] == rec.id
+
+    # Query for the other protein's provider - should not match
+    no_hits = service.search(identity_simple, q='metadata.primary_protein.provider.name:"Beta Labs"', size=25, page=1)
+    assert no_hits.total == 0

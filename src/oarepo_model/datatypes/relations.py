@@ -27,7 +27,7 @@ from oarepo_model.customizations.high_level.add_pid_relation import (
     ARRAY_PATH_ITEM,
     AddPIDRelation,
 )
-from oarepo_model.utils import import_runtime_model
+from oarepo_model.utils import import_runtime_model, walk_type_tree_path_leaf
 
 from .collections import ObjectDataType
 
@@ -150,18 +150,11 @@ class PIDRelation(ObjectDataType):
 
         Returns None if any segment of the path is missing, so callers can fall
         back to a default rather than failing outright (e.g. for system fields
-        like "id" that are never part of the declared properties tree).
+        like "id" that are never part of the declared properties tree). Uses
+        `walk_type_tree_path_leaf` which handles array-typed fields correctly
+        (e.g. "authors.name" resolves properly instead of failing).
         """
-        parts = key.split(".")
-        node = properties
-        for part in parts[:-1]:
-            prop = node.get(part)
-            if not isinstance(prop, dict):
-                return None
-            node = prop.get("properties", {})
-            if not isinstance(node, dict):
-                return None
-        return node.get(parts[-1])
+        return walk_type_tree_path_leaf(properties, key)
 
     def _get_target_properties(self, element: dict[str, Any]) -> dict[str, Any]:
         """Look up the already-built target model's real declarative schema tree.
