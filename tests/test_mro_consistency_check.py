@@ -11,6 +11,7 @@ from __future__ import annotations
 import pytest
 
 from oarepo_model.c3linearize import LinearizationError, mro_without_class_construction
+from oarepo_model.utils import make_mro_consistent
 
 
 def test_mro_consistency_check():
@@ -31,3 +32,5 @@ def test_mro_consistency_check():
         type("inconsistent", (A, B), {})
     with pytest.raises(LinearizationError):
         mro_without_class_construction([A, B])
+
+    assert make_mro_consistent([]) == []

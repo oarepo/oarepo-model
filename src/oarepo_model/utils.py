@@ -193,16 +193,6 @@ class MultiFormatField(marshmallow.fields.Field):
         if value is None:
             return None
 
-        # if there is only 1 format, just return its formatted value
-        if len(self.subfields) == 1:
-            formatter = next(iter(self.subfields.values()))
-            return formatter._serialize(  # noqa: SLF001 private value access
-                value,
-                attr,
-                obj,
-                **kwargs,
-            )
-
         # otherwise return key: value dictionary
         return {
             key: field._serialize(  # noqa: SLF001 private value access
