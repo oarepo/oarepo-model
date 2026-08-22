@@ -253,3 +253,112 @@ def deeply_copy_to_mutable(obj: Any) -> Any:
     if isinstance(obj, (list, tuple)):
         return [deeply_copy_to_mutable(v) for v in obj]
     return obj
+
+
+def walk_type_tree_path(root: Mapping[str, Any] | None, path: str) -> dict[str, Any] | None:
+    """Descend a dotted path through a "type"/"properties"/"items"-shaped tree.
+
+    Shared by oarepo_model's own raw declarative type trees (model_metadata.types)
+    and JSON Schema documents - both use the same convention: an object node's
+    children live under "properties", and an array node's single item type lives
+    under "items", transparently unwrapped before continuing the walk (so a path
+    segment naming an array-typed field descends straight into its item type,
+    without needing an explicit "items" segment in `path`).
+
+    :param root: the "properties"-style mapping (field name -> declarative node)
+        to start walking from.
+    :param path: a dot-separated field path, e.g. "metadata.authors". An empty
+        path returns `root` itself, unchanged.
+    :return: the "properties" mapping of the node reached by following `path`,
+        or None if `root` isn't a mapping, or any segment along the way is
+        missing or not an object/array node (e.g. a path that does not exist).
+    """
+    properties: Any = root
+    if not isinstance(properties, dict):
+        return None
+    for part in path.split(".") if path else ():
+        if part not in properties:
+            return None
+        node = properties[part]
+        if not isinstance(node, dict):
+            return None
+        if node.get("type") == "array":
+            node = node.get("items")
+            if not isinstance(node, dict):
+                return None
+        next_properties = node.get("properties")
+        if not isinstance(next_properties, dict):
+            return None
+        properties = next_properties
+    return cast("dict[str, Any]", properties)
+
+
+def walk_type_tree_path_leaf(root: Mapping[str, Any] | None, path: str) -> dict[str, Any] | None:
+    """Descend a dotted path and return the leaf node (not its properties).
+
+    Like `walk_type_tree_path`, but returns the actual node at the end of the
+    path instead of its "properties" mapping. This is useful when you want to
+    retrieve a field definition (which may be a leaf with no "properties" key)
+    rather than the properties of an object node.
+
+    Uses `walk_type_tree_path` for all but the last segment to handle arrays
+    correctly, then accesses the final segment directly.
+
+    :param root: the "properties"-style mapping (field name -> declarative node)
+        to start walking from.
+    :param path: a dot-separated field path, e.g. "metadata.authors.name". An
+        empty path returns `None` (no leaf can be determined).
+    :return: the node at the end of `path`, or None if `root` isn't a mapping,
+        any segment is missing, or the final segment has no value.
+    """
+    if not path:
+        return None
+    parts = path.split(".")
+    if len(parts) == 1:
+        # Single segment - just get from root
+        node = root.get(parts[0]) if root else None
+        return cast("dict[str, Any] | None", node) if isinstance(node, dict) else None
+    # Multiple segments - use walk_type_tree_path for parent, then get leaf
+    parent_path = ".".join(parts[:-1])
+    leaf = parts[-1]
+    parent_properties = walk_type_tree_path(root, parent_path)
+    if parent_properties is None:
+        return None
+    node = parent_properties.get(leaf)
+    return cast("dict[str, Any] | None", node) if isinstance(node, dict) else None
+
+
+def walk_ui_model_path(root: Mapping[str, Any] | None, path: str) -> dict[str, Any] | None:
+    """Descend a dotted path through a UI model's "children"/"child"-shaped tree.
+
+    Mirrors `walk_type_tree_path`, but for oarepo_model's UI model convention:
+    a node's children live under "children", and an array node's single item
+    node lives under "child" (the counterpart of "items" in `walk_type_tree_path`),
+    transparently unwrapped before continuing the walk.
+
+    :param root: the "children"-style mapping (field name -> UI model node) to
+        start walking from.
+    :param path: a dot-separated field path, e.g. "metadata.authors". An empty
+        path returns `root` itself, unchanged.
+    :return: the "children" mapping of the node reached by following `path`,
+        or None if `root` isn't a mapping, or any segment along the way is
+        missing or not resolvable.
+    """
+    children: Any = root
+    if not isinstance(children, dict):
+        return None
+    for part in path.split(".") if path else ():
+        if part not in children:
+            return None
+        node = children[part]
+        if not isinstance(node, dict):
+            return None
+        if "child" in node:
+            node = node["child"]
+            if not isinstance(node, dict):
+                return None
+        next_children = node.get("children")
+        if not isinstance(next_children, dict):
+            return None
+        children = next_children
+    return cast("dict[str, Any]", children)

@@ -40,7 +40,7 @@ from oarepo_model.customizations.high_level.add_pid_relation import (
 )
 from oarepo_model.datatypes.relations import PIDRelation
 from oarepo_model.lazy import LazyJSONNamespaceFilePart, LazyMarshmallowSchema
-from oarepo_model.utils import import_runtime_model
+from oarepo_model.utils import import_runtime_model, walk_type_tree_path
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -50,6 +50,36 @@ if TYPE_CHECKING:
 
 
 log = logging.getLogger("oarepo_model")
+
+
+def _unwrap_nested_field(field: marshmallow.fields.Field | None) -> marshmallow.fields.Nested | None:
+    """Return the Nested field to descend into for a (possibly array-wrapped) marshmallow field.
+
+    ArrayDataType.create_marshmallow_field produces a plain fields.List wrapping
+    the item field (see ArrayDataType._get_marshmallow_field_args) rather than a
+    Nested field itself - a target_path segment pointing at an array field (e.g.
+    "metadata.proteins") must unwrap one level of List first. Returns None if
+    `field` is neither, or the unwrapped inner field is not Nested either.
+    """
+    if isinstance(field, marshmallow.fields.List):
+        field = field.inner
+    return field if isinstance(field, marshmallow.fields.Nested) else None
+
+
+def _descend_marshmallow_schema(schema: marshmallow.Schema, path: str) -> marshmallow.Schema | None:
+    """Follow a dotted target_path down nested (possibly array-wrapped) marshmallow schemas.
+
+    Returns None if any segment along the way is missing or not resolvable -
+    the target_path may legitimately not (yet) exist on the schema.
+    """
+    if not path:
+        return schema
+    for part in path.split("."):
+        nested = _unwrap_nested_field(schema.fields.get(part))
+        if nested is None:
+            return None
+        schema = nested.schema
+    return schema
 
 
 class LazyModelPIDFieldContext(PIDFieldContext):
@@ -77,9 +107,27 @@ class ReferenceMappingProperties(LazyJSONNamespaceFilePart):
         "@v": {"type": "keyword", "ignore_above": 256},
     }
 
+    def __init__(
+        self,
+        model: str,
+        keys: list[str] | None,
+        filename: str,
+        initial_content: Mapping[str, Any] | None = None,
+        target_path: str | None = None,
+    ) -> None:
+        """Initialize with the model name, keys, filename, and optional target_path.
+
+        If target_path is provided, it will be prepended to all key paths when
+        resolving from the source data.
+        """
+        super().__init__(model, keys, filename, initial_content)
+        self._target_path = target_path
+
     @override
     def _get_path(self, data: Any, path: str) -> dict[str, Any]:
         """Get the value at the given path in the data."""
+        if self._target_path:
+            path = f"{self._target_path}.{path}"
         data = data["mappings"]
         for p in path.split("."):
             data = data["properties"]
@@ -110,22 +158,35 @@ class ReferenceJSONSchemaProperties(ReferenceMappingProperties):
     @override
     def _get_path(self, data: Any, path: str) -> dict[str, Any]:
         """Get the value at the given path in the data."""
-        for p in path.split("."):
-            data = data["properties"]
-            data = data[p]
-        return cast("dict[str, Any]", data)
+        # For JSON schema with target_path, concatenate paths and use walk_type_tree_path
+        # which handles array unwrapping correctly
+        combined_path = f"{self._target_path}.{path}" if self._target_path else path
 
-    @override
-    def _set_path(self, data: Any, path: str, value: Any) -> None:
-        """Set the value at the given path in the data.
+        # Determine the root - mappings have "mappings" wrapper, JSON schema doesn't
+        root = data.get("mappings", {}).get("properties") if "mappings" in data else data.get("properties")
 
-        Note: in json schemas, the value is always a dict, so we use `update` to merge it.
-        """
-        for p in path.split("."):
-            data.setdefault("type", "object")
-            data = data.setdefault("properties", {})
-            data = data.setdefault(p, {})
-        data.update(value)
+        # Use walk_type_tree_path to descend, but we need the leaf node, not its properties
+        # So we descend to the parent, then get the leaf directly
+        parts = combined_path.split(".")
+        if len(parts) == 1:
+            # Single segment - just get from root
+            result = root.get(parts[0]) if root else None
+        else:
+            # Multiple segments - use walk_type_tree_path for parent, then get leaf
+            parent_path = ".".join(parts[:-1])
+            leaf = parts[-1]
+            parent_properties = walk_type_tree_path(root, parent_path)
+            if parent_properties is None:
+                raise KeyError(f"Path {parent_path!r} not found in JSON schema properties")
+            result = parent_properties.get(leaf)
+
+        if result is None:
+            raise KeyError(f"Path {combined_path!r} not found in JSON schema properties")
+        return cast("dict[str, Any]", result)
+
+    # _set_path is inherited unchanged from ReferenceMappingProperties - a
+    # json schema's "type: object" + "properties" + setdefault convention for
+    # building a fresh output subtree is identical to a mapping's.
 
 
 class ReferenceUIModel(LazyJSONNamespaceFilePart):
@@ -146,6 +207,22 @@ class ReferenceUIModel(LazyJSONNamespaceFilePart):
         },
     }
 
+    def __init__(
+        self,
+        model: str,
+        keys: list[str] | None,
+        filename: str,
+        initial_content: Mapping[str, Any] | None = None,
+        target_path: str | None = None,
+    ) -> None:
+        """Initialize with the model name, keys, filename, and optional target_path.
+
+        If target_path is provided, it will be prepended to all key paths when
+        resolving from the source data.
+        """
+        super().__init__(model, keys, filename, initial_content)
+        self._target_path = target_path
+
     def _fallback_ui_model(self, key: str) -> dict[str, Any]:
         """Return a minimal UI model for a key that has no counterpart on the target's ui model."""
         return {
@@ -163,6 +240,19 @@ class ReferenceUIModel(LazyJSONNamespaceFilePart):
     @override
     def _get_path(self, data: Any, path: str) -> dict[str, Any]:
         """Get the value at the given path in the data."""
+        # For UI model, we need special handling: unwrap "child" at each target_path segment
+        from oarepo_model.utils import walk_ui_model_path
+
+        if self._target_path:
+            # First descend to target_path (handling array unwrapping)
+            children = walk_ui_model_path(data.get("children"), self._target_path)
+            if children is None:
+                raise KeyError(f"target_path {self._target_path!r} not found in UI model children")
+            # Then descend further by the key path - walk_ui_model_path already gives us the children dict
+            for p in path.split("."):
+                children = children.get(p, {})
+            return cast("dict[str, Any]", children)
+        # No target_path - descend by the key path (same as original ReferenceUIModel._get_path)
         for p in path.split("."):
             data = data.get("children", {})
             data = data.get(p, {})
@@ -190,7 +280,11 @@ class ReferenceUIModel(LazyJSONNamespaceFilePart):
 
 
 class ReferenceMarshmallowSchema(LazyMarshmallowSchema):
-    """Lazily resolves a relation's marshmallow schema from the target model's record schema."""
+    """Lazily resolves a relation's marshmallow schema from the target model's record schema.
+
+    If the class has a `target_path` attribute, it will descend into that path
+    before resolving keys (useful for internal relations).
+    """
 
     @classmethod
     @override
@@ -199,7 +293,12 @@ class ReferenceMarshmallowSchema(LazyMarshmallowSchema):
             "type[marshmallow.Schema]",
             current_runtime.models[cls.model].service_config.schema,
         )
-        return schema_cls()
+        schema = schema_cls()
+        # If target_path is set (e.g., for internal relations), descend into it
+        target_path = getattr(cls, "target_path", None)
+        if target_path:
+            schema = _descend_marshmallow_schema(schema, target_path) or schema
+        return schema
 
 
 class ReferenceUIMarshmallowSchema(LazyMarshmallowSchema):
@@ -208,13 +307,21 @@ class ReferenceUIMarshmallowSchema(LazyMarshmallowSchema):
     Unlike the regular marshmallow schema, the UI schema is not registered on
     current_runtime.models's service config - it is only available as the
     "RecordUISchema" class on the target model's own runtime namespace.
+
+    If the class has a `target_path` attribute, it will descend into that path
+    before resolving keys (useful for internal relations).
     """
 
     @classmethod
     @override
     def _get_target_schema(cls) -> marshmallow.Schema:
         namespace = cast("SimpleNamespace", current_runtime.models[cls.model].namespace)
-        return namespace.RecordUISchema()
+        schema = namespace.RecordUISchema()
+        # If target_path is set (e.g., for internal relations), descend into it
+        target_path = getattr(cls, "target_path", None)
+        if target_path:
+            schema = _descend_marshmallow_schema(schema, target_path) or schema
+        return schema
 
     @classmethod
     @override
@@ -245,6 +352,24 @@ class LazyPIDRelation(PIDRelation):
     TYPE = "lazy-pid-relation"
 
     marshmallow_field_class = marshmallow.fields.Nested
+
+    def _get_lazy_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Return extra keyword arguments to pass to lazy customization classes.
+
+        Subclasses can override this to inject additional kwargs (e.g. target_path
+        for internal relations). The default returns an empty dict.
+        """
+        del element  # unused in base class, but subclasses may use it
+        return {}
+
+    def _get_lazy_schema_class_attributes(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Return extra class attributes for dynamically created lazy schema subclasses.
+
+        Subclasses can override this to inject additional class attributes (e.g.
+        target_path for internal relations). The default returns an empty dict.
+        """
+        del element  # unused in base class, but subclasses may use it
+        return {}
 
     @override
     def _get_properties(self, element: dict[str, Any], ignore_missing: bool = True) -> dict[str, Any]:
@@ -300,6 +425,7 @@ class LazyPIDRelation(PIDRelation):
         """Create a mapping for the data type."""
         model = self._get_relation_model(element, must_exist=True)
         keys = element.get("keys", [])
+        lazy_kwargs = self._get_lazy_properties(element)
 
         # super().create_mapping already returns the full container for this
         # element (type/dynamic/properties) - the lazily-resolved keys are
@@ -310,6 +436,7 @@ class LazyPIDRelation(PIDRelation):
             keys,
             filename="record-mapping-link",
             initial_content=super().create_mapping(element),
+            **lazy_kwargs,
         )
 
     @override
@@ -317,6 +444,7 @@ class LazyPIDRelation(PIDRelation):
         """Create a json schema for the data type."""
         model = self._get_relation_model(element, must_exist=True)
         keys = element.get("keys", [])
+        lazy_kwargs = self._get_lazy_properties(element)
 
         return ReferenceJSONSchemaProperties(
             model,
@@ -326,6 +454,7 @@ class LazyPIDRelation(PIDRelation):
                 **super().create_json_schema(element),
                 "unevaluatedProperties": False,
             },
+            **lazy_kwargs,
         )
 
     @override
@@ -333,6 +462,7 @@ class LazyPIDRelation(PIDRelation):
         """Create a marshmallow schema for the data type."""
         model = self._get_relation_model(element, must_exist=True)
         keys = element.get("keys", [])
+        schema_attrs = self._get_lazy_schema_class_attributes(element)
 
         return type(
             self.name,
@@ -341,6 +471,7 @@ class LazyPIDRelation(PIDRelation):
                 "model": model,
                 "keys": keys,
                 "initial_schema": super().create_marshmallow_schema(element)(),
+                **schema_attrs,
             },
         )
 
@@ -349,6 +480,7 @@ class LazyPIDRelation(PIDRelation):
         """Create a UI marshmallow schema for the data type."""
         model = self._get_relation_model(element, must_exist=True)
         keys = element.get("keys", [])
+        schema_attrs = self._get_lazy_schema_class_attributes(element)
 
         return type(
             self.name,
@@ -357,6 +489,7 @@ class LazyPIDRelation(PIDRelation):
                 "model": model,
                 "keys": keys,
                 "initial_schema": super().create_ui_marshmallow_schema(element)(),
+                **schema_attrs,
             },
         )
 
@@ -369,6 +502,7 @@ class LazyPIDRelation(PIDRelation):
         """Create a UI model for the data type."""
         model = self._get_relation_model(element, must_exist=True)
         keys = element.get("keys", [])
+        lazy_kwargs = self._get_lazy_properties(element)
 
         # super().create_ui_model already returns the full node for this
         # element (help/label/hint/input/children) - see create_mapping above
@@ -387,6 +521,7 @@ class LazyPIDRelation(PIDRelation):
                 keys,
                 filename="record-ui-model-link",
                 initial_content=super().create_ui_model(element, path),
+                **lazy_kwargs,
             ),
         )
 
