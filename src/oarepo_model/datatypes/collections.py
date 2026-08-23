@@ -484,6 +484,7 @@ class DynamicObjectDataType(ObjectDataType):
         # ObjectDataType._get_marshmallow_field_args injects 'nested' which is
         # only meaningful for Nested fields and causes a marshmallow warning on Raw.
         from .base import DataType
+
         return marshmallow.fields.Raw(
             **DataType._get_marshmallow_field_args(self, field_name, element),
         )
