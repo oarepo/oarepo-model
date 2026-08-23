@@ -18,6 +18,9 @@ from oarepo_model.presets.records_resources.services.records.params.spherical im
     GeoBoundingBoxParam,
     GeoDistanceParam,
     GeoShapeParam,
+    IcrsBoundingBoxParam,
+    IcrsDistanceParam,
+    IcrsShapeParam,
 )
 
 if TYPE_CHECKING:
@@ -42,3 +45,6 @@ class GeoPreset(Preset):
         yield AddParamInterpreterCls(GeoDistanceParam)
         yield AddParamInterpreterCls(GeoBoundingBoxParam)
         yield AddParamInterpreterCls(GeoShapeParam)
+        yield AddParamInterpreterCls(IcrsDistanceParam)
+        yield AddParamInterpreterCls(IcrsBoundingBoxParam)
+        yield AddParamInterpreterCls(IcrsShapeParam)
