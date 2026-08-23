@@ -36,6 +36,7 @@ from .copy_file import CopyFile
 from .high_level import (
     AddMetadataExport,
     AddMetadataImport,
+    AddParamInterpreterCls,
     AddPIDRelation,
     AddServiceComponent,
     PatchIndexMapping,
@@ -65,6 +66,7 @@ __all__ = [
     "AddMetadataImport",
     "AddModule",
     "AddPIDRelation",
+    "AddParamInterpreterCls",
     "AddServiceComponent",
     "AddToDictionary",
     "AddToList",
