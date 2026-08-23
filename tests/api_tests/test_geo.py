@@ -9,15 +9,18 @@
 from __future__ import annotations
 
 import pytest
+from geopy.exc import GeocoderTimedOut
 from invenio_records_resources.services.errors import QuerystringValidationError
 from opensearch_dsl import Search
 from opensearchpy.exceptions import RequestError
 
+from oarepo_model.presets.records_resources.services.records.params import spherical
 from oarepo_model.presets.records_resources.services.records.params.spherical import (
     GeoBoundingBoxParam,
     GeoDistanceParam,
     GeoShapeParam,
     _format_km,
+    _get_geocode,
     _haversine_km,
 )
 
@@ -479,3 +482,212 @@ def test_geo_shape_param_explicit_operation(operation):
 
     shape_query = search.to_dict()["query"]["bool"]["filter"][0]["geo_shape"]["metadata.location"]
     assert shape_query["relation"] == operation.lower()
+
+
+# --- geo_distance:/geo_shape: place-name (Nominatim) resolution ---
+#
+# These mock the module-level _nominatim_geocode_point/_nominatim_geocode_shape
+# functions rather than hitting the real OpenStreetMap Nominatim service, to
+# keep the tests fast, offline and deterministic.
+
+PRAGUE_LAT, PRAGUE_LON = 50.0755, 14.4378
+
+
+def test_geo_distance_param_resolves_location_name(monkeypatch):
+    calls = []
+
+    def fake_geocode_point(location_name: str) -> tuple[float, float]:
+        calls.append(location_name)
+        return PRAGUE_LAT, PRAGUE_LON
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_point", fake_geocode_point)
+
+    search = GeoDistanceParam(config=None).apply(
+        None,
+        Search(),
+        {"geo_distance:metadata.location": ["[Prague, Czechia,50km]"]},
+    )
+
+    # the location may itself contain a comma, so everything up to the last
+    # comma must be passed to the geocoder, not just the first component
+    assert calls == ["Prague, Czechia"]
+    geo_distance = search.to_dict()["query"]["bool"]["filter"][0]["geo_distance"]
+    assert geo_distance == {
+        "distance": "50km",
+        "metadata.location": {"lat": PRAGUE_LAT, "lon": PRAGUE_LON},
+    }
+
+
+def test_geo_distance_param_location_name_without_brackets(monkeypatch):
+    monkeypatch.setattr(
+        spherical, "_nominatim_geocode_point", lambda _name: (PRAGUE_LAT, PRAGUE_LON)
+    )
+
+    search = GeoDistanceParam(config=None).apply(
+        None,
+        Search(),
+        {"geo_distance:metadata.location": ["Prague, Czechia,50km"]},
+    )
+
+    geo_distance = search.to_dict()["query"]["bool"]["filter"][0]["geo_distance"]
+    assert geo_distance["metadata.location"] == {"lat": PRAGUE_LAT, "lon": PRAGUE_LON}
+
+
+def test_geo_distance_param_numeric_coordinates_are_not_geocoded(monkeypatch):
+    def fail(_name: str) -> tuple[float, float]:
+        raise AssertionError("should not geocode numeric lat/lon")
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_point", fail)
+
+    GeoDistanceParam(config=None).apply(
+        None,
+        Search(),
+        {"geo_distance:metadata.location": ["[50.0,14.4,50km]"]},
+    )
+
+
+def test_geo_distance_param_location_not_found_raises(monkeypatch):
+    def not_found(location_name: str) -> tuple[float, float]:
+        raise ValueError(location_name)
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_point", not_found)
+
+    with pytest.raises(QuerystringValidationError):
+        GeoDistanceParam(config=None).apply(
+            None,
+            Search(),
+            {"geo_distance:metadata.location": ["[Nowhereville,50km]"]},
+        )
+
+
+def test_geo_distance_param_geocoder_error_raises(monkeypatch):
+    def timed_out(_name: str) -> tuple[float, float]:
+        raise GeocoderTimedOut("timed out")
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_point", timed_out)
+
+    with pytest.raises(QuerystringValidationError):
+        GeoDistanceParam(config=None).apply(
+            None,
+            Search(),
+            {"geo_distance:metadata.location": ["[Prague, Czechia,50km]"]},
+        )
+
+
+def test_geo_shape_param_resolves_location_name(monkeypatch):
+    calls = []
+    prague_geojson = {"type": "Point", "coordinates": [PRAGUE_LON, PRAGUE_LAT]}
+
+    def fake_geocode_shape(location_name: str) -> dict:
+        calls.append(location_name)
+        return prague_geojson
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", fake_geocode_shape)
+
+    search = GeoShapeParam(config=None).apply(
+        None,
+        Search(),
+        {"geo_shape:metadata.location": ["WITHIN Prague, Czechia"]},
+    )
+
+    assert calls == ["Prague, Czechia"]
+    shape_query = search.to_dict()["query"]["bool"]["filter"][0]["geo_shape"]["metadata.location"]
+    # the geocoded GeoJSON is round-tripped through shapely (shape() then
+    # mapping()) so it comes out with tuple coordinates, not the original lists
+    assert shape_query == {
+        "shape": {"type": "Point", "coordinates": (PRAGUE_LON, PRAGUE_LAT)},
+        "relation": "within",
+    }
+
+
+def test_geo_shape_param_location_name_defaults_to_intersects(monkeypatch):
+    prague_geojson = {"type": "Point", "coordinates": [PRAGUE_LON, PRAGUE_LAT]}
+    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", lambda _name: prague_geojson)
+
+    search = GeoShapeParam(config=None).apply(
+        None,
+        Search(),
+        {"geo_shape:metadata.location": ["Prague, Czechia"]},
+    )
+
+    shape_query = search.to_dict()["query"]["bool"]["filter"][0]["geo_shape"]["metadata.location"]
+    assert shape_query["relation"] == "intersects"
+
+
+def test_geo_shape_param_wkt_is_not_geocoded(monkeypatch):
+    def fail(_name: str) -> dict:
+        raise AssertionError("should not geocode a valid WKT value")
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", fail)
+
+    GeoShapeParam(config=None).apply(
+        None,
+        Search(),
+        {"geo_shape:metadata.location": ["POLYGON ((0 0, 1 0, 1 1, 0 0))"]},
+    )
+
+
+def test_geo_shape_param_location_not_found_raises(monkeypatch):
+    def not_found(location_name: str) -> dict:
+        raise ValueError(location_name)
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", not_found)
+
+    with pytest.raises(QuerystringValidationError):
+        GeoShapeParam(config=None).apply(
+            None,
+            Search(),
+            {"geo_shape:metadata.location": ["Nowhereville"]},
+        )
+
+
+# --- _get_geocode() itself: lazy construction, config-driven, no network call ---
+
+
+def test_get_geocode_uses_configured_user_agent(app):
+    _get_geocode.cache_clear()
+    app.config["NOMINATIM_USER_AGENT"] = "my-custom-agent"
+    try:
+        with app.app_context():
+            geocode = _get_geocode()
+        assert geocode.func.__self__.headers["User-Agent"] == "my-custom-agent"
+    finally:
+        del app.config["NOMINATIM_USER_AGENT"]
+        _get_geocode.cache_clear()
+
+
+def test_get_geocode_default_user_agent_includes_site_url(app):
+    _get_geocode.cache_clear()
+    app.config.pop("NOMINATIM_USER_AGENT", None)
+    try:
+        with app.app_context():
+            geocode = _get_geocode()
+        user_agent = geocode.func.__self__.headers["User-Agent"]
+        assert user_agent.startswith("Invenio RDM (CESNET flavour, ")
+        assert app.config.get("SITE_UI_URL", "") in user_agent
+    finally:
+        _get_geocode.cache_clear()
+
+
+def test_get_geocode_min_delay_seconds_is_configurable(app):
+    _get_geocode.cache_clear()
+    try:
+        with app.app_context():
+            geocode = _get_geocode()
+        # set in the app_config fixture: keep well under Nominatim's usage
+        # policy even if some test forgets to mock the geocoder out
+        assert geocode.min_delay_seconds == app.config["NOMINATIM_MIN_DELAY_SECONDS"]
+        assert geocode.min_delay_seconds >= 5
+    finally:
+        _get_geocode.cache_clear()
+
+
+def test_get_geocode_is_cached_process_wide(app):
+    _get_geocode.cache_clear()
+    try:
+        with app.app_context():
+            first = _get_geocode()
+            second = _get_geocode()
+        assert first is second
+    finally:
+        _get_geocode.cache_clear()

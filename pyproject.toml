@@ -19,6 +19,7 @@ dependencies = [
     "invenio-rdm-records>=32.0.1,<33.0.0",
     # geojson manipulation
     "shapely>=2.0.0",
+    "geopy>=2.5.0",
 ]
 
 [project.urls]

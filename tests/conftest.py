@@ -900,6 +900,11 @@ def app_config(
     app_config["APP_RDM_RECORD_THUMBNAIL_SIZES"] = [500]
     app_config["RDM_ARCHIVE_DOWNLOAD_ENABLED"] = True
 
+    # extra-conservative throttle for GeoDistanceParam/GeoShapeParam's
+    # Nominatim geocoding fallback, in case a test exercises it without
+    # mocking it out - stay well under the public instance's usage policy
+    app_config["NOMINATIM_MIN_DELAY_SECONDS"] = 5
+
     return app_config
 
 
