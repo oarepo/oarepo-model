@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast, override
 
-from oarepo_model.datatypes.collections import ObjectDataType
+from oarepo_model.datatypes.tree import resolve_schema_type
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -54,15 +54,5 @@ def get_relations_fields(
     path: list[tuple[str, dict[str, Any]]],
 ) -> Generator[Customization]:
     """Get the relations fields for a given record type."""
-    if isinstance(schema_type, (str, dict)):
-        datatype = builder.type_registry.get_type(schema_type)
-        yield from cast("Any", datatype).create_relations(
-            {} if isinstance(schema_type, str) else schema_type,
-            path,
-        )
-    elif isinstance(schema_type, ObjectDataType):
-        yield from schema_type.create_relations({}, path)
-    else:
-        raise TypeError(
-            f"Invalid schema type: {schema_type}. Expected str, dict or None.",
-        )
+    datatype, element = resolve_schema_type(builder, schema_type)
+    yield from cast("Any", datatype).create_relations(element, path)

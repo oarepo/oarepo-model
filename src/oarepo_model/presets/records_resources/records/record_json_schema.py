@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, cast, override
 from deepmerge import always_merger
 
 from oarepo_model.customizations import AddJSONFile, Customization
-from oarepo_model.datatypes.collections import ObjectDataType
+from oarepo_model.datatypes.tree import resolve_schema_type
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -68,16 +68,5 @@ class RecordJSONSchemaPreset(Preset):
 
 def get_json_schema(builder: InvenioModelBuilder, schema_type: Any) -> dict[str, Any]:
     """Get the JSON schema for a given schema type."""
-    base_schema: dict[str, Any]
-    if isinstance(schema_type, (str, dict)):
-        datatype = builder.type_registry.get_type(schema_type)
-        base_schema = cast("Any", datatype).create_json_schema(
-            {} if isinstance(schema_type, str) else schema_type,
-        )
-    elif isinstance(schema_type, ObjectDataType):
-        base_schema = schema_type.create_json_schema({})
-    else:
-        raise TypeError(
-            f"Invalid schema type: {schema_type}. Expected str, dict or None.",
-        )
-    return base_schema
+    datatype, element = resolve_schema_type(builder, schema_type)
+    return cast("Any", datatype).create_json_schema(element)
