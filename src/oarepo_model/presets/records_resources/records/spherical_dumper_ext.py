@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from oarepo_model.customizations import AddToList, Customization
 from oarepo_model.datatypes.spherical import ICRSDataType
-from oarepo_model.datatypes.tree import get_model_nodes, node_type_filter
+from oarepo_model.datatypes.tree import get_model_nodes
 from oarepo_model.presets import Preset
 from oarepo_model.presets.records_resources.records.path_dumper_ext import PathDumperExtBase
 
@@ -64,7 +64,7 @@ class ICRSDumperExtPreset(Preset):
             for _datatype, path in get_model_nodes(
                 builder,
                 model,
-                node_type_filter(ICRSDataType),
+                lambda datatype: isinstance(datatype, ICRSDataType),
                 unique=True,
             )
         ]
