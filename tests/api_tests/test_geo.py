@@ -355,7 +355,7 @@ def test_geo_shape_param_filters_records(
     search_dsl = GeoShapeParam(service.config.search).apply(
         identity_simple,
         search_dsl,
-        {"geoshape:metadata.location": [GEO_SHAPE_POLYGON_WKT]},
+        {"geo_shape:metadata.location": [GEO_SHAPE_POLYGON_WKT]},
     )
     result = search_dsl.execute()
 
@@ -388,7 +388,7 @@ def test_geo_shape_param_via_service_search(
 
     result = service.search(
         identity_simple,
-        facets={"geoshape:metadata.location": [f"INTERSECTS {GEO_SHAPE_POLYGON_WKT}"]},
+        facets={"geo_shape:metadata.location": [f"INTERSECTS {GEO_SHAPE_POLYGON_WKT}"]},
     )
 
     hit_ids = {hit["id"] for hit in result.hits}
@@ -423,14 +423,14 @@ def test_geo_shape_param_rejects_relations_unsupported_by_geo_point(
     search_dsl = GeoShapeParam(service.config.search).apply(
         identity_simple,
         search_dsl,
-        {"geoshape:metadata.location": [f"WITHIN {GEO_SHAPE_POLYGON_WKT}"]},
+        {"geo_shape:metadata.location": [f"WITHIN {GEO_SHAPE_POLYGON_WKT}"]},
     )
     with pytest.raises(RequestError):
         search_dsl.execute()
 
 
 def test_geo_shape_param_removes_key_from_params():
-    params = {"geoshape:metadata.location": ["POINT (14.5 50.0)"], "other": ["x"]}
+    params = {"geo_shape:metadata.location": ["POINT (14.5 50.0)"], "other": ["x"]}
 
     GeoShapeParam(config=None).apply(None, Search(), params)
 
@@ -438,8 +438,8 @@ def test_geo_shape_param_removes_key_from_params():
 
 
 def test_geo_shape_param_removes_key_from_facets_bucket():
-    """Must also handle geoshape:<field> nested in params["facets"]."""
-    params = {"facets": {"geoshape:metadata.location": ["POINT (14.5 50.0)"], "other": ["x"]}}
+    """Must also handle geo_shape:<field> nested in params["facets"]."""
+    params = {"facets": {"geo_shape:metadata.location": ["POINT (14.5 50.0)"], "other": ["x"]}}
 
     GeoShapeParam(config=None).apply(None, Search(), params)
 
@@ -451,7 +451,7 @@ def test_geo_shape_param_invalid_value_raises():
         GeoShapeParam(config=None).apply(
             None,
             Search(),
-            {"geoshape:metadata.location": ["not a shape"]},
+            {"geo_shape:metadata.location": ["not a shape"]},
         )
 
 
@@ -459,7 +459,7 @@ def test_geo_shape_param_defaults_to_intersects():
     search = GeoShapeParam(config=None).apply(
         None,
         Search(),
-        {"geoshape:metadata.location": ["POINT (14.5 50.0)"]},
+        {"geo_shape:metadata.location": ["POINT (14.5 50.0)"]},
     )
 
     shape_query = search.to_dict()["query"]["bool"]["filter"][0]["geo_shape"]["metadata.location"]
@@ -474,7 +474,7 @@ def test_geo_shape_param_explicit_operation(operation):
     search = GeoShapeParam(config=None).apply(
         None,
         Search(),
-        {"geoshape:metadata.location": [f"{operation} POINT (14.5 50.0)"]},
+        {"geo_shape:metadata.location": [f"{operation} POINT (14.5 50.0)"]},
     )
 
     shape_query = search.to_dict()["query"]["bool"]["filter"][0]["geo_shape"]["metadata.location"]

@@ -692,6 +692,34 @@ def geo_model():
     return m
 
 
+icrs_model_types = {
+    "Metadata": {
+        "properties": {
+            "title": {"type": "fulltext+keyword"},
+            "position": {"type": "icrs"},
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def icrs_model():
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_preset
+
+    m = model(
+        name="icrs_test",
+        version="1.0.0",
+        presets=[records_preset],
+        types=[icrs_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    m.register()
+
+    return m
+
+
 @pytest.fixture(scope="session")
 def drafts_cf_model(model_types):
     from oarepo_model.api import model
