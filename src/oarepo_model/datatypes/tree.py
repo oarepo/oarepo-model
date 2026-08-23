@@ -78,15 +78,6 @@ def get_model_nodes(
     return nodes
 
 
-def node_type_filter(dt: type[DataType]) -> Callable[[DataType], bool]:
-    """Return a filter function that checks if a data type is of the given type."""
-
-    def _filter(datatype: DataType) -> bool:
-        return isinstance(datatype, dt)
-
-    return _filter
-
-
 def visit_schema(
     builder: InvenioModelBuilder,
     schema_type: Any,

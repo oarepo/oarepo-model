@@ -19,7 +19,7 @@ from invenio_rdm_records.records.dumpers.edtf import (  # pyright: ignore[report
 
 from oarepo_model.customizations import AddToList, Customization
 from oarepo_model.datatypes.date import EDTFDateOrIntervalDataType
-from oarepo_model.datatypes.tree import get_model_nodes, node_type_filter
+from oarepo_model.datatypes.tree import get_model_nodes
 from oarepo_model.presets import Preset
 from oarepo_model.presets.records_resources.records.path_dumper_ext import PathDumperExtBase
 
@@ -63,7 +63,7 @@ class DateRangeDumperExtPreset(Preset):
             for _datatype, path in get_model_nodes(
                 builder,
                 model,
-                node_type_filter(EDTFDateOrIntervalDataType),
+                lambda datatype: isinstance(datatype, EDTFDateOrIntervalDataType),
                 unique=True,
             )
         ]
