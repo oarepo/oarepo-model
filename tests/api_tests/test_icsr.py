@@ -12,6 +12,7 @@ import pytest
 from invenio_records_resources.services.errors import QuerystringValidationError
 from opensearch_dsl import Search
 
+from oarepo_model.presets.records_resources.services.records.params import spherical
 from oarepo_model.presets.records_resources.services.records.params.spherical import (
     IcrsBoundingBoxParam,
     IcrsDistanceParam,
@@ -384,3 +385,24 @@ def test_degrees_to_km_matches_earth_geo_distance_conversion():
     # 1 degree of great-circle angle is ~111.19 km on a sphere with earth's
     # mean radius - the same conversion geo_distance: relies on implicitly.
     assert _degrees_to_km(1) == pytest.approx(111.19, abs=0.05)
+
+
+def test_icsr_shape_param_never_geocodes(monkeypatch):
+    """ra/dec coordinates aren't Earth place names.
+
+    geo_shape: falls back to geocoding non-WKT values as place names, but
+    icsr_shape: must not: it should raise the ordinary invalid-WKT error
+    instead of asking Nominatim to resolve celestial WKT-ish garbage.
+    """
+
+    def fail(_name: str) -> dict:
+        raise AssertionError("icsr_shape: must never attempt geocoding")
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", fail)
+
+    with pytest.raises(QuerystringValidationError):
+        IcrsShapeParam(config=None).apply(
+            None,
+            Search(),
+            {"icsr_shape:metadata.position": ["not a shape"]},
+        )

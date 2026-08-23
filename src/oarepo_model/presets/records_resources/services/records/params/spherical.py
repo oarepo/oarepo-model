@@ -12,8 +12,13 @@ from __future__ import annotations
 
 import math
 import re
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from flask import current_app
+from geopy.exc import GeopyError
+from geopy.extra.rate_limiter import RateLimiter
+from geopy.geocoders import Nominatim
 from invenio_i18n import gettext as _
 from invenio_records_resources.services.errors import QuerystringValidationError
 from invenio_records_resources.services.records.params.base import ParamInterpreter
@@ -21,14 +26,62 @@ from opensearch_dsl import Q
 from shapely import wkt as shapely_wkt
 from shapely.errors import ShapelyError
 from shapely.geometry import mapping as shapely_mapping
+from shapely.geometry import shape as shapely_shape
 from shapely.ops import transform as shapely_transform
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from opensearch_dsl.search import Search
     from shapely.geometry.base import BaseGeometry
 
 #: Mean earth radius in kilometers, used to convert angular distances to km.
 _EARTH_RADIUS_KM = 6371.0088
+
+# NOTE: this talks to the public OpenStreetMap Nominatim instance by default.
+# Its usage policy caps clients at ~1 request/second and asks for an
+# application-specific user agent; both are configurable (NOMINATIM_USER_AGENT,
+# NOMINATIM_MIN_DELAY_SECONDS) so a production deployment resolving many
+# distinct place names can point this at a self-hosted/paid instance instead.
+@lru_cache(maxsize=1)
+def _get_geocode() -> Callable[..., Any]:
+    """Lazily build a rate-limited Nominatim.geocode callable.
+
+    Built lazily on first use (rather than at import time) since the user
+    agent is derived from the current Flask app's configuration, which isn't
+    available yet at import time. ``lru_cache`` makes it a process-wide
+    singleton, built once and reused: the RateLimiter's "last call" timestamp
+    needs to be shared across all callers for the rate limit to mean
+    anything, and Nominatim's public instance rate-limits by client (i.e. by
+    process), not by request or by app.
+    """
+    default_user_agent = f"Invenio RDM (CESNET flavour, {current_app.config.get('SITE_UI_URL', '')})"
+    user_agent = current_app.config.get("NOMINATIM_USER_AGENT", default_user_agent)
+    min_delay_seconds = current_app.config.get("NOMINATIM_MIN_DELAY_SECONDS", 1)
+    geolocator = Nominatim(user_agent=user_agent)
+    return RateLimiter(
+        geolocator.geocode,
+        min_delay_seconds=min_delay_seconds,
+        swallow_exceptions=False,
+    )
+
+
+@lru_cache(maxsize=256)
+def _nominatim_geocode_point(location_name: str) -> tuple[float, float]:
+    """Resolve a place name to (lat, lon) using OpenStreetMap Nominatim."""
+    location = _get_geocode()(location_name)
+    if location is None:
+        raise ValueError(location_name)
+    return location.latitude, location.longitude
+
+
+@lru_cache(maxsize=256)
+def _nominatim_geocode_shape(location_name: str) -> dict[str, Any]:
+    """Resolve a place name to a GeoJSON geometry using OpenStreetMap Nominatim."""
+    location = _get_geocode()(location_name, geometry="geojson")
+    if location is None or "geojson" not in location.raw:
+        raise ValueError(location_name)
+    return location.raw["geojson"]
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -121,6 +174,34 @@ class _PrefixedGeoParam(ParamInterpreter):
     def _apply_value(self, search: Search, field: str, value: str) -> Search:
         raise NotImplementedError
 
+    def _geocode_point(self, field: str, location_name: str) -> tuple[float, float]:
+        try:
+            return _nominatim_geocode_point(location_name)
+        except (ValueError, GeopyError) as error:
+            raise QuerystringValidationError(
+                _(
+                    "Could not resolve location name %(location)r for "
+                    "parameter '%(param)s%(field)s'.",
+                    location=location_name,
+                    param=self.prefix,
+                    field=field,
+                )
+            ) from error
+
+    def _geocode_shape(self, field: str, location_name: str) -> dict[str, Any]:
+        try:
+            return _nominatim_geocode_shape(location_name)
+        except (ValueError, GeopyError) as error:
+            raise QuerystringValidationError(
+                _(
+                    "Could not resolve location name %(location)r for "
+                    "parameter '%(param)s%(field)s'.",
+                    location=location_name,
+                    param=self.prefix,
+                    field=field,
+                )
+            ) from error
+
 
 #: Matches ``[lat,lon,distance]`` or ``lat,lon,distance``.
 _DISTANCE_VALUE_RE = re.compile(
@@ -131,6 +212,19 @@ _DISTANCE_VALUE_RE = re.compile(
 #: Matches a distance value such as ``50km`` or ``12.5mi``.
 _DISTANCE_RE = re.compile(r"^\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[a-zA-Z]+)\s*$")
 
+#: Matches ``[location name,distance]``. The location is matched lazily so
+#: that, combined with the anchored end, it captures everything up to the
+#: *last* comma - which lets the location itself contain commas (e.g. "Prague,
+#: Czechia") while still correctly separating off the trailing distance.
+_LOCATION_DISTANCE_VALUE_RE = re.compile(
+    r"^\[?\s*(?P<location>.+?)\s*,\s*(?P<distance>\d+(?:\.\d+)?\s*[a-zA-Z]+)\s*\]?$",
+    re.DOTALL,
+)
+
+#: Matches a bare number, used to decide whether a value's first component
+#: looks like a coordinate or a place name.
+_NUMBER_RE = re.compile(r"^[+-]?\d+(?:\.\d+)?$")
+
 
 class GeoDistanceParam(_PrefixedGeoParam):
     """Evaluate ``geo_distance:<field>=[lat,lon,distance]`` query parameters.
@@ -140,6 +234,11 @@ class GeoDistanceParam(_PrefixedGeoParam):
     records closer to the point are additionally boosted in relevance via a
     ``distance_feature`` query, with the pivot set to a tenth of the
     requested distance.
+
+    Instead of ``lat,lon``, a place name may be given, e.g.
+    ``[Prague, Czechia,50km]``: if the part before the first comma doesn't
+    parse as a number, everything up to the last comma is geocoded (via
+    OpenStreetMap Nominatim) to get the point.
     """
 
     prefix: ClassVar[str] = "geo_distance:"
@@ -168,21 +267,33 @@ class GeoDistanceParam(_PrefixedGeoParam):
         )
 
     def _parse_value(self, field: str, value: str) -> tuple[float, float, str]:
-        match = _DISTANCE_VALUE_RE.match(value.strip())
-        if not match:
-            raise QuerystringValidationError(
-                _(
-                    "Invalid value %(value)r for parameter '%(param)s%(field)s'. "
-                    "Expected '[lat,lon,distance]', e.g. '[50.0,14.4,50km]'.",
-                    value=value,
-                    param=self.prefix,
-                    field=field,
-                )
+        value = value.strip()
+        match = _DISTANCE_VALUE_RE.match(value)
+        if match:
+            return (
+                float(match.group("lat")),
+                float(match.group("lon")),
+                match.group("distance").replace(" ", ""),
             )
-        return (
-            float(match.group("lat")),
-            float(match.group("lon")),
-            match.group("distance").replace(" ", ""),
+
+        # Not "[lat,lon,distance]": if the first component isn't a number,
+        # treat everything up to the last comma as a place name (which may
+        # itself contain commas, e.g. "Prague, Czechia") and geocode it.
+        first_part = value.removeprefix("[").split(",", 1)[0].strip()
+        location_match = _LOCATION_DISTANCE_VALUE_RE.match(value)
+        if location_match and not _NUMBER_RE.match(first_part):
+            lat, lon = self._geocode_point(field, location_match.group("location"))
+            return lat, lon, location_match.group("distance").replace(" ", "")
+
+        raise QuerystringValidationError(
+            _(
+                "Invalid value %(value)r for parameter '%(param)s%(field)s'. "
+                "Expected '[lat,lon,distance]' or '[location name,distance]', "
+                "e.g. '[50.0,14.4,50km]' or '[Prague, Czechia,50km]'.",
+                value=value,
+                param=self.prefix,
+                field=field,
+            )
         )
 
     def _pivot(self, distance: str) -> str:
@@ -268,6 +379,21 @@ _DEFAULT_GEO_SHAPE_OPERATION = "INTERSECTS"
 _GEO_SHAPE_OP_RE = re.compile(r"^\s*(?P<op>[A-Za-z]+)\s+(?P<rest>.+)$", re.DOTALL)
 
 
+#: Matches the start of a WKT geometry, e.g. "POLYGON (" or "MULTIPOINT Z(".
+#: Used to tell WKT apart from a place name, which never looks like this.
+_WKT_TYPE_RE = re.compile(
+    r"^(?:POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|MULTIPOLYGON|"
+    r"GEOMETRYCOLLECTION|CIRCULARSTRING|COMPOUNDCURVE|CURVEPOLYGON|MULTICURVE|"
+    r"MULTISURFACE|TRIANGLE|TIN|POLYHEDRALSURFACE)\s*(?:Z|M|ZM)?\s*\(",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_wkt(text: str) -> bool:
+    """Return whether ``text`` starts like a WKT geometry rather than a place name."""
+    return _WKT_TYPE_RE.match(text.strip()) is not None
+
+
 class GeoShapeParam(_PrefixedGeoParam):
     """Evaluate ``geo_shape:<field>=[OP ]<WKT>`` query parameters.
 
@@ -276,9 +402,18 @@ class GeoShapeParam(_PrefixedGeoParam):
     ``field``. The WKT geometry (e.g. ``POLYGON ((...))``) is parsed and
     converted to GeoJSON with shapely, since that's the format OpenSearch's
     geo_shape query expects for the ``shape`` value.
+
+    Instead of WKT, a place name may be given, e.g. ``INTERSECTS Prague,
+    Czechia``: if the text doesn't start like a WKT geometry, it's geocoded
+    (via OpenStreetMap Nominatim) to a GeoJSON shape.
     """
 
     prefix: ClassVar[str] = "geo_shape:"
+
+    #: Whether a value that isn't valid WKT may be resolved as a place name
+    #: via geocoding. ICRS coordinates have no such notion, so IcrsShapeParam
+    #: turns this off and only ever accepts WKT.
+    allow_location_name: ClassVar[bool] = True
 
     def _apply_value(self, search: Search, field: str, value: str) -> Search:
         operation, shape = self._parse_value(field, value)
@@ -301,16 +436,26 @@ class GeoShapeParam(_PrefixedGeoParam):
         return operation, shapely_mapping(self._load_geometry(field, wkt_text))
 
     def _load_geometry(self, field: str, wkt_text: str) -> BaseGeometry:
+        if self.allow_location_name and not _looks_like_wkt(wkt_text):
+            return shapely_shape(self._geocode_shape(field, wkt_text))
+
         try:
             return shapely_wkt.loads(wkt_text)
         except ShapelyError as error:
+            if self.allow_location_name:
+                expected = (
+                    "Expected '[OP ]<WKT>' or '[OP ]<place name>', e.g. "
+                    "'WITHIN POLYGON ((0 0, 1 0, 1 1, 0 0))' or 'INTERSECTS Prague, Czechia'."
+                )
+            else:
+                expected = "Expected '[OP ]<WKT>', e.g. 'WITHIN POLYGON ((0 0, 1 0, 1 1, 0 0))'."
             raise QuerystringValidationError(
                 _(
-                    "Invalid value %(value)r for parameter '%(param)s%(field)s'. "
-                    "Expected '[OP ]<WKT>', e.g. 'WITHIN POLYGON ((0 0, 1 0, 1 1, 0 0))'.",
+                    "Invalid value %(value)r for parameter '%(param)s%(field)s'. %(expected)s",
                     value=wkt_text,
                     param=self.prefix,
                     field=field,
+                    expected=expected,
                 )
             ) from error
 
@@ -403,6 +548,9 @@ class IcrsShapeParam(GeoShapeParam):
     """
 
     prefix: ClassVar[str] = "icsr_shape:"
+
+    #: ICRS coordinates aren't Earth place names, so never try to geocode them.
+    allow_location_name: ClassVar[bool] = False
 
     def _load_geometry(self, field: str, wkt_text: str) -> BaseGeometry:
         geometry = super()._load_geometry(field, wkt_text)
