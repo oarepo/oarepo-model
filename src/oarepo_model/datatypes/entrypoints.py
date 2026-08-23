@@ -37,6 +37,7 @@ from .multilingual import I18nDictDataType, MultilingualDataType
 from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataType
 from .polymorphic import PolymorphicDataType
 from .relations import PIDRelation
+from .spherical import GeoPointDataType
 from .strings import FullTextDataType, FulltextWithKeywordDataType, KeywordDataType
 from .vocabularies import VocabularyDataType
 
@@ -67,6 +68,7 @@ DATA_TYPES: dict[str, type[DataType] | dict[str, Any]] = {
     DynamicObjectDataType.TYPE: DynamicObjectDataType,
     PolymorphicDataType.TYPE: PolymorphicDataType,
     EDTFDateOrIntervalDataType.TYPE: EDTFDateOrIntervalDataType,
+    GeoPointDataType.TYPE: GeoPointDataType,
     "multilingual-type": MultilingualDataType,
     "multilingual": {
         "type": "multilingual-type",
