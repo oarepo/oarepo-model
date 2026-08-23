@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, cast, override
 from deepmerge import always_merger
 
 from oarepo_model.customizations import AddJSONFile, Customization
-from oarepo_model.datatypes.collections import ObjectDataType
+from oarepo_model.datatypes.tree import resolve_schema_type
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -77,18 +77,8 @@ class RecordMappingPreset(Preset):
 
 def get_mapping(builder: InvenioModelBuilder, schema_type: Any) -> dict[str, Any]:
     """Get the mapping for the given schema type."""
-    base_mapping: dict[str, Any]
-    if isinstance(schema_type, (str, dict)):
-        datatype = builder.type_registry.get_type(schema_type)
-        base_mapping = cast("Any", datatype).create_mapping(
-            {} if isinstance(schema_type, str) else schema_type,
-        )
-    elif isinstance(schema_type, ObjectDataType):
-        base_mapping = schema_type.create_mapping({})
-    else:
-        raise TypeError(
-            f"Invalid schema type: {schema_type}. Expected str, dict or None.",
-        )
+    datatype, element = resolve_schema_type(builder, schema_type)
+    base_mapping: dict[str, Any] = cast("Any", datatype).create_mapping(element)
     base_mapping_copy = {**base_mapping}
     base_mapping_copy.pop("type", None)
     return base_mapping_copy

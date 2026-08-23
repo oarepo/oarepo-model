@@ -48,6 +48,7 @@ from .records.record_metadata import RecordMetadataPreset
 from .records.record_with_relations import RecordWithRelationsPreset
 from .records.relations import RelationsPreset
 from .records.relations_dumper_ext import RelationsDumperExtPreset
+from .records.spherical_dumper_ext import ICRSDumperExtPreset
 from .records.synthetic_metadata import SyntheticMetadataPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
@@ -83,6 +84,7 @@ from .services.records.results import (
 from .services.records.search_options import RecordSearchOptionsPreset
 from .services.records.service import RecordServicePreset
 from .services.records.service_config import RecordServiceConfigPreset
+from .services.records.spherical_search_options import GeoPreset
 from .services.records.ui_metadata_schema import MetadataUISchemaPreset
 from .services.records.ui_record_schema import RecordUISchemaPreset
 
@@ -96,6 +98,7 @@ records_preset: list[type[Preset]] = [
     RecordMetadataPreset,
     RecordDumperPreset,
     DateRangeDumperExtPreset,
+    ICRSDumperExtPreset,
     JSONSchemaPreset,
     MappingPreset,
     RecordJSONSchemaPreset,
@@ -115,6 +118,7 @@ records_preset: list[type[Preset]] = [
     RecordResultItemPreset,
     RecordResultListPreset,
     RecordSearchOptionsPreset,
+    GeoPreset,
     PermissionPolicyPreset,
     RecordSchemaPreset,
     MetadataSchemaPreset,

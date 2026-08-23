@@ -19,6 +19,7 @@ from oarepo_model.customizations import (
     AddToModule,
     Customization,
 )
+from oarepo_model.datatypes.tree import resolve_schema_type
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -61,7 +62,5 @@ def get_facets(
     prefix: str = "",
 ) -> Any:
     """Get the marshmallow schema for a given schema type."""
-    if isinstance(schema_type, (str, dict)):
-        datatype = builder.type_registry.get_type(schema_type)
-        return cast("Any", datatype).get_facet(prefix, {} if isinstance(schema_type, str) else schema_type, [], {})
-    return {}
+    datatype, element = resolve_schema_type(builder, schema_type)
+    return cast("Any", datatype).get_facet(prefix, element, [], {})
