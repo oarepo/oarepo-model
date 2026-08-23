@@ -664,6 +664,34 @@ def records_cf_model(model_types):
     return m
 
 
+geo_model_types = {
+    "Metadata": {
+        "properties": {
+            "title": {"type": "fulltext+keyword"},
+            "location": {"type": "geo_point"},
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def geo_model():
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_preset
+
+    m = model(
+        name="geo_test",
+        version="1.0.0",
+        presets=[records_preset],
+        types=[geo_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    m.register()
+
+    return m
+
+
 @pytest.fixture(scope="session")
 def drafts_cf_model(model_types):
     from oarepo_model.api import model
