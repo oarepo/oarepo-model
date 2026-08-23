@@ -17,6 +17,7 @@ class GeoPointDataType(ObjectDataType):
     """Data type for geo points (latitude/longitude)."""
 
     mapping_type = "geo_point"
+    TYPE = "geo_point"
 
     @override
     def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
@@ -35,9 +36,13 @@ class GeoPointDataType(ObjectDataType):
 
 
 class ICRSDataType(GeoPointDataType):
-    """Data type for ICRS coordinates."""
+    """Data type for ICRS coordinates.
+
+    See https://aa.usno.navy.mil/faq/ICRS_doc for more information.
+    """
 
     mapping_type = "geo_point"
+    TYPE = "icrs"
 
     @override
     def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
