@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 #: Mean earth radius in kilometers, used to convert angular distances to km.
 _EARTH_RADIUS_KM = 6371.0088
 
+
 # NOTE: this talks to the public OpenStreetMap Nominatim instance by default.
 # Its usage policy caps clients at ~1 request/second and asks for an
 # application-specific user agent; both are configurable (NOMINATIM_USER_AGENT,
@@ -59,7 +60,7 @@ def _get_geocode() -> Callable[..., Any]:
     user_agent = current_app.config.get("NOMINATIM_USER_AGENT", default_user_agent)
     min_delay_seconds = current_app.config.get("NOMINATIM_MIN_DELAY_SECONDS", 1)
     geolocator = Nominatim(user_agent=user_agent)
-    return RateLimiter(
+    return RateLimiter(  # type: ignore[no-any-return]
         geolocator.geocode,
         min_delay_seconds=min_delay_seconds,
         swallow_exceptions=False,
@@ -81,7 +82,7 @@ def _nominatim_geocode_shape(location_name: str) -> dict[str, Any]:
     location = _get_geocode()(location_name, geometry="geojson")
     if location is None or "geojson" not in location.raw:
         raise ValueError(location_name)
-    return location.raw["geojson"]
+    return location.raw["geojson"]  # type: ignore[no-any-return]
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -135,7 +136,7 @@ class _PrefixedGeoParam(ParamInterpreter):
     #: Prefix of the query string parameter, e.g. ``geo_distance:metadata.location``.
     prefix: ClassVar[str]
 
-    def apply(
+    def apply(  # type: ignore[reportIncompatibleMethodOverride]
         self,
         identity: Any,  # noqa: ARG002 for override
         search: Search,
@@ -180,8 +181,7 @@ class _PrefixedGeoParam(ParamInterpreter):
         except (ValueError, GeopyError) as error:
             raise QuerystringValidationError(
                 _(
-                    "Could not resolve location name %(location)r for "
-                    "parameter '%(param)s%(field)s'.",
+                    "Could not resolve location name %(location)r for parameter '%(param)s%(field)s'.",
                     location=location_name,
                     param=self.prefix,
                     field=field,
@@ -194,8 +194,7 @@ class _PrefixedGeoParam(ParamInterpreter):
         except (ValueError, GeopyError) as error:
             raise QuerystringValidationError(
                 _(
-                    "Could not resolve location name %(location)r for "
-                    "parameter '%(param)s%(field)s'.",
+                    "Could not resolve location name %(location)r for parameter '%(param)s%(field)s'.",
                     location=location_name,
                     param=self.prefix,
                     field=field,
@@ -532,8 +531,14 @@ class IcrsBoundingBoxParam(GeoBoundingBoxParam):
         return lat1, lon1, lat2, lon2
 
 
-def _icrs_shape_coords_to_lat_lon(ra: float, dec: float) -> tuple[float, float]:
-    """Transform callback for shapely.ops.transform: WKT (ra, dec) -> (lon, lat)."""
+def _icrs_shape_coords_to_lat_lon(ra: float, dec: float, z: float | None = None) -> tuple[float, float]:
+    """Transform callback for shapely.ops.transform: WKT (ra, dec) -> (lon, lat).
+
+    ICRS shapes are always 2D, so the optional `z` shapely.ops.transform may
+    pass (see its docstring's `def id_func(x, y, z=None)` convention) is
+    accepted but ignored.
+    """
+    del z
     lat, lon = _ra_dec_to_lat_lon(ra, dec)
     return lon, lat
 

@@ -15,11 +15,12 @@ from typing import TYPE_CHECKING, Any, cast, override
 from deepmerge import always_merger
 
 from oarepo_model.customizations import AddJSONFile, Customization
+from oarepo_model.customizations.add_file_link import AddFileSymlink
 from oarepo_model.datatypes.tree import resolve_schema_type
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
@@ -64,9 +65,14 @@ class RecordJSONSchemaPreset(Preset):
             f"{model.base_name}-v{model.version}.json",
             jsonschema,
         )
+        yield AddFileSymlink(
+            "record-jsonschema-link",
+            "jsonschemas",
+            f"{model.base_name}-v{model.version}.json",
+        )
 
 
-def get_json_schema(builder: InvenioModelBuilder, schema_type: Any) -> dict[str, Any]:
+def get_json_schema(builder: InvenioModelBuilder, schema_type: Any) -> Mapping[str, Any]:
     """Get the JSON schema for a given schema type."""
     datatype, element = resolve_schema_type(builder, schema_type)
-    return cast("Any", datatype).create_json_schema(element)
+    return cast("Any", datatype).create_json_schema(element)  # type: ignore[no-any-return]
