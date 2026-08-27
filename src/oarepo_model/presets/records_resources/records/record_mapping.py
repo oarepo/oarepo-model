@@ -15,13 +15,12 @@ from typing import TYPE_CHECKING, Any, cast, override
 from deepmerge import always_merger
 
 from oarepo_model.customizations import AddJSONFile, Customization
-from oarepo_model.datatypes.tree import resolve_schema_type
 from oarepo_model.customizations.add_file_link import AddFileSymlink
-from oarepo_model.datatypes.collections import ObjectDataType
+from oarepo_model.datatypes.tree import resolve_schema_type
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Mapping
+    from collections.abc import Generator
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
