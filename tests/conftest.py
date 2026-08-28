@@ -774,6 +774,62 @@ def records_cf_model(model_types):
     return m
 
 
+geo_model_types = {
+    "Metadata": {
+        "properties": {
+            "title": {"type": "fulltext+keyword"},
+            "location": {"type": "geo_point"},
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def geo_model():
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_preset
+
+    m = model(
+        name="geo_test",
+        version="1.0.0",
+        presets=[records_preset],
+        types=[geo_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    m.register()
+
+    return m
+
+
+icrs_model_types = {
+    "Metadata": {
+        "properties": {
+            "title": {"type": "fulltext+keyword"},
+            "position": {"type": "icrs"},
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def icrs_model():
+    from oarepo_model.api import model
+    from oarepo_model.presets.records_resources import records_preset
+
+    m = model(
+        name="icrs_test",
+        version="1.0.0",
+        presets=[records_preset],
+        types=[icrs_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    m.register()
+
+    return m
+
+
 @pytest.fixture(scope="session")
 def drafts_cf_model(model_types):
     from oarepo_model.api import model
@@ -967,6 +1023,80 @@ def internal_relation_model(empty_model):
 
     t2 = time.time()
     log.info("Model created in %.2f seconds", t2 - t1)
+
+    return im
+
+
+# Model types for testing an internal-relation whose target is an array of a
+# *polymorphic* type (e.g. "entities" can hold "person" or "organization"
+# variants) - the target's JSON schema is a `{"oneOf": [...]}` node with no
+# top-level "properties" of its own (see PolymorphicDataType.create_json_schema),
+# so resolving 'keys' like "id"/"name" (present on both variants, via
+# "PersonEntity"/"OrganizationEntity") against it must union the "properties"
+# of every oneOf branch instead of finding none at all.
+internal_relation_polymorphic_target_model_types = {
+    "Metadata": {
+        "properties": {
+            "entities": {
+                "type": "array",
+                "items": {
+                    "type": "polymorphic",
+                    "discriminator": "entity_type",
+                    "oneof": [
+                        {"discriminator": "person", "type": "PersonEntity"},
+                        {"discriminator": "organization", "type": "OrganizationEntity"},
+                    ],
+                },
+            },
+            "primary_entity": {
+                "type": "internal-relation",
+                "target": "metadata.entities",
+                "keys": ["id", "name"],
+            },
+        },
+    },
+    "PersonEntity": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "keyword"},
+            "name": {"type": "keyword"},
+            "first_name": {"type": "keyword"},
+        },
+    },
+    "OrganizationEntity": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "keyword"},
+            "name": {"type": "keyword"},
+            "registration_number": {"type": "keyword"},
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def internal_relation_polymorphic_target_model(empty_model):
+    """Model with an internal relation targeting an array of a polymorphic type."""
+    from oarepo_model.api import model
+    from oarepo_model.presets.internal_relations import internal_relations_preset
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
+    from oarepo_model.presets.ui import ui_preset
+
+    t1 = time.time()
+
+    im = model(
+        name="ir_polymorphic_test",
+        version="1.0.0",
+        presets=[records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
+        types=[internal_relation_polymorphic_target_model_types],
+        metadata_type="Metadata",
+        customizations=[],
+    )
+    im.register()
+
+    t2 = time.time()
+    log.info("Polymorphic-target model created in %.2f seconds", t2 - t1)
 
     return im
 
@@ -1293,6 +1423,11 @@ def app_config(
     app_config["IIIF_FORMATS"] = ["jpg", "png"]
     app_config["APP_RDM_RECORD_THUMBNAIL_SIZES"] = [500]
     app_config["RDM_ARCHIVE_DOWNLOAD_ENABLED"] = True
+
+    # extra-conservative throttle for GeoDistanceParam/GeoShapeParam's
+    # Nominatim geocoding fallback, in case a test exercises it without
+    # mocking it out - stay well under the public instance's usage policy
+    app_config["NOMINATIM_MIN_DELAY_SECONDS"] = 5
 
     return app_config
 

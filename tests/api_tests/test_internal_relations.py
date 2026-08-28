@@ -45,6 +45,54 @@ def test_internal_relation_mapping_and_jsonschema(app, internal_relation_model):
     assert pp_schema["properties"]["name"] == {"type": "string"}
 
 
+def test_internal_relation_polymorphic_target_mapping_and_jsonschema(app, internal_relation_polymorphic_target_model):
+    """The relation should resolve 'keys' even when its target is an array of a polymorphic type.
+
+    Regression test: `walk_type_tree_path` used to give up as soon as it hit a
+    node with no "properties" key, which is exactly the shape of a polymorphic
+    field's JSON schema (`{"oneOf": [...]}` - see
+    PolymorphicDataType.create_json_schema). "id"/"name" (declared on both the
+    "person" and "organization" variants) must resolve by unioning the
+    "properties" of every oneOf branch instead of raising a KeyError.
+    """
+    m = internal_relation_polymorphic_target_model
+    files = m.__files__
+    links = m.__symlinks__
+
+    mapping = json.loads(resolve_file_content(files[links["record-mapping-link"]]))
+    pe_mapping = mapping["mappings"]["properties"]["metadata"]["properties"]["primary_entity"]
+    assert pe_mapping["properties"]["id"] == {"type": "keyword", "ignore_above": 256}
+    assert pe_mapping["properties"]["name"] == {"type": "keyword", "ignore_above": 256}
+
+    jsonschema = json.loads(resolve_file_content(files[links["record-jsonschema-link"]]))
+    pe_schema = jsonschema["properties"]["metadata"]["properties"]["primary_entity"]
+    assert pe_schema["properties"]["id"] == {"type": "string"}
+    assert pe_schema["properties"]["name"] == {"type": "string"}
+
+
+def test_internal_relation_polymorphic_target_resolve(app, internal_relation_polymorphic_target_model):
+    """The relation should resolve at runtime regardless of which polymorphic variant it points to."""
+    record = internal_relation_polymorphic_target_model.Record(
+        {
+            "metadata": {
+                "entities": [
+                    {"entity_type": "person", "id": "e1", "name": "Alice", "first_name": "Alice"},
+                    {
+                        "entity_type": "organization",
+                        "id": "e2",
+                        "name": "Acme Corp",
+                        "registration_number": "123",
+                    },
+                ],
+                "primary_entity": {"id": "e2"},
+            },
+        },
+    )
+
+    resolved = getattr(record.relations, "metadata.primary_entity")()
+    assert resolved["name"] == "Acme Corp"
+
+
 def test_internal_relation_marshmallow_schema(app, internal_relation_model):
     """LazyInternalMarshmallowSchema should resolve 'keys' against the target's real fields."""
     schema_cls = internal_relation_model.proxies.current_service.schema.schema

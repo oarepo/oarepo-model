@@ -261,7 +261,11 @@ def _merged_one_of_properties(node: dict[str, Any]) -> dict[str, Any] | None:
 
     A polymorphic field's JSON schema has no top-level "properties" - it is
     `{"oneOf": [...]}`, with each branch (variant) carrying its own
-    "properties".
+    "properties" (see PolymorphicDataType.create_json_schema). Mirrors
+    PolymorphicDataType.create_mapping's use of `always_merger` to union
+    those branches into one dict, so a path walking through (or landing on)
+    a polymorphic node still resolves to the fields available across all its
+    variants instead of hitting a dead end.
 
     :param node: a node that may contain a "oneOf" list.
     :return: the merged "properties" mapping across all branches that have
