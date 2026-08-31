@@ -61,6 +61,7 @@ class LazyPythonMapping(Mapping, abc.ABC):
         return len(self._data)
 
 
+
 class LazyJSONNamespaceFilePart(LazyPythonMapping, abc.ABC):
     """Lazily loads and exposes a JSON subtree(s) from a namespace file.
 
@@ -107,7 +108,7 @@ class LazyJSONNamespaceFilePart(LazyPythonMapping, abc.ABC):
 
         return generated
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> Any: # TODO: inherited from LazyPythonMapping?
         """Get an item from the mapping, resolving it first."""
         self._ensure()
         return self._data[key]

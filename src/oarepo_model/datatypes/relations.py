@@ -229,7 +229,7 @@ class PIDRelation(ObjectDataType):
         """Get the relation path for the PID relation."""
         relation_path: list[str | type[ARRAY_PATH_ITEM]] = []
         for pth in path:
-            if pth[0] == "":
+            if pth[0] == "": # TODO: see oarepo_model.datatypes.collections.ArrayDataType.create_relations
                 relation_path.append(ARRAY_PATH_ITEM)
             else:
                 relation_path.append(pth[0])
@@ -293,7 +293,7 @@ class PIDRelation(ObjectDataType):
         return list(keys)
 
 
-def set_key_model(properties: dict[str, Any], key: str, value: Any) -> None:
+def set_key_model(properties: dict[str, Any], key: str, value: Any) -> None: # TODO: duplicate-shaped with some of the set_data methods in lazy relations
     """Set a key-value pair in the properties dictionary."""
     parts = key.split(".")
     current = properties

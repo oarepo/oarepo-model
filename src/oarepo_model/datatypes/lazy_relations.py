@@ -77,7 +77,7 @@ def _descend_marshmallow_schema(schema: marshmallow.Schema, path: str) -> marshm
     for part in path.split("."):
         nested = _unwrap_nested_field(schema.fields.get(part))
         if nested is None:
-            return None
+            return None # TODO: if there's no nested at the end of path?
         schema = nested.schema
     return schema
 
@@ -163,10 +163,13 @@ class ReferenceJSONSchemaProperties(ReferenceMappingProperties):
         combined_path = f"{self._target_path}.{path}" if self._target_path else path
 
         # Determine the root - mappings have "mappings" wrapper, JSON schema doesn't
-        root = data.get("mappings", {}).get("properties") if "mappings" in data else data.get("properties")
+        root = data.get("mappings", {}).get("properties") if "mappings" in data else data.get("properties") # TODO: why mappings here?
 
         # Use walk_type_tree_path to descend, but we need the leaf node, not its properties
         # So we descend to the parent, then get the leaf directly
+
+        # TODO: this is duplication of walk_type_tree_path_leaf with raise KeyError on None
+        # also - the mapping get_path is just a special case?
         parts = combined_path.split(".")
         if len(parts) == 1:
             # Single segment - just get from root
@@ -544,7 +547,7 @@ class LazyPIDRelation(PIDRelation):
         if "pid_field" in element or "record_cls" in element:
             return super()._relation_pid_field(element, path)
         try:
-            imported_model = obj_or_import_string(self._get_relation_model(element, must_exist=True))
+            imported_model = obj_or_import_string(self._get_relation_model(element, must_exist=True)) # TODO: import_runtime_model
         except ImportError:
             return LazyModelPIDFieldContext(self._get_relation_model(element, must_exist=True))
 
@@ -612,7 +615,7 @@ class LazyPIDRelation(PIDRelation):
             if not isinstance(customization, RelationFieldCustomization):
                 continue
             for name, field in customization.build_relation_fields().items():
-                if isinstance(field, RelationsField):
+                if isinstance(field, RelationsField): # TODO: could use a comment
                     fields.update(field._fields)
                 else:
                     fields[name] = field

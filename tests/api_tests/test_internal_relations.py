@@ -21,10 +21,14 @@ conftest.py).
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 
 import pytest
 
 from oarepo_model.utils import resolve_file_content
+
+if TYPE_CHECKING:
+    from types import SimpleNamespace
 
 
 def test_internal_relation_mapping_and_jsonschema(app, internal_relation_model):

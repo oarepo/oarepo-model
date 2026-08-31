@@ -16,6 +16,9 @@ PID-resolved record. See datatypes/internal_relations.py for the data type
 that generates these customizations.
 """
 
+# TODO: possibly mention somewhere that what makes me these relations unique - ie what they allow that plain recursive
+# relation doesn't - is array paths in target_path (if i'm getting this correctly)
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override

@@ -438,7 +438,7 @@ class ArrayDataType(FacetMixin, DataType):
     ) -> list[Customization]:
         return self._registry.get_type(element["items"]).create_relations(
             element["items"],
-            [*path, ("", element)],
+            [*path, ("", element)], # TODO: use ARRAY_PATH_ITEM?
         )
 
     def get_facet(
