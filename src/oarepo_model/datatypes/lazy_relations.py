@@ -82,7 +82,7 @@ def _descend_marshmallow_schema(schema: marshmallow.Schema, path: str) -> marshm
     for part in path.split("."):
         nested = _unwrap_nested_field(schema.fields.get(part))
         if nested is None:
-            return None # TODO: if there's no nested at the end of path?
+            return None
         schema = nested.schema
     return schema
 

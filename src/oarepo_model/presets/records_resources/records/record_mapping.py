@@ -20,7 +20,7 @@ from oarepo_model.datatypes.tree import resolve_schema_type
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Mapping
+    from collections.abc import Generator
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
