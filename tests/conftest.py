@@ -971,7 +971,10 @@ internal_relation_model_types = {
 }
 
 
-# Model types for testing internal relations with nested keys (e.g., "provider.name")
+# Model types for testing internal relations with nested keys (e.g., "provider.name").
+# The target's leaf fields carry explicit labels so that a ui model resolved from
+# the target can be told apart from ReferenceUIModel's generic fallback (which
+# would label them {"und": "name"}).
 internal_relation_nested_key_model_types = {
     "Metadata": {
         "properties": {
@@ -981,11 +984,11 @@ internal_relation_nested_key_model_types = {
                     "type": "object",
                     "properties": {
                         "id": {"type": "keyword"},
-                        "name": {"type": "keyword"},
+                        "name": {"type": "keyword", "label": {"en": "Protein name"}},
                         "provider": {
                             "type": "object",
                             "properties": {
-                                "name": {"type": "keyword"},
+                                "name": {"type": "keyword", "label": {"en": "Provider name"}},
                             },
                         },
                     },
@@ -1352,99 +1355,6 @@ def internal_relation_nested_model(empty_model):
     return im
 
 
-# Model types for relations whose 'keys' do NOT list "id" explicitly. Both
-# relation kinds are still keyed by "id" in the stored data ({"id": "p1"} /
-# {"id": <pid>}) - only the list of fields to embed from the target omits it.
-internal_relation_no_id_key_model_types = {
-    "Metadata": {
-        "properties": {
-            "proteins": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "keyword"},
-                        "name": {"type": "keyword"},
-                    },
-                },
-            },
-            "primary_protein": {
-                "type": "internal-relation",
-                "target": "metadata.proteins",
-                "keys": ["name"],
-            },
-        },
-    },
-}
-
-
-@pytest.fixture(scope="session")
-def internal_relation_no_id_key_model(empty_model):
-    """Model with an internal relation whose 'keys' omit "id"."""
-    from oarepo_model.api import model
-    from oarepo_model.presets.internal_relations import internal_relations_preset
-    from oarepo_model.presets.records_resources import records_resources_preset
-    from oarepo_model.presets.relations import relations_preset
-    from oarepo_model.presets.ui import ui_preset
-
-    t1 = time.time()
-
-    im = model(
-        name="ir_no_id_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
-        types=[internal_relation_no_id_key_model_types],
-        metadata_type="Metadata",
-        customizations=[],
-    )
-    im.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return im
-
-
-recursive_relation_no_id_key_model_types = {
-    "Metadata": {
-        "properties": {
-            "title": {"type": "keyword"},
-            "direct": {
-                "type": "lazy-pid-relation",
-                "keys": ["metadata.title"],
-                "model": "recursive_no_id_test",
-            },
-        },
-    },
-}
-
-
-@pytest.fixture(scope="session")
-def recursive_relation_no_id_key_model(empty_model):
-    """Model with a self-referencing pid relation whose 'keys' omit "id"."""
-    from oarepo_model.api import model
-    from oarepo_model.presets.records_resources import records_resources_preset
-    from oarepo_model.presets.relations import relations_preset
-    from oarepo_model.presets.ui import ui_preset
-
-    t1 = time.time()
-
-    rm = model(
-        name="recursive_no_id_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, ui_preset],
-        types=[recursive_relation_no_id_key_model_types],
-        metadata_type="Metadata",
-        customizations=[],
-    )
-    rm.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return rm
-
-
 @pytest.fixture(scope="module")
 def app_config(
     app_config,
@@ -1563,8 +1473,6 @@ def extra_entry_points(
     internal_relation_array_model,
     internal_relation_nested_model,
     internal_relation_nested_key_model,
-    internal_relation_no_id_key_model,
-    recursive_relation_no_id_key_model,
 ):
     return {
         "invenio_base.blueprints": [

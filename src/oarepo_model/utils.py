@@ -15,7 +15,7 @@ import importlib
 import json
 import keyword
 import re
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from typing import TYPE_CHECKING, Any, cast, override
 
 import marshmallow
@@ -319,6 +319,23 @@ def walk_type_tree_path(root: Mapping[str, Any] | None, path: str) -> dict[str, 
         properties = next_properties
     return cast("dict[str, Any]", properties)
 
+PathWalker = Callable[[Mapping[str, Any] | None, str], "dict[str, Any] | None"]
+"""Signature shared by `walk_type_tree_path` and `walk_ui_model_path`."""
+
+
+def _walk_path_leaf(walk: PathWalker, root: Mapping[str, Any] | None, path: str) -> dict[str, Any] | None:
+    """Resolve all but the last segment with `walk`, then return that last node."""
+    if not path:
+        return None
+    parts = path.split(".")
+    if len(parts) == 1:
+        node = root.get(parts[0]) if root else None
+        return cast("dict[str, Any] | None", node) if isinstance(node, dict) else None
+    parent = walk(root, ".".join(parts[:-1]))
+    if parent is None:
+        return None
+    node = parent.get(parts[-1])
+    return cast("dict[str, Any] | None", node) if isinstance(node, dict) else None
 
 def walk_type_tree_path_leaf(root: Mapping[str, Any] | None, path: str) -> dict[str, Any] | None:
     """Descend a dotted path and return the leaf node (not its properties).
@@ -338,21 +355,7 @@ def walk_type_tree_path_leaf(root: Mapping[str, Any] | None, path: str) -> dict[
     :return: the node at the end of `path`, or None if `root` isn't a mapping,
         any segment is missing, or the final segment has no value.
     """
-    if not path:
-        return None
-    parts = path.split(".")
-    if len(parts) == 1:
-        # Single segment - just get from root
-        node = root.get(parts[0]) if root else None
-        return cast("dict[str, Any] | None", node) if isinstance(node, dict) else None
-    # Multiple segments - use walk_type_tree_path for parent, then get leaf
-    parent_path = ".".join(parts[:-1])
-    leaf = parts[-1]
-    parent_properties = walk_type_tree_path(root, parent_path)
-    if parent_properties is None:
-        return None
-    node = parent_properties.get(leaf)
-    return cast("dict[str, Any] | None", node) if isinstance(node, dict) else None
+    return _walk_path_leaf(walk_type_tree_path, root, path)
 
 def walk_ui_model_path(root: Mapping[str, Any] | None, path: str) -> dict[str, Any] | None:
     """Descend a dotted path through a UI model's "children"/"child"-shaped tree.
@@ -370,7 +373,7 @@ def walk_ui_model_path(root: Mapping[str, Any] | None, path: str) -> dict[str, A
         or None if `root` isn't a mapping, or any segment along the way is
         missing or not resolvable.
     """
-    children: Any = root # TODO: perhaps unify (or not idk) with walk_type_tree_path
+    children: Any = root # TODO: perhaps unify (or not idk) with walk_type_tree_path; or just like generally refactor these things
     if not isinstance(children, dict):
         return None
     for part in path.split(".") if path else ():
@@ -388,3 +391,7 @@ def walk_ui_model_path(root: Mapping[str, Any] | None, path: str) -> dict[str, A
             return None
         children = next_children
     return cast("dict[str, Any]", children)
+
+def walk_ui_model_path_leaf(root: Mapping[str, Any] | None, path: str) -> dict[str, Any] | None:
+    """Like `walk_ui_model_path`, but returns the leaf node instead of its "children"."""
+    return _walk_path_leaf(walk_ui_model_path, root, path)

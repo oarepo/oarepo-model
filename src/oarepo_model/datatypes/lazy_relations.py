@@ -40,7 +40,12 @@ from oarepo_model.customizations.high_level.add_pid_relation import (
 )
 from oarepo_model.datatypes.relations import PIDRelation
 from oarepo_model.lazy import LazyJSONNamespaceFilePart, LazyMarshmallowSchema
-from oarepo_model.utils import import_runtime_model, walk_type_tree_path
+from oarepo_model.utils import (
+    import_runtime_model,
+    walk_type_tree_path,
+    walk_ui_model_path,
+    walk_ui_model_path_leaf,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -240,26 +245,17 @@ class ReferenceUIModel(LazyJSONNamespaceFilePart):
         """Load the original JSON content from the namespace file."""
         return cast("dict[str, Any]", import_runtime_model(self._model).ui_model)
 
+
     @override
     def _get_path(self, data: Any, path: str) -> dict[str, Any]:
         """Get the value at the given path in the data."""
-        # For UI model, we need special handling: unwrap "child" at each target_path segment
-        from oarepo_model.utils import walk_ui_model_path
-
+        children = data.get("children")
         if self._target_path:
-            # First descend to target_path (handling array unwrapping)
-            children = walk_ui_model_path(data.get("children"), self._target_path)
+            children = walk_ui_model_path(children, self._target_path)
             if children is None:
                 raise KeyError(f"target_path {self._target_path!r} not found in UI model children")
-            # Then descend further by the key path - walk_ui_model_path already gives us the children dict
-            for p in path.split("."):
-                children = children.get(p, {})
-            return cast("dict[str, Any]", children)
-        # No target_path - descend by the key path (same as original ReferenceUIModel._get_path)
-        for p in path.split("."):
-            data = data.get("children", {})
-            data = data.get(p, {})
-        return cast("dict[str, Any]", data)
+
+        return walk_ui_model_path_leaf(children, path) or {}
 
     @override
     def _set_path(self, data: Any, path: str, value: Any) -> None:
@@ -281,7 +277,7 @@ class ReferenceUIModel(LazyJSONNamespaceFilePart):
                 data["input"] = "object"
         data.update(value)
 
-
+# TODO: i'm not sure whether we shouldn't have the id fallback here too
 class ReferenceMarshmallowSchema(LazyMarshmallowSchema):
     """Lazily resolves a relation's marshmallow schema from the target model's record schema.
 

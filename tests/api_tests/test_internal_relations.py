@@ -21,14 +21,10 @@ conftest.py).
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
 
 import pytest
 
 from oarepo_model.utils import resolve_file_content
-
-if TYPE_CHECKING:
-    from types import SimpleNamespace
 
 
 def test_internal_relation_mapping_and_jsonschema(app, internal_relation_model):
@@ -525,6 +521,24 @@ def test_internal_relation_nested_key_mapping_and_jsonschema(app, internal_relat
     assert pp_schema["properties"]["name"] == {"type": "string"}
     # Nested field should be present in JSON schema
     assert pp_schema["properties"]["provider"] == {"type": "object", "properties": {"name": {"type": "string"}}}
+
+
+@pytest.mark.parametrize(
+    ("key", "expected_label"),
+    [
+        ("name", {"en": "Protein name"}),
+        ("provider.name", {"en": "Provider name"}),
+    ],
+)
+def test_internal_relation_nested_key_ui_model(app, internal_relation_nested_key_model, key, expected_label):
+    """The lazily-resolved ui model should carry the target's own node for nested keys like 'provider.name'."""
+    ui_model = internal_relation_nested_key_model.ui_model
+    node = ui_model["children"]["metadata"]["children"]["primary_protein"]
+    for part in key.split("."):
+        node = node["children"][part]
+
+    # a fallback node would be labelled {"und": <field name>} instead
+    assert node["label"] == expected_label
 
 
 def test_internal_relation_nested_key_marshmallow_schema(app, internal_relation_nested_key_model):
