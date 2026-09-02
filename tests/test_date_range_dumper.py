@@ -86,6 +86,21 @@ def test_records_preset_date_range_dumper():
     ]
 
 
+def test_array_of_dates_gets_a_sibling_array_of_ranges():
+    """An array of dates gets one `dates_range` sibling holding all their ranges."""
+    data = {"metadata": {"dates": ["2020", "2021/2022"]}}
+    dumper = EDTFDateRangeDumperExt([["metadata", "dates", "[]"]])
+
+    result = dumper.dump(None, deepcopy(data))
+
+    assert result["metadata"]["dates"] == ["2020", "2021/2022"]
+    assert result["metadata"]["dates_range"] == [
+        {"gte": "2020-01-01", "lte": "2020-12-31"},
+        {"gte": "2021-01-01", "lte": "2022-12-31"},
+    ]
+    assert dumper.load(deepcopy(result), None) == data
+
+
 def test_dumps_and_loads_nested_date_range_paths():
     data = {
         "metadata": {

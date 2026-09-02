@@ -17,7 +17,6 @@ from shapely.geometry import mapping as shapely_mapping
 from shapely.geometry import shape as shapely_shape
 
 from oarepo_model.customizations import AddToList, Customization
-from oarepo_model.datatypes.base import ARRAY_ITEM_PATH
 from oarepo_model.datatypes.spherical import (
     ICRSDataType,
     ICRSShapeDataType,
@@ -31,21 +30,12 @@ from oarepo_model.presets import Preset
 from oarepo_model.presets.records_resources.records.path_dumper_ext import PathDumperExtBase
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator
+    from collections.abc import Generator
 
     from shapely.geometry.base import BaseGeometry
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
-
-
-def _apply_to_values(value: Any, convert: Callable[[Any], Any]) -> Any:
-    """Apply ``convert`` to a value, or to every item of a list of such values."""
-    if value is None:
-        return None
-    if isinstance(value, list):
-        return [_apply_to_values(item, convert) for item in value]
-    return convert(value)
 
 
 def _point_to_opensearch(value: dict[str, Any]) -> dict[str, Any]:
@@ -63,13 +53,15 @@ def _point_from_opensearch(value: dict[str, Any]) -> dict[str, Any]:
 class ICRSDumperExt(PathDumperExtBase):
     """Dump ICRS into geo_point fields."""
 
-    def _data_to_opensearch(self, data: dict[str, Any], key: str) -> None:
+    def _data_to_opensearch(self, data: Any, key: Any, parent_path: list[tuple[Any, Any]]) -> None:
         """Convert a icrs field to geo_point field."""
-        data[key] = _apply_to_values(data[key], _point_to_opensearch)
+        _ = parent_path
+        data[key] = _point_to_opensearch(data[key])
 
-    def _data_from_opensearch(self, data: dict[str, Any], key: str) -> None:
+    def _data_from_opensearch(self, data: Any, key: Any, parent_path: list[tuple[Any, Any]]) -> None:
         """Convert a geo_point field to a icrs field."""
-        data[key] = _apply_to_values(data[key], _point_from_opensearch)
+        _ = parent_path
+        data[key] = _point_from_opensearch(data[key])
 
 
 def _to_geometry(value: Any) -> BaseGeometry:
@@ -98,23 +90,15 @@ def _shape_from_opensearch(value: Any) -> dict[str, Any]:
 class ICRSShapeDumperExt(PathDumperExtBase):
     """Dump ICRS shapes into geo_shape fields."""
 
-    def _data_to_opensearch(self, data: dict[str, Any], key: str) -> None:
+    def _data_to_opensearch(self, data: Any, key: Any, parent_path: list[tuple[Any, Any]]) -> None:
         """Convert a icrs_shape field to a geo_shape field."""
-        data[key] = _apply_to_values(data[key], _shape_to_opensearch)
+        _ = parent_path
+        data[key] = _shape_to_opensearch(data[key])
 
-    def _data_from_opensearch(self, data: dict[str, Any], key: str) -> None:
+    def _data_from_opensearch(self, data: Any, key: Any, parent_path: list[tuple[Any, Any]]) -> None:
         """Convert a geo_shape field to a icrs_shape field."""
-        data[key] = _apply_to_values(data[key], _shape_from_opensearch)
-
-
-def _strip_array_item(path: list[str]) -> list[str]:
-    """Drop a trailing array marker from a model path.
-
-    ``PathDumperExtBase`` can only convert a value reachable by a dict key, so a
-    path ending with ``[]`` (an array whose items are ICRS values) would never
-    reach a converter; the converters handle lists of values themselves instead.
-    """
-    return path[:-1] if path and path[-1] == ARRAY_ITEM_PATH else path
+        _ = parent_path
+        data[key] = _shape_from_opensearch(data[key])
 
 
 class ICRSDumperExtPreset(Preset):
@@ -130,7 +114,7 @@ class ICRSDumperExtPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         paths = [
-            _strip_array_item(path)
+            path
             for _datatype, path in get_model_nodes(
                 builder,
                 model,
@@ -156,7 +140,7 @@ class ICRSShapeDumperExtPreset(Preset):
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
         paths = [
-            _strip_array_item(path)
+            path
             for _datatype, path in get_model_nodes(
                 builder,
                 model,

@@ -390,6 +390,11 @@ class ArrayDataType(FacetMixin, DataType):
         )
 
     @override
+    def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> Mapping[str, Any]:
+        """Delegate to the item type, e.g. so an array of EDTF dates also gets a range mapping."""
+        return self._registry.get_type(element["items"]).create_dynamic_mapping(field_name, element["items"])
+
+    @override
     def visit(self, element: dict[str, Any], path: list[str], visitor: Any) -> None:
         """Visit array data type and its item data type."""
         super().visit(element, path, visitor)

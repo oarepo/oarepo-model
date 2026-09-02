@@ -136,6 +136,17 @@ def test_dumps_and_loads_nested_icrs_paths():
     assert loaded_events["locations"][1]["position"] == {"ra": 200.0, "dec": 0.0}
 
 
+def test_dumps_array_of_icrs_points():
+    """A path ending with "[]" converts every item of the array."""
+    dumper = ICRSDumperExt([["metadata", "positions", "[]"]])
+    data = {"metadata": {"positions": [{"ra": 10.0, "dec": -30.0}, None]}}
+
+    result = dumper.dump(None, deepcopy(data))
+
+    assert result["metadata"]["positions"] == [{"lat": -30.0, "lon": 10.0}, None]
+    assert dumper.load(deepcopy(result), None) == data
+
+
 def test_records_preset_icrs_shape_dumper():
     m = model(
         name="icrs_shape_dumper_ext_test",
@@ -152,8 +163,7 @@ def test_records_preset_icrs_shape_dumper():
                                 "field": {"type": "icrs_shape"},
                             },
                         },
-                        # an array of shapes: the trailing "[]" is dropped so the
-                        # converter, which handles lists, can reach the values
+                        # an array of shapes: the converter runs on each item
                         "footprints": {
                             "type": "array",
                             "items": {"type": "icrs_shape"},
@@ -171,7 +181,7 @@ def test_records_preset_icrs_shape_dumper():
     assert shape_extensions[0].paths == [
         ["metadata", "footprint"],
         ["metadata", "observation", "field"],
-        ["metadata", "footprints"],
+        ["metadata", "footprints", "[]"],
     ]
 
 
@@ -185,7 +195,7 @@ def test_dumps_and_loads_icrs_shapes():
             ],
         },
     }
-    dumper = ICRSShapeDumperExt([["metadata", "footprint"], ["metadata", "footprints"]])
+    dumper = ICRSShapeDumperExt([["metadata", "footprint"], ["metadata", "footprints", "[]"]])
 
     result = dumper.dump(None, deepcopy(data))
 
