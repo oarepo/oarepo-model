@@ -699,6 +699,7 @@ icrs_model_types = {
         "properties": {
             "title": {"type": "fulltext+keyword"},
             "position": {"type": "icrs"},
+            "footprint": {"type": "icrs_shape"},
         },
     },
 }

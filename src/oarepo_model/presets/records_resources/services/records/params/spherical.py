@@ -27,7 +27,8 @@ from shapely import wkt as shapely_wkt
 from shapely.errors import ShapelyError
 from shapely.geometry import mapping as shapely_mapping
 from shapely.geometry import shape as shapely_shape
-from shapely.ops import transform as shapely_transform
+
+from oarepo_model.datatypes.spherical import icrs_shape_to_lon_lat, ra_dec_to_lat_lon
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -114,16 +115,6 @@ def _degrees_to_km(degrees: float) -> float:
     "surface" it's nominally measuring actually represents.
     """
     return _EARTH_RADIUS_KM * math.radians(degrees)
-
-
-def _ra_dec_to_lat_lon(ra: float, dec: float) -> tuple[float, float]:
-    """Convert ICRS right ascension/declination (degrees) to lat/lon.
-
-    Mirrors the conversion ICRSDumperExt applies when indexing an icrs field
-    as geo_point, so queries against that field see the same coordinates
-    that were actually indexed.
-    """
-    return dec, ((ra + 180) % 360) - 180
 
 
 class _PrefixedGeoParam(ParamInterpreter):
@@ -467,7 +458,7 @@ _ICRS_DISTANCE_VALUE_RE = re.compile(
 
 
 class IcrsDistanceParam(GeoDistanceParam):
-    """Evaluate ``icsr_distance:<field>=[ra,dec,distance]`` query parameters.
+    """Evaluate ``icrs_distance:<field>=[ra,dec,distance]`` query parameters.
 
     ``ra``/``dec`` are ICRS right ascension/declination in degrees and
     ``distance`` is a great-circle angle, also in degrees (no unit suffix,
@@ -476,7 +467,7 @@ class IcrsDistanceParam(GeoDistanceParam):
     geo_distance:, reusing its filter/distance_feature logic unchanged.
     """
 
-    prefix: ClassVar[str] = "icsr_distance:"
+    prefix: ClassVar[str] = "icrs_distance:"
 
     def _parse_value(self, field: str, value: str) -> tuple[float, float, str]:
         match = _ICRS_DISTANCE_VALUE_RE.match(value.strip())
@@ -491,7 +482,7 @@ class IcrsDistanceParam(GeoDistanceParam):
                     field=field,
                 )
             )
-        lat, lon = _ra_dec_to_lat_lon(float(match.group("ra")), float(match.group("dec")))
+        lat, lon = ra_dec_to_lat_lon(float(match.group("ra")), float(match.group("dec")))
         distance_km = _degrees_to_km(float(match.group("distance")))
         return lat, lon, _format_km(distance_km)
 
@@ -504,7 +495,7 @@ _ICRS_BOUNDING_BOX_VALUE_RE = re.compile(
 
 
 class IcrsBoundingBoxParam(GeoBoundingBoxParam):
-    """Evaluate ``icsr_bounding_box:<field>=[ra,dec,ra,dec]`` query parameters.
+    """Evaluate ``icrs_bounding_box:<field>=[ra,dec,ra,dec]`` query parameters.
 
     The two points are opposite corners of the box in ICRS right
     ascension/declination (degrees, any order). Each pair is converted to
@@ -512,7 +503,7 @@ class IcrsBoundingBoxParam(GeoBoundingBoxParam):
     normalization/filter/distance_feature logic unchanged.
     """
 
-    prefix: ClassVar[str] = "icsr_bounding_box:"
+    prefix: ClassVar[str] = "icrs_bounding_box:"
 
     def _parse_value(self, field: str, value: str) -> tuple[float, float, float, float]:
         match = _ICRS_BOUNDING_BOX_VALUE_RE.match(value.strip())
@@ -526,19 +517,13 @@ class IcrsBoundingBoxParam(GeoBoundingBoxParam):
                     field=field,
                 )
             )
-        lat1, lon1 = _ra_dec_to_lat_lon(float(match.group("ra1")), float(match.group("dec1")))
-        lat2, lon2 = _ra_dec_to_lat_lon(float(match.group("ra2")), float(match.group("dec2")))
+        lat1, lon1 = ra_dec_to_lat_lon(float(match.group("ra1")), float(match.group("dec1")))
+        lat2, lon2 = ra_dec_to_lat_lon(float(match.group("ra2")), float(match.group("dec2")))
         return lat1, lon1, lat2, lon2
 
 
-def _icrs_shape_coords_to_lat_lon(ra: float, dec: float) -> tuple[float, float]:
-    """Transform callback for shapely.ops.transform: WKT (ra, dec) -> (lon, lat)."""
-    lat, lon = _ra_dec_to_lat_lon(ra, dec)
-    return lon, lat
-
-
 class IcrsShapeParam(GeoShapeParam):
-    """Evaluate ``icsr_shape:<field>=[OP ]<WKT>`` query parameters.
+    """Evaluate ``icrs_shape:<field>=[OP ]<WKT>`` query parameters.
 
     Like geo_shape:, but the WKT's x/y coordinates are read as ICRS right
     ascension/declination (degrees) rather than lon/lat, and remapped
@@ -546,11 +531,11 @@ class IcrsShapeParam(GeoShapeParam):
     coordinates ICRSDumperExt actually indexed.
     """
 
-    prefix: ClassVar[str] = "icsr_shape:"
+    prefix: ClassVar[str] = "icrs_shape:"
 
     #: ICRS coordinates aren't Earth place names, so never try to geocode them.
     allow_location_name: ClassVar[bool] = False
 
     def _load_geometry(self, field: str, wkt_text: str) -> BaseGeometry:
         geometry = super()._load_geometry(field, wkt_text)
-        return shapely_transform(_icrs_shape_coords_to_lat_lon, geometry)
+        return icrs_shape_to_lon_lat(geometry)

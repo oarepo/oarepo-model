@@ -8,15 +8,21 @@
 #
 """Data type for geo fields."""
 
-from typing import Any, override
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, override
 
 import marshmallow
 from marshmallow.exceptions import ValidationError
 from shapely import wkt as shapely_wkt
 from shapely.errors import ShapelyError
 from shapely.geometry import shape as shapely_shape
+from shapely.ops import transform as shapely_transform
 
 from oarepo_model.datatypes.collections import ObjectDataType
+
+if TYPE_CHECKING:
+    from shapely.geometry.base import BaseGeometry
 
 #: GeoJSON geometry types an OpenSearch ``geo_shape`` field accepts (matched
 #: case-insensitively). Excludes OpenSearch's non-GeoJSON ``envelope`` type,
@@ -52,6 +58,44 @@ def validate_geo_shape(value: Any) -> None:
         raise ValidationError(f"Invalid geo shape: {error}") from error
 
     raise ValidationError("Geo shape must be a WKT string or a GeoJSON geometry object.")
+
+
+def ra_dec_to_lat_lon(ra: float, dec: float) -> tuple[float, float]:
+    """Convert ICRS right ascension/declination (degrees) to geo lat/lon.
+
+    Right ascension is folded from [0, 360) to the [-180, 180] range OpenSearch's
+    geo fields require; declination is already a latitude.
+    """
+    return dec, ((ra + 180) % 360) - 180
+
+
+def lat_lon_to_ra_dec(lat: float, lon: float) -> tuple[float, float]:
+    """Convert geo lat/lon back to ICRS right ascension/declination (degrees)."""
+    return lon % 360, lat
+
+
+def icrs_shape_to_lon_lat(geometry: BaseGeometry) -> BaseGeometry:
+    """Rewrite a geometry's (ra, dec) coordinates as geo (lon, lat).
+
+    A third (height) ordinate, if present, is dropped: OpenSearch's geo_shape
+    field is two-dimensional.
+    """
+
+    def _transform(ra: float, dec: float, *_: float) -> tuple[float, float]:
+        lat, lon = ra_dec_to_lat_lon(ra, dec)
+        return lon, lat
+
+    return shapely_transform(_transform, geometry)
+
+
+def lon_lat_to_icrs_shape(geometry: BaseGeometry) -> BaseGeometry:
+    """Rewrite a geometry's geo (lon, lat) coordinates as ICRS (ra, dec)."""
+
+    def _transform(lon: float, lat: float, *_: float) -> tuple[float, float]:
+        ra, dec = lat_lon_to_ra_dec(lat, lon)
+        return ra, dec
+
+    return shapely_transform(_transform, geometry)
 
 
 class GeoPointDataType(ObjectDataType):
@@ -145,6 +189,20 @@ class GeoShapeDataType(ObjectDataType):
         intentionally not validated here.
         """
         return {"type": ["string", "object"]}
+
+
+class ICRSShapeDataType(GeoShapeDataType):
+    """Data type for ICRS shapes.
+
+    Like a geo shape, but the WKT/GeoJSON x/y coordinates are read as ICRS
+    right ascension/declination (degrees) rather than lon/lat. The mapping stays
+    ``geo_shape``, so :class:`ICRSShapeDumperExt` converts the coordinates when
+    the shape is indexed.
+
+    See https://aa.usno.navy.mil/faq/ICRS_doc for more information.
+    """
+
+    TYPE = "icrs_shape"
 
 
 class ICRSDataType(GeoPointDataType):

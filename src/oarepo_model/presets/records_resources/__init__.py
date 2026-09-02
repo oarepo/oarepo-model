@@ -48,7 +48,7 @@ from .records.record_metadata import RecordMetadataPreset
 from .records.record_with_relations import RecordWithRelationsPreset
 from .records.relations import RelationsPreset
 from .records.relations_dumper_ext import RelationsDumperExtPreset
-from .records.spherical_dumper_ext import ICRSDumperExtPreset
+from .records.spherical_dumper_ext import ICRSDumperExtPreset, ICRSShapeDumperExtPreset
 from .records.synthetic_metadata import SyntheticMetadataPreset
 from .resources.files.file_resource import FileResourcePreset
 from .resources.files.file_resource_config import FileResourceConfigPreset
@@ -99,6 +99,7 @@ records_preset: list[type[Preset]] = [
     RecordDumperPreset,
     DateRangeDumperExtPreset,
     ICRSDumperExtPreset,
+    ICRSShapeDumperExtPreset,
     JSONSchemaPreset,
     MappingPreset,
     RecordJSONSchemaPreset,
