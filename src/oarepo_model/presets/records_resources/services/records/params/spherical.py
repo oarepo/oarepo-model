@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 #: Mean earth radius in kilometers, used to convert angular distances to km.
 _EARTH_RADIUS_KM = 6371.0088
 
+
 # NOTE: this talks to the public OpenStreetMap Nominatim instance by default.
 # Its usage policy caps clients at ~1 request/second and asks for an
 # application-specific user agent; both are configurable (NOMINATIM_USER_AGENT,
@@ -180,8 +181,7 @@ class _PrefixedGeoParam(ParamInterpreter):
         except (ValueError, GeopyError) as error:
             raise QuerystringValidationError(
                 _(
-                    "Could not resolve location name %(location)r for "
-                    "parameter '%(param)s%(field)s'.",
+                    "Could not resolve location name %(location)r for parameter '%(param)s%(field)s'.",
                     location=location_name,
                     param=self.prefix,
                     field=field,
@@ -194,8 +194,7 @@ class _PrefixedGeoParam(ParamInterpreter):
         except (ValueError, GeopyError) as error:
             raise QuerystringValidationError(
                 _(
-                    "Could not resolve location name %(location)r for "
-                    "parameter '%(param)s%(field)s'.",
+                    "Could not resolve location name %(location)r for parameter '%(param)s%(field)s'.",
                     location=location_name,
                     param=self.prefix,
                     field=field,
