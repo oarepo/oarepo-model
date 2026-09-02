@@ -14,6 +14,7 @@ from oarepo_model.api import model
 from oarepo_model.presets.records_resources import records_preset
 from oarepo_model.presets.records_resources.records.spherical_dumper_ext import (
     ICRSDumperExt,
+    ICRSShapeDumperExt,
 )
 
 
@@ -133,3 +134,88 @@ def test_dumps_and_loads_nested_icrs_paths():
     loaded_events = loaded["metadata"]["related_resources"][0]["events"][0]
     assert loaded_events["locations"][0]["position"] == {"ra": 350.0, "dec": 45.0}
     assert loaded_events["locations"][1]["position"] == {"ra": 200.0, "dec": 0.0}
+
+
+def test_dumps_array_of_icrs_points():
+    """A path ending with "[]" converts every item of the array."""
+    dumper = ICRSDumperExt([["metadata", "positions", "[]"]])
+    data = {"metadata": {"positions": [{"ra": 10.0, "dec": -30.0}, None]}}
+
+    result = dumper.dump(None, deepcopy(data))
+
+    assert result["metadata"]["positions"] == [{"lat": -30.0, "lon": 10.0}, None]
+    assert dumper.load(deepcopy(result), None) == data
+
+
+def test_records_preset_icrs_shape_dumper():
+    m = model(
+        name="icrs_shape_dumper_ext_test",
+        version="1.0.0",
+        presets=[records_preset],
+        types=[
+            {
+                "Metadata": {
+                    "properties": {
+                        "footprint": {"type": "icrs_shape"},
+                        "observation": {
+                            "type": "object",
+                            "properties": {
+                                "field": {"type": "icrs_shape"},
+                            },
+                        },
+                        # an array of shapes: the converter runs on each item
+                        "footprints": {
+                            "type": "array",
+                            "items": {"type": "icrs_shape"},
+                        },
+                        "position": {"type": "icrs"},
+                    },
+                },
+            },
+        ],
+        metadata_type="Metadata",
+    )
+    shape_extensions = [ext for ext in m.record_dumper_extensions if isinstance(ext, ICRSShapeDumperExt)]
+
+    assert len(shape_extensions) == 1
+    assert shape_extensions[0].paths == [
+        ["metadata", "footprint"],
+        ["metadata", "observation", "field"],
+        ["metadata", "footprints", "[]"],
+    ]
+
+
+def test_dumps_and_loads_icrs_shapes():
+    data = {
+        "metadata": {
+            "footprint": "POLYGON ((350 -30, 200 0, 10 45, 350 -30))",
+            "footprints": [
+                "POINT (200 0)",
+                {"type": "Point", "coordinates": [-160.0, 0.0]},
+            ],
+        },
+    }
+    dumper = ICRSShapeDumperExt([["metadata", "footprint"], ["metadata", "footprints", "[]"]])
+
+    result = dumper.dump(None, deepcopy(data))
+
+    assert result["metadata"]["footprint"] == {
+        "type": "Polygon",
+        "coordinates": (((-10.0, -30.0), (-160.0, 0.0), (10.0, 45.0), (-10.0, -30.0)),),
+    }
+    assert result["metadata"]["footprints"][0] == {"type": "Point", "coordinates": (-160.0, 0.0)}
+    assert result["metadata"]["footprints"][1] == {"type": "Point", "coordinates": (-160.0, 0.0)}
+
+    loaded = dumper.load(deepcopy(result), None)
+
+    # WKT is indexed as GeoJSON, so the round trip keeps the geometry but not its text
+    assert loaded["metadata"]["footprint"]["type"] == "Polygon"
+    assert loaded["metadata"]["footprint"]["coordinates"] == (
+        ((350.0, -30.0), (200.0, 0.0), (10.0, 45.0), (350.0, -30.0)),
+    )
+    assert loaded["metadata"]["footprints"][0] == {"type": "Point", "coordinates": (200.0, 0.0)}
+
+    # a third (height) ordinate is dropped rather than breaking the dump,
+    # OpenSearch's geo_shape field being two-dimensional
+    dumped = dumper.dump(None, {"metadata": {"footprint": "POINT (200 30 500)"}})
+    assert dumped["metadata"]["footprint"] == {"type": "Point", "coordinates": (-160.0, 30.0)}

@@ -779,6 +779,8 @@ geo_model_types = {
         "properties": {
             "title": {"type": "fulltext+keyword"},
             "location": {"type": "geo_point"},
+            "shape": {"type": "geo_shape"},
+            "shapes": {"type": "array", "items": {"type": "geo_shape"}},
         },
     },
 }
@@ -807,6 +809,7 @@ icrs_model_types = {
         "properties": {
             "title": {"type": "fulltext+keyword"},
             "position": {"type": "icrs"},
+            "footprint": {"type": "icrs_shape"},
         },
     },
 }
