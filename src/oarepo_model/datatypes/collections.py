@@ -76,9 +76,22 @@ class ObjectDataType(DataType):
                 )
             return imported
 
+        mixins = []
+        if "marshmallow_schema_mixins" in element:
+            el_mixins = element["marshmallow_schema_mixins"]
+            if not isinstance(el_mixins, list):
+                raise ValueError("marshmallow_schema_mixins must be a list")
+            for mixin in el_mixins:
+                imported = obj_or_import_string(mixin)
+                if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
+                    raise TypeError(
+                        f"marshmallow_schema_mixins {mixin} "
+                        "must be a subclass of marshmallow.Schema",
+                    )
+                mixins.append(imported)
+
         properties = self._get_properties(element)
 
-        # TODO: create marshmallow field should pass extra arguments such attribute and data_key
         properties_fields: dict[str, Any] = {
             convert_to_python_identifier(key): self._registry.get_type(
                 value,
@@ -91,7 +104,7 @@ class ObjectDataType(DataType):
             unknown = marshmallow.RAISE
 
         properties_fields["Meta"] = Meta
-        return type(self.name, (marshmallow.Schema,), properties_fields)
+        return type(self.name, (*mixins, marshmallow.Schema), properties_fields)
 
     def create_ui_marshmallow_schema(
         self,
