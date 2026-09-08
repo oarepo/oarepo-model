@@ -8,6 +8,8 @@
 #
 """Data type for geo fields."""
 
+from __future__ import annotations
+
 from typing import Any, override
 
 from oarepo_model.datatypes.collections import ObjectDataType

@@ -519,9 +519,7 @@ def test_geo_distance_param_resolves_location_name(monkeypatch):
 
 
 def test_geo_distance_param_location_name_without_brackets(monkeypatch):
-    monkeypatch.setattr(
-        spherical, "_nominatim_geocode_point", lambda _name: (PRAGUE_LAT, PRAGUE_LON)
-    )
+    monkeypatch.setattr(spherical, "_nominatim_geocode_point", lambda _name: (PRAGUE_LAT, PRAGUE_LON))
 
     search = GeoDistanceParam(config=None).apply(
         None,

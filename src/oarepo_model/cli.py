@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, override
 
 import click
 from click import Context, Parameter
@@ -20,6 +20,8 @@ from invenio_base.utils import obj_or_import_string
 from marshmallow import Schema, missing
 from marshmallow.fields import Field, List, Nested
 from oarepo_runtime import current_runtime
+
+from oarepo_model.utils import resolve_file_content
 
 if TYPE_CHECKING:
     from types import SimpleNamespace
@@ -130,12 +132,16 @@ def dump_jsonschema(ns: SimpleNamespace) -> str:
     files = [x for x in ns.__files__ if x.startswith("jsonschemas/") and x.endswith(".json")]
     if not files:
         raise ValueError("No JSON schema files found for this model")
-    return cast("str", ns.__files__[files[0]])
+    return resolve_file_content(ns.__files__[files[0]])
 
 
 def dump_mapping(ns: SimpleNamespace) -> str:
     """Dump mapping for the model."""
-    files = {x: json.loads(v) for x, v in ns.__files__.items() if x.startswith("mappings/") and x.endswith(".json")}
+    files = {
+        x: json.loads(resolve_file_content(v))
+        for x, v in ns.__files__.items()
+        if x.startswith("mappings/") and x.endswith(".json")
+    }
 
     return json.dumps(files, indent=2)
 
