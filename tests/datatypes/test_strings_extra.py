@@ -13,30 +13,49 @@ Covers:
 - pattern validation
 - required + implicit min_length=1 behaviour
 - field options: dump_only, load_only, allow_none
+- marshmallow_validate option: string form, tuple form with/without args and kwargs
 - facet generation: fulltext → no facet; keyword → facet; fulltext+keyword → .keyword suffix
 - mapping types for all three string types
 - JSON schema type for all three string types
 """
+
 from __future__ import annotations
 
-import pytest
 import marshmallow as ma
-
+import marshmallow.validate
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
+def make_field(datatype_registry, element):
+    return datatype_registry.get_type(element).create_marshmallow_field(field_name="a", element=element)
+
+
 def make_schema(datatype_registry, element):
-    field = datatype_registry.get_type(element).create_marshmallow_field(
-        field_name="a", element=element
-    )
-    return ma.Schema.from_dict({"a": field})()
+    return ma.Schema.from_dict({"a": make_field(datatype_registry, element)})()
+
+
+# ---------------------------------------------------------------------------
+# Custom validator for the string form of marshmallow_validate.
+# It is referenced by its fully qualified name, so it must stay at module level.
+# ---------------------------------------------------------------------------
+
+NO_SPACES_VALIDATOR = "tests.datatypes.test_strings_extra.no_spaces_validator"
+
+
+def no_spaces_validator(value):
+    """Reject values containing whitespace."""
+    if any(character.isspace() for character in value):
+        raise ma.ValidationError("whitespace is not allowed")
 
 
 # ===========================================================================
 # Enum validation
 # ===========================================================================
+
 
 class TestEnumValidation:
     """enum constraint must limit accepted values for string types."""
@@ -72,6 +91,7 @@ class TestEnumValidation:
 # Pattern validation
 # ===========================================================================
 
+
 class TestPatternValidation:
     """pattern constraint must limit accepted values for string types."""
 
@@ -91,7 +111,7 @@ class TestPatternValidation:
             schema.load({"a": "not-four-digits"})
 
     def test_pattern_and_enum_can_coexist(self, datatype_registry):
-        """enum and pattern validators are both applied."""
+        """Enum and pattern validators are both applied."""
         schema = make_schema(
             datatype_registry,
             {"type": "keyword", "enum": ["abc", "def"], "pattern": r"^[a-z]+$"},
@@ -105,6 +125,7 @@ class TestPatternValidation:
 # ===========================================================================
 # required + implicit min_length
 # ===========================================================================
+
 
 class TestRequiredImpliesMinLength:
     """When required=True and no explicit min_length, the field must reject
@@ -148,19 +169,20 @@ class TestRequiredImpliesMinLength:
 # Field options: dump_only / load_only / allow_none
 # ===========================================================================
 
+
 class TestFieldOptions:
     """dump_only, load_only, and allow_none must be forwarded to the marshmallow field."""
 
     def test_dump_only_field_is_ignored_on_load(self, datatype_registry):
-        field = datatype_registry.get_type(
-            {"type": "keyword", "dump_only": True}
-        ).create_marshmallow_field(field_name="a", element={"type": "keyword", "dump_only": True})
+        field = datatype_registry.get_type({"type": "keyword", "dump_only": True}).create_marshmallow_field(
+            field_name="a", element={"type": "keyword", "dump_only": True}
+        )
         assert field.dump_only is True
 
     def test_load_only_field_is_ignored_on_dump(self, datatype_registry):
-        field = datatype_registry.get_type(
-            {"type": "keyword", "load_only": True}
-        ).create_marshmallow_field(field_name="a", element={"type": "keyword", "load_only": True})
+        field = datatype_registry.get_type({"type": "keyword", "load_only": True}).create_marshmallow_field(
+            field_name="a", element={"type": "keyword", "load_only": True}
+        )
         assert field.load_only is True
 
     def test_allow_none_field_accepts_null(self, datatype_registry):
@@ -177,8 +199,187 @@ class TestFieldOptions:
 
 
 # ===========================================================================
+# marshmallow_validate option
+# ===========================================================================
+
+
+class TestMarshmallowValidateOption:
+    """``marshmallow_validate`` must attach the declared validators to the field.
+
+    The option is an array of either:
+    - a string with the fully qualified name of a validator callable, or
+    - a tuple ``(fully qualified name, args, kwargs)`` where ``args`` and ``kwargs``
+      are optional and are used to instantiate the callable.
+    """
+
+    # -- string form -------------------------------------------------------
+
+    @pytest.mark.parametrize("type_name", ["keyword", "fulltext", "fulltext+keyword"])
+    def test_string_form_rejects_value(self, datatype_registry, type_name):
+        """The imported callable rejects values for all string types."""
+        schema = make_schema(
+            datatype_registry,
+            {"type": type_name, "marshmallow_validate": [NO_SPACES_VALIDATOR]},
+        )
+        with pytest.raises(ma.ValidationError):
+            schema.load({"a": "two words"})
+
+    @pytest.mark.parametrize("type_name", ["keyword", "fulltext", "fulltext+keyword"])
+    def test_string_form_accepts_value(self, datatype_registry, type_name):
+        """The imported callable accepts values for all string types."""
+        schema = make_schema(
+            datatype_registry,
+            {"type": type_name, "marshmallow_validate": [NO_SPACES_VALIDATOR]},
+        )
+        assert schema.load({"a": "one-word"}) == {"a": "one-word"}
+
+    def test_string_form_uses_the_callable_itself(self, datatype_registry):
+        """A bare string must not be instantiated, the imported callable is used as-is."""
+        field = make_field(
+            datatype_registry,
+            {"type": "keyword", "marshmallow_validate": [NO_SPACES_VALIDATOR]},
+        )
+        assert no_spaces_validator in field.validators
+
+    # -- tuple form --------------------------------------------------------
+
+    def test_tuple_without_arguments(self, datatype_registry):
+        """Only the callable is given, so it is instantiated without arguments."""
+        element = {
+            "type": "keyword",
+            "marshmallow_validate": [("marshmallow.validate.Length",)],
+        }
+        field = make_field(datatype_registry, element)
+        assert any(
+            isinstance(v, marshmallow.validate.Length) and v.min is None and v.max is None for v in field.validators
+        )
+        # an unconstrained Length validator must not reject anything
+        schema = make_schema(datatype_registry, element)
+        assert schema.load({"a": ""}) == {"a": ""}
+        assert schema.load({"a": "a rather long value"}) == {"a": "a rather long value"}
+
+    def test_tuple_with_positional_arguments(self, datatype_registry):
+        """Positional arguments are passed to the validator constructor."""
+        schema = make_schema(
+            datatype_registry,
+            {
+                "type": "keyword",
+                "marshmallow_validate": [("marshmallow.validate.Length", [3, 5])],
+            },
+        )
+        assert schema.load({"a": "abcd"}) == {"a": "abcd"}
+        with pytest.raises(ma.ValidationError):
+            schema.load({"a": "ab"})
+        with pytest.raises(ma.ValidationError):
+            schema.load({"a": "abcdef"})
+
+    def test_tuple_with_positional_arguments_given_as_tuple(self, datatype_registry):
+        """Python models may declare the arguments as a tuple instead of a list."""
+        schema = make_schema(
+            datatype_registry,
+            {
+                "type": "keyword",
+                "marshmallow_validate": [("marshmallow.validate.Length", (3, 5))],
+            },
+        )
+        assert schema.load({"a": "abcd"}) == {"a": "abcd"}
+        with pytest.raises(ma.ValidationError):
+            schema.load({"a": "ab"})
+
+    def test_tuple_with_keyword_arguments(self, datatype_registry):
+        """Keyword arguments are passed to the validator constructor."""
+        schema = make_schema(
+            datatype_registry,
+            {
+                "type": "keyword",
+                "marshmallow_validate": [
+                    ("marshmallow.validate.Length", [], {"min": 3}),
+                ],
+            },
+        )
+        assert schema.load({"a": "abc"}) == {"a": "abc"}
+        with pytest.raises(ma.ValidationError):
+            schema.load({"a": "ab"})
+
+    def test_tuple_with_positional_and_keyword_arguments(self, datatype_registry):
+        """Both arguments and keyword arguments can be used together."""
+        schema = make_schema(
+            datatype_registry,
+            {
+                "type": "keyword",
+                "marshmallow_validate": [
+                    ("marshmallow.validate.Length", [2], {"error": "too short"}),
+                ],
+            },
+        )
+        assert schema.load({"a": "ab"}) == {"a": "ab"}
+        with pytest.raises(ma.ValidationError) as exc_info:
+            schema.load({"a": "a"})
+        assert exc_info.value.messages["a"] == ["too short"]
+
+    # -- several validators / interaction with the built-in ones -----------
+
+    def test_all_declared_validators_are_applied(self, datatype_registry):
+        """Every validator declared in the array is applied on load."""
+        schema = make_schema(
+            datatype_registry,
+            {
+                "type": "keyword",
+                "marshmallow_validate": [
+                    NO_SPACES_VALIDATOR,
+                    ("marshmallow.validate.Length", [3, 5]),
+                ],
+            },
+        )
+        assert schema.load({"a": "abcd"}) == {"a": "abcd"}
+        with pytest.raises(ma.ValidationError):
+            # fails Length, passes the whitespace validator
+            schema.load({"a": "ab"})
+        with pytest.raises(ma.ValidationError):
+            # passes Length, fails the whitespace validator
+            schema.load({"a": "abcd efgh"})
+
+    def test_composes_with_built_in_validators(self, datatype_registry):
+        """marshmallow_validate must not replace validators built from enum/min_length."""
+        element = {
+            "type": "keyword",
+            "min_length": 2,
+            "enum": ["abcd"],
+            "marshmallow_validate": [NO_SPACES_VALIDATOR],
+        }
+        schema = make_schema(datatype_registry, element)
+        assert schema.load({"a": "abcd"}) == {"a": "abcd"}
+        with pytest.raises(ma.ValidationError):
+            # fails the enum validator
+            schema.load({"a": "wxyz"})
+        with pytest.raises(ma.ValidationError):
+            # fails the min_length validator
+            schema.load({"a": "a"})
+        with pytest.raises(ma.ValidationError):
+            # fails the marshmallow_validate validator
+            schema.load({"a": "ab cd"})
+
+    # -- absence of the option / invalid declarations ----------------------
+
+    def test_no_validators_without_the_option(self, datatype_registry):
+        """Without the option the field keeps the default (empty) validator list."""
+        field = make_field(datatype_registry, {"type": "keyword"})
+        assert field.validators == []
+
+    def test_unknown_validator_import_path_fails(self, datatype_registry):
+        """A typo in the fully qualified name must fail loudly."""
+        element = {
+            "type": "keyword",
+            "marshmallow_validate": ["does.not.Exist"],
+        }
+        with pytest.raises(ImportError):
+            make_field(datatype_registry, element)
+
+
+# ===========================================================================
 # Facet generation
 # ===========================================================================
+
 
 class TestStringFacets:
     """Facet behaviour differs across string types."""
@@ -207,13 +408,8 @@ class TestStringFacets:
         assert "metadata.title" in result
         # The TermsFacet 'field' value must point to the .keyword sub-field
         facet_def = result["metadata.title"]
-        field_values = [
-            entry.get("field", "")
-            for entry in (facet_def if isinstance(facet_def, list) else [facet_def])
-        ]
-        assert any(".keyword" in f for f in field_values), (
-            f"Expected .keyword in facet field, got: {field_values}"
-        )
+        field_values = [entry.get("field", "") for entry in (facet_def if isinstance(facet_def, list) else [facet_def])]
+        assert any(".keyword" in f for f in field_values), f"Expected .keyword in facet field, got: {field_values}"
 
     def test_fulltext_keyword_facet_path_structure(self, datatype_registry):
         """The facet field for fulltext+keyword must be 'original_path.keyword'."""
@@ -230,6 +426,7 @@ class TestStringFacets:
 # ===========================================================================
 # Mapping types
 # ===========================================================================
+
 
 class TestStringMappings:
     """Each string type must produce its correct Elasticsearch mapping."""
