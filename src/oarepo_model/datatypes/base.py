@@ -153,7 +153,7 @@ class DataType:
 
         This method can be overridden by subclasses to provide specific field arguments logic.
         """
-        return {
+        ret = {
             "required": element.get("required", False),
             "allow_none": element.get("allow_none", False),
             "dump_only": element.get("dump_only", False),
@@ -161,6 +161,29 @@ class DataType:
             "attribute": field_name,
             "data_key": field_name,
         }
+        if "marshmallow_validate" in element:
+            # marshmallow validate is an array of:
+            #    string - fully qualified name of a validator callable
+            #    tuple of (fully qualified name of a validator callable, (args), {kwargs}) (args, kwargs optional)
+            ret["validate"] = [
+                self._instantiate_validate(validate_decl) for validate_decl in element["marshmallow_validate"]
+            ]
+        return ret
+
+    def _instantiate_validate(self, validate_decl: str | tuple[str, tuple, dict]) -> Any:
+        """Instantiate a validator callable from a string or tuple declaration."""
+        if isinstance(validate_decl, str):
+            return obj_or_import_string(validate_decl)
+        constructor = obj_or_import_string(validate_decl[0])
+        args = []
+        kwargs = {}
+        for param in validate_decl[1:]:
+            if isinstance(param, (list, tuple)):
+                # arguments may come from a JSON/YAML array, so they are not necessarily a tuple
+                args += param
+            else:
+                kwargs.update(param)
+        return constructor(*args, **kwargs)
 
     def create_json_schema(
         self,
