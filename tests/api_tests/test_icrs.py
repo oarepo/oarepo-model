@@ -271,6 +271,92 @@ def test_icrs_bounding_box_param_converts_ra_dec_to_lat_lon():
     }
 
 
+@pytest.mark.parametrize(
+    ("value", "top_left_lon", "bottom_right_lon", "center_lon", "pivot"),
+    [
+        # Eastward from ra 350 through 0 to 10: 20 degrees wide, over the
+        # 0/360 wrap. ra_dec_to_lat_lon folds both longitudes into
+        # [-10, 10], so this one is an ordinary box once it reaches OpenSearch.
+        ("[350,20,10,25]", -10.0, 10.0, 0.0, "1072.7km"),
+        # Eastward from ra 170 through 180 to 190: just as narrow, but the fold
+        # puts the longitude antimeridian at ra 180, so this is the arc that has
+        # to reach OpenSearch as a crossing box, top_left lon > bottom_right
+        # lon. It mirrors the case above, so its half-diagonal is the same.
+        ("[170,20,190,25]", 170.0, -170.0, -180.0, "1072.7km"),
+        # Eastward from ra 10 through 180 to 350: the complementary 340
+        # degrees, likewise a crossing box, centered on lon -180.
+        ("[10,20,350,25]", 10.0, -10.0, -180.0, "15166.234km"),
+    ],
+)
+def test_icrs_bounding_box_param_ra_wrap(value, top_left_lon, bottom_right_lon, center_lon, pivot):
+    """An ra range keeps its meaning across the fold to lon, wrap or no wrap."""
+    search = IcrsBoundingBoxParam(config=None).apply(
+        None,
+        Search(),
+        {"icrs_bounding_box:metadata.position": [value]},
+    )
+
+    query = search.to_dict()["query"]["bool"]
+    assert query["filter"][0]["geo_bounding_box"]["metadata.position"] == {
+        "top_left": {"lat": 25.0, "lon": top_left_lon},
+        "bottom_right": {"lat": 20.0, "lon": bottom_right_lon},
+    }
+    feature = query["must"][0]["distance_feature"]
+    assert feature["origin"] == {"lat": 22.5, "lon": center_lon}
+    # the pivot follows the arc's width, but not linearly: a 17-fold wider arc
+    # has only ~14 times the half-diagonal, because a great circle curves back
+    assert feature["pivot"] == pivot
+
+
+@pytest.mark.parametrize(
+    ("value", "expected_titles"),
+    [
+        # The 0/360 wrap is not the antimeridian here: the fold moves that to
+        # ra 180, so this box is an ordinary one and keeps the three points
+        # around ra 0 but none of the three around ra 180.
+        ("[350,20,10,25]", {"East of zero", "West of zero", "On zero"}),
+        # A narrow box straddling ra 180 is the antimeridian case proper. The
+        # three points around 180 are inside it, the three around 0 are not.
+        ("[170,20,190,25]", {"Before 180", "On 180", "After 180"}),
+        # Its 340-degree complement: everything the two boxes above exclude.
+        ("[10,20,350,25]", {"Before 180", "On 180", "After 180"}),
+    ],
+)
+def test_icrs_bounding_box_param_ra_wrap_filters(
+    app,
+    icrs_model,
+    identity_simple,
+    search,
+    search_clear,
+    location,
+    value,
+    expected_titles,
+):
+    """A box over 0/360, one over the ra-180 antimeridian, and their complement."""
+    service = icrs_model.proxies.current_service
+    Record = icrs_model.Record
+
+    points = (
+        ("East of zero", 5.0),
+        ("West of zero", 355.0),
+        ("On zero", 0.0),
+        ("Before 180", 175.0),
+        ("On 180", 180.0),
+        ("After 180", 185.0),
+    )
+    for title, ra in points:
+        service.create(identity_simple, {"metadata": {"title": title, "position": {"ra": ra, "dec": 22.5}}})
+    Record.index.refresh()
+
+    search_dsl = IcrsBoundingBoxParam(service.config.search).apply(
+        identity_simple,
+        service.create_search(identity_simple, Record, service.config.search),
+        {"icrs_bounding_box:metadata.position": [value]},
+    )
+
+    assert {hit.metadata.title for hit in search_dsl.execute()} == expected_titles
+
+
 GEO_SHAPE_POLYGON_WKT = (
     f"POLYGON (({BBOX_RA1} {BBOX_DEC1}, {BBOX_RA2} {BBOX_DEC1}, "
     f"{BBOX_RA2} {BBOX_DEC2}, {BBOX_RA1} {BBOX_DEC2}, {BBOX_RA1} {BBOX_DEC1}))"
@@ -380,6 +466,81 @@ def test_ra_dec_to_lat_lon():
     # dec becomes lat directly; ra is wrapped into [-180, 180) like ICRSDumperExt does
     assert ra_dec_to_lat_lon(10.0, -30.0) == (-30.0, 10.0)
     assert ra_dec_to_lat_lon(350.0, 45.0) == (45.0, -10.0)
+
+
+# A 20-degree-wide band straddling ra 180, the meridian the ra -> lon fold puts
+# the antimeridian on. Boxes handle it by tracking the eastward span; a WKT
+# polygon has no such bookkeeping, it is just a ring of vertices.
+RA_180_BAND_WKT = "POLYGON ((170 20, 190 20, 190 25, 170 25, 170 20))"
+
+
+def test_icrs_shape_param_folds_polygon_across_the_antimeridian():
+    """Each vertex is folded on its own, so the ring jumps 170 -> -170.
+
+    Unlike a bounding box, a polygon carries no record of which way round it
+    runs: the fold leaves a ring whose vertices sit on both sides of the
+    antimeridian, and how that is read is up to OpenSearch.
+    """
+    search = IcrsShapeParam(config=None).apply(
+        None,
+        Search(),
+        {"icrs_shape:metadata.position": [RA_180_BAND_WKT]},
+    )
+
+    shape_query = search.to_dict()["query"]["bool"]["filter"][0]["geo_shape"]["metadata.position"]
+    assert shape_query["relation"] == "intersects"
+    # ra 170 and ra 190 fold to lon 170 and lon -170: the same two meridians the
+    # bounding-box equivalent ends up with, but written as a ring this time.
+    assert shape_query["shape"] == {
+        "type": "Polygon",
+        # one level of nesting per ring: exterior ring only, no holes
+        "coordinates": (((170.0, 20.0), (-170.0, 20.0), (-170.0, 25.0), (170.0, 25.0), (170.0, 20.0)),),
+    }
+
+
+def test_icrs_shape_param_polygon_across_the_antimeridian_filters(
+    app,
+    icrs_model,
+    identity_simple,
+    search,
+    search_clear,
+    location,
+):
+    """The band must match ra 175/180/185, not the 340 degrees it is not.
+
+    Ra 90 is the discriminating point: it is nowhere near the band, but it falls
+    inside the wide ring the folded vertices would describe if the jump from
+    170 to -170 were read westward instead of eastward. Read that way the answer
+    would be {'Far side', 'On zero'}, disjoint from the one asserted here.
+
+    It comes out right because OpenSearch joins polygon vertices with geodesic
+    edges, which take the short way round, so a 20-degree hop across the
+    antimeridian stays 20 degrees wide. That is all the fold needs here: it
+    preserves widths, so it cannot make a band wider than 180 degrees come out
+    right either, and such a ring reads back as the region on the other side of
+    it. That limit is inherent to lon/lat polygons, not to ICRS.
+    """
+    service = icrs_model.proxies.current_service
+    Record = icrs_model.Record
+
+    points = (
+        ("Inside west", 175.0),
+        ("On 180", 180.0),
+        ("Inside east", 185.0),
+        ("Far side", 90.0),
+        ("On zero", 0.0),
+    )
+    for title, ra in points:
+        service.create(identity_simple, {"metadata": {"title": title, "position": {"ra": ra, "dec": 22.5}}})
+    Record.index.refresh()
+
+    search_dsl = IcrsShapeParam(service.config.search).apply(
+        identity_simple,
+        service.create_search(identity_simple, Record, service.config.search),
+        {"icrs_shape:metadata.position": [RA_180_BAND_WKT]},
+    )
+
+    assert {hit.metadata.title for hit in search_dsl.execute()} == {"Inside west", "On 180", "Inside east"}
 
 
 def test_degrees_to_km_matches_earth_geo_distance_conversion():
