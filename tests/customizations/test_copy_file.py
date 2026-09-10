@@ -8,7 +8,7 @@
 #
 """CopyFile deep-copies a file's content, so copies are detached from their source.
 
-`PatchJSONFile` patches a `JSONContent`'s payload dict in place (`always_merger.merge`
+`PatchJSONFile` patches a `JSONContent`'s payload dict in place (`readonly_dict_merger.merge`
 returns its mutated left operand), so `CopyFile` must hand the target file a deep copy
 rather than the very same `JSONContent` object - otherwise, once a JSON file has been
 patched, every copy taken of it would share one payload dict, and patching either file

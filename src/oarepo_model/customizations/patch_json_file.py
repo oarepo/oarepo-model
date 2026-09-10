@@ -19,9 +19,8 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any, cast, override
 
-from deepmerge import always_merger
-
 from oarepo_model.model import JSONContent
+from oarepo_model.utils import readonly_dict_merger
 
 from .base import Customization
 
@@ -61,5 +60,5 @@ class PatchJSONFile(Customization):
         if callable(self.payload):
             new_data = self.payload(previous_data)
         else:
-            new_data = always_merger.merge(previous_data, self.payload)
+            new_data = readonly_dict_merger.merge(previous_data, self.payload)
         ret.content = JSONContent(new_data)

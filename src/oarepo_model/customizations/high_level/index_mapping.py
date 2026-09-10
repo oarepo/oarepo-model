@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from deepmerge import always_merger
+from oarepo_model.utils import readonly_dict_merger
 
 from ..patch_json_file import PatchJSONFile
 
@@ -31,7 +31,7 @@ class PatchIndexMapping(PatchJSONFile):
         """Merge the provided mapping snippet into the mapping file."""
         mapping = previous_data.setdefault("mappings", {})
         # deep merge of mappings
-        always_merger.merge(mapping, self._mapping)
+        readonly_dict_merger.merge(mapping, self._mapping)
         # remove None values
         recursively_remove_none(mapping)
         return previous_data

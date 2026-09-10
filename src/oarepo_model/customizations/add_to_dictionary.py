@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from deepmerge import always_merger
+from oarepo_model.utils import readonly_dict_merger
 
 from .base import Customization
 
@@ -59,7 +59,7 @@ class AddToDictionary(Customization):
         d = builder.add_dictionary(self.name, exists_ok=True)
         for value in self.values:
             if self.override_values:
-                always_merger.merge(d, value)
+                readonly_dict_merger.merge(d, value)
             else:
                 for k, new_value in value.items():
                     if k not in d:
@@ -70,6 +70,6 @@ class AddToDictionary(Customization):
                     raise ValueError(
                         f"Key '{self.key}' already exists in dictionary '{self.name}'.",
                     )
-                d[self.key] = always_merger.merge(d[self.key], self.value)
+                d[self.key] = readonly_dict_merger.merge(d[self.key], self.value)
             else:
                 d[self.key] = self.value

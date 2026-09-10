@@ -20,12 +20,13 @@ from __future__ import annotations
 from typing import Any, override
 
 import marshmallow as ma
-from deepmerge import always_merger
 from invenio_base.utils import obj_or_import_string
 from marshmallow.utils import get_value
 from marshmallow.utils import (
     missing as missing_,
 )
+
+from oarepo_model.utils import readonly_dict_merger
 
 from .base import DataType
 
@@ -223,7 +224,7 @@ class PolymorphicDataType(DataType):
 
                 # dump all properties from all variants in 1 dictionary
                 if "properties" in child_mapping:
-                    all_properties = always_merger.merge(
+                    all_properties = readonly_dict_merger.merge(
                         all_properties,
                         child_mapping["properties"],
                     )
