@@ -12,16 +12,13 @@ import pytest
 from geopy.exc import GeocoderTimedOut
 from invenio_records_resources.services.errors import QuerystringValidationError
 from opensearch_dsl import Search
-from opensearchpy.exceptions import RequestError
 
 from oarepo_model.presets.records_resources.services.records.params import spherical
 from oarepo_model.presets.records_resources.services.records.params.spherical import (
     GeoBoundingBoxParam,
     GeoDistanceParam,
-    GeoShapeParam,
     _format_km,
     _get_geocode,
-    _haversine_km,
 )
 
 # Prague-ish origin used as the search point in the tests below.
@@ -68,7 +65,7 @@ def test_geo_distance_param_filters_and_boosts_by_distance(
     search_dsl = GeoDistanceParam(service.config.search).apply(
         identity_simple,
         search_dsl,
-        {"geo_distance:metadata.location": [f"[{ORIGIN_LAT},{ORIGIN_LON},50km]"]},
+        {"geo_distance:metadata.location": [f"[{ORIGIN_LON},{ORIGIN_LAT},50km]"]},
     )
     result = search_dsl.execute()
 
@@ -110,7 +107,7 @@ def test_geo_distance_param_via_service_search(
 
     result = service.search(
         identity_simple,
-        facets={"geo_distance:metadata.location": [f"[{ORIGIN_LAT},{ORIGIN_LON},50km]"]},
+        facets={"geo_distance:metadata.location": [f"[{ORIGIN_LON},{ORIGIN_LAT},50km]"]},
     )
 
     hit_ids = {hit["id"] for hit in result.hits}
@@ -119,7 +116,7 @@ def test_geo_distance_param_via_service_search(
 
 
 def test_geo_distance_param_removes_key_from_params():
-    params = {"geo_distance:metadata.location": ["[1,2,10km]"], "other": ["x"]}
+    params = {"geo_distance:metadata.location": ["[14.4,50.0,10km]"], "other": ["x"]}
 
     GeoDistanceParam(config=None).apply(None, Search(), params)
 
@@ -132,7 +129,7 @@ def test_geo_distance_param_removes_key_from_facets_bucket():
     That's where the default SearchRequestArgsSchema puts unrecognized
     query-string keys for real requests.
     """
-    params = {"facets": {"geo_distance:metadata.location": ["[1,2,10km]"], "other": ["x"]}}
+    params = {"facets": {"geo_distance:metadata.location": ["[14.4,50.0,10km]"], "other": ["x"]}}
 
     GeoDistanceParam(config=None).apply(None, Search(), params)
 
@@ -162,12 +159,57 @@ def test_geo_distance_param_pivot(distance, expected_pivot):
     assert interpreter._pivot(distance) == expected_pivot  # noqa: SLF001
 
 
+def _distance_query(value: str) -> dict:
+    search = GeoDistanceParam(config=None).apply(
+        None,
+        Search(),
+        {"geo_distance:metadata.location": [value]},
+    )
+    return search.to_dict()["query"]["bool"]
+
+
+def test_geo_distance_param_follows_geojson_position_axis_order():
+    """RFC 7946 Section 3.1.1 orders a position longitude first, latitude second.
+
+    This is not the latitude-first order of a 'geo' URI, so the same two numbers
+    the other tests use for Prague must describe another point when written the
+    other way round.
+    """
+    query = _distance_query("[14.4,50.0,50km]")
+    assert query["filter"][0]["geo_distance"] == {
+        "distance": "50km",
+        "metadata.location": {"lat": 50.0, "lon": 14.4},
+    }
+    # the boost has to use the same point as the filter, not its transpose
+    assert query["must"][0]["distance_feature"]["origin"] == {"lat": 50.0, "lon": 14.4}
+
+    # Read as [lon, lat] this is a point in the Indian Ocean, not Prague.
+    query = _distance_query("[50.0,14.4,50km]")
+    assert query["filter"][0]["geo_distance"]["metadata.location"] == {"lat": 14.4, "lon": 50.0}
+    assert query["must"][0]["distance_feature"]["origin"] == {"lat": 14.4, "lon": 50.0}
+
+
+def test_geo_distance_param_geocoded_point_is_not_transposed(monkeypatch):
+    """The geocoder answers latitude first; the point must survive that."""
+    monkeypatch.setattr(spherical, "_nominatim_geocode_point", lambda _name: (ORIGIN_LAT, ORIGIN_LON))
+
+    query = _distance_query("[Prague, Czechia,50km]")
+    assert query["filter"][0]["geo_distance"]["metadata.location"] == {
+        "lat": ORIGIN_LAT,
+        "lon": ORIGIN_LON,
+    }
+    assert query["must"][0]["distance_feature"]["origin"] == {"lat": ORIGIN_LAT, "lon": ORIGIN_LON}
+
+
 # A ~1x1 degree box roughly covering Prague. lat: 49.5-50.5, lon: 14.0-15.0.
-BBOX_TOP_LAT = 50.5
-BBOX_BOTTOM_LAT = 49.5
-BBOX_LEFT_LON = 14.0
-BBOX_RIGHT_LON = 15.0
-BBOX_VALUE = f"[{BBOX_TOP_LAT},{BBOX_LEFT_LON},{BBOX_BOTTOM_LAT},{BBOX_RIGHT_LON}]"
+# Named by its compass sides, which are also its RFC 7946 GeoJSON bbox roles:
+# the first corner is the southwesterly one, the second the northeasterly one,
+# each given as longitude before latitude.
+BBOX_SOUTH = 49.5
+BBOX_WEST = 14.0
+BBOX_NORTH = 50.5
+BBOX_EAST = 15.0
+BBOX_VALUE = f"[{BBOX_WEST},{BBOX_SOUTH},{BBOX_EAST},{BBOX_NORTH}]"
 
 
 def test_geo_bounding_box_param_filters_and_boosts_by_distance(
@@ -251,7 +293,7 @@ def test_geo_bounding_box_param_via_service_search(
 
 
 def test_geo_bounding_box_param_removes_key_from_params():
-    params = {"geo_bounding_box:metadata.location": ["[1,1,0,2]"], "other": ["x"]}
+    params = {"geo_bounding_box:metadata.location": ["[0,1,1,2]"], "other": ["x"]}
 
     GeoBoundingBoxParam(config=None).apply(None, Search(), params)
 
@@ -260,7 +302,7 @@ def test_geo_bounding_box_param_removes_key_from_params():
 
 def test_geo_bounding_box_param_removes_key_from_facets_bucket():
     """Must also handle geo_bounding_box:<field> nested in params["facets"]."""
-    params = {"facets": {"geo_bounding_box:metadata.location": ["[1,1,0,2]"], "other": ["x"]}}
+    params = {"facets": {"geo_bounding_box:metadata.location": ["[0,1,1,2]"], "other": ["x"]}}
 
     GeoBoundingBoxParam(config=None).apply(None, Search(), params)
 
@@ -276,38 +318,222 @@ def test_geo_bounding_box_param_invalid_value_raises():
         )
 
 
-@pytest.mark.parametrize(
-    "corners",
-    [
-        (BBOX_TOP_LAT, BBOX_LEFT_LON, BBOX_BOTTOM_LAT, BBOX_RIGHT_LON),
-        (BBOX_BOTTOM_LAT, BBOX_RIGHT_LON, BBOX_TOP_LAT, BBOX_LEFT_LON),  # opposite diagonal
-    ],
-)
-def test_geo_bounding_box_param_normalizes_corners(corners):
-    lat1, lon1, lat2, lon2 = corners
-    value = f"[{lat1},{lon1},{lat2},{lon2}]"
-
+def _bbox_query(value: str) -> dict:
+    """Build the bool query produced by a ``geo_bounding_box:<field>`` parameter."""
     search = GeoBoundingBoxParam(config=None).apply(
         None,
         Search(),
         {"geo_bounding_box:metadata.location": [value]},
     )
+    return search.to_dict()["query"]["bool"]
 
-    query = search.to_dict()["query"]["bool"]
+
+def test_geo_bounding_box_param_ordered_corners():
+    query = _bbox_query(BBOX_VALUE)
+
     assert query["filter"][0]["geo_bounding_box"]["metadata.location"] == {
-        "top_left": {"lat": BBOX_TOP_LAT, "lon": BBOX_LEFT_LON},
-        "bottom_right": {"lat": BBOX_BOTTOM_LAT, "lon": BBOX_RIGHT_LON},
+        "top_left": {"lat": BBOX_NORTH, "lon": BBOX_WEST},
+        "bottom_right": {"lat": BBOX_SOUTH, "lon": BBOX_EAST},
     }
     assert query["must"][0]["distance_feature"]["origin"] == {"lat": 50.0, "lon": 14.5}
-    # same diagonal length (and thus the same pivot) regardless of corner order
-    assert query["must"][0]["distance_feature"]["pivot"] == "66.091km"
+    # the distance from the box's center to one of its corners
+    assert query["must"][0]["distance_feature"]["pivot"] == "66.193km"
 
 
-def test_haversine_km_known_distance():
-    # ~111.19 km per degree of longitude at the equator
-    assert _haversine_km(0, 0, 0, 1) == pytest.approx(111.19, abs=0.05)
-    # symmetric regardless of point order
-    assert _haversine_km(1, 2, 3, 4) == pytest.approx(_haversine_km(3, 4, 1, 2))
+def test_geo_bounding_box_param_follows_geojson_bbox_axis_order():
+    """RFC 7946 orders a bbox [west, south, east, north]: longitude first.
+
+    The same four numbers the other tests use for Prague, written the
+    latitude-first way instead, must therefore describe a different box.
+    """
+    assert _bbox_query("[14.0,49.5,15.0,50.5]")["filter"][0]["geo_bounding_box"]["metadata.location"] == {
+        "top_left": {"lat": 50.5, "lon": 14.0},
+        "bottom_right": {"lat": 49.5, "lon": 15.0},
+    }
+    # Read as [west, south, east, north] these are lon 49.5..50.5, lat 14..15.
+    assert _bbox_query("[49.5,14.0,50.5,15.0]")["filter"][0]["geo_bounding_box"]["metadata.location"] == {
+        "top_left": {"lat": 15.0, "lon": 49.5},
+        "bottom_right": {"lat": 14.0, "lon": 50.5},
+    }
+
+
+def test_geo_bounding_box_param_requires_the_lower_latitude_first():
+    """Reversed latitudes are not a synonym for the same box, they are an error."""
+    value = f"[{BBOX_WEST},{BBOX_NORTH},{BBOX_EAST},{BBOX_SOUTH}]"
+
+    with pytest.raises(QuerystringValidationError):
+        GeoBoundingBoxParam(config=None).apply(
+            None,
+            Search(),
+            {"geo_bounding_box:metadata.location": [value]},
+        )
+
+
+@pytest.mark.parametrize(
+    ("value", "top_left", "bottom_right", "center"),
+    [
+        # Longitudes outside [-180, 180] are folded back into that range before
+        # the box is built: 190 and 200 are the same meridians as -170 and -160.
+        (
+            "[190,49.5,200,50.5]",
+            {"lat": 50.5, "lon": -170.0},
+            {"lat": 49.5, "lon": -160.0},
+            {"lat": 50.0, "lon": -165.0},
+        ),
+        # Latitude outside [-90, 90] is folded into range the same way: 370 and
+        # 375 become 10 and 15, an ordinary ordered box.
+        (
+            "[14,370,15,375]",
+            {"lat": 15.0, "lon": 14.0},
+            {"lat": 10.0, "lon": 15.0},
+            {"lat": 12.5, "lon": 14.5},
+        ),
+        # The range is half-open, so 180 folds to -180 rather than staying put:
+        # the same meridian, written the way every other longitude is here. The
+        # box it describes is still the 20 degrees east of 180, not the 340
+        # degrees west of it.
+        (
+            "[180,49.5,200,50.5]",
+            {"lat": 50.5, "lon": -180.0},
+            {"lat": 49.5, "lon": -160.0},
+            {"lat": 50.0, "lon": -170.0},
+        ),
+    ],
+)
+def test_geo_bounding_box_param_normalizes_out_of_range_coordinates(value, top_left, bottom_right, center):
+    """Corners outside the accepted ranges are folded back into them."""
+    query = _bbox_query(value)
+
+    assert query["filter"][0]["geo_bounding_box"]["metadata.location"] == {
+        "top_left": top_left,
+        "bottom_right": bottom_right,
+    }
+    assert query["must"][0]["distance_feature"]["origin"] == center
+
+
+@pytest.mark.parametrize(
+    ("west", "east", "center_lon", "pivot"),
+    [
+        # Eastward from 170 through 180 to -170: 20 degrees wide, crosses the
+        # antimeridian, so its center lies on the antimeridian.
+        (170.0, -170.0, -180.0, "720.064km"),
+        # Eastward from -170 through 0 to 170: the complementary box, 340
+        # degrees wide and centered on the Greenwich meridian.
+        (-170.0, 170.0, 0.0, "8910.214km"),
+    ],
+)
+def test_geo_bounding_box_param_antimeridian(west, east, center_lon, pivot):
+    value = f"[{west},{BBOX_SOUTH},{east},{BBOX_NORTH}]"
+    query = _bbox_query(value)
+
+    # A top_left lon greater than the bottom_right lon is how OpenSearch knows
+    # that the box crosses the antimeridian.
+    assert query["filter"][0]["geo_bounding_box"]["metadata.location"] == {
+        "top_left": {"lat": BBOX_NORTH, "lon": west},
+        "bottom_right": {"lat": BBOX_SOUTH, "lon": east},
+    }
+    feature = query["must"][0]["distance_feature"]
+    assert feature["origin"] == {"lat": 50.0, "lon": center_lon}
+    # each box's pivot follows its own width, not the short way round the globe
+    assert feature["pivot"] == pivot
+
+
+@pytest.mark.parametrize(
+    ("value", "expected_titles"),
+    [
+        # The two narrow boxes on either side of 180 are one box here.
+        ("[170.0,49.5,-170.0,50.5]", {"East of the line", "West of the line"}),
+        # Its complement: everything the crossing box excludes.
+        ("[-170.0,49.5,170.0,50.5]", {"Greenwich"}),
+    ],
+)
+def test_geo_bounding_box_param_antimeridian_filters(
+    app,
+    geo_model,
+    identity_simple,
+    search,
+    search_clear,
+    location,
+    value,
+    expected_titles,
+):
+    """Both a crossing box and its complement really do filter as meant."""
+    service = geo_model.proxies.current_service
+    Record = geo_model.Record
+
+    for title, lon in (("East of the line", 175.0), ("West of the line", -175.0), ("Greenwich", 0.0)):
+        service.create(identity_simple, {"metadata": {"title": title, "location": {"lat": 50.0, "lon": lon}}})
+    Record.index.refresh()
+
+    search_dsl = GeoBoundingBoxParam(service.config.search).apply(
+        identity_simple,
+        service.create_search(identity_simple, Record, service.config.search),
+        {"geo_bounding_box:metadata.location": [value]},
+    )
+
+    assert {hit.metadata.title for hit in search_dsl.execute()} == expected_titles
+
+
+def test_geo_bounding_box_param_polar_cap():
+    """RFC 7946 5.3 writes a box reaching a pole with the full longitude span.
+
+    West and east then share a meridian once 180 folds to -180, which has to be
+    read as the whole globe and not as a box of no width: OpenSearch rejects a
+    zero-width one outright.
+    """
+    query = _bbox_query("[-180,80,180,90]")
+
+    assert query["filter"][0]["geo_bounding_box"]["metadata.location"] == {
+        "top_left": {"lat": 90.0, "lon": -180.0},
+        "bottom_right": {"lat": 80.0, "lon": 180.0},
+    }
+    feature = query["must"][0]["distance_feature"]
+    assert feature["origin"] == {"lat": 85.0, "lon": 0.0}
+    # a quarter of the way round the world from the center to a corner
+    assert feature["pivot"] == "1667.926km"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected_titles"),
+    [
+        # The Arctic cap runs to the pole, exactly as RFC 7946 Section 5.3 has it.
+        ("[-180,80,180,90]", {"In the Arctic", "At the pole"}),
+        # Same cap without the poles: the subarctic point joins in.
+        ("[-180,70,180,90]", {"In the Arctic", "At the pole", "Subarctic"}),
+        # The whole world by its full span.
+        ("[-180,-90,180,90]", {"In the Arctic", "At the pole", "Subarctic", "Temperate"}),
+    ],
+)
+def test_geo_bounding_box_param_polar_cap_filters(
+    app,
+    geo_model,
+    identity_simple,
+    search,
+    search_clear,
+    location,
+    value,
+    expected_titles,
+):
+    """A box that reaches a pole selects the cap instead of erroring out."""
+    service = geo_model.proxies.current_service
+    Record = geo_model.Record
+
+    for title, lat, lon in (
+        ("At the pole", 89.0, 0.0),
+        ("In the Arctic", 85.0, 100.0),
+        ("Subarctic", 78.0, 15.0),
+        ("Temperate", 50.0, 14.5),
+    ):
+        service.create(identity_simple, {"metadata": {"title": title, "location": {"lat": lat, "lon": lon}}})
+    Record.index.refresh()
+
+    search_dsl = GeoBoundingBoxParam(service.config.search).apply(
+        identity_simple,
+        service.create_search(identity_simple, Record, service.config.search),
+        {"geo_bounding_box:metadata.location": [value]},
+    )
+
+    assert {hit.metadata.title for hit in search_dsl.execute()} == expected_titles
 
 
 @pytest.mark.parametrize(
@@ -322,173 +548,11 @@ def test_format_km(value, expected):
     assert _format_km(value) == expected
 
 
-# A polygon roughly covering the same area as BBOX_VALUE above.
-GEO_SHAPE_POLYGON_WKT = (
-    f"POLYGON (({BBOX_LEFT_LON} {BBOX_BOTTOM_LAT}, {BBOX_RIGHT_LON} {BBOX_BOTTOM_LAT}, "
-    f"{BBOX_RIGHT_LON} {BBOX_TOP_LAT}, {BBOX_LEFT_LON} {BBOX_TOP_LAT}, "
-    f"{BBOX_LEFT_LON} {BBOX_BOTTOM_LAT}))"
-)
-
-
-def test_geo_shape_param_filters_records(
-    app,
-    geo_model,
-    identity_simple,
-    search,
-    search_clear,
-    location,
-):
-    service = geo_model.proxies.current_service
-    Record = geo_model.Record
-
-    inside = service.create(
-        identity_simple,
-        {"metadata": {"title": "Inside", "location": {"lat": 50.0, "lon": 14.5}}},
-    )
-    outside = service.create(
-        identity_simple,
-        {"metadata": {"title": "Outside", "location": {"lat": 52.0, "lon": 14.5}}},
-    )
-    Record.index.refresh()
-
-    search_dsl = service.create_search(identity_simple, Record, service.config.search)
-    # no explicit operation: defaults to INTERSECTS, the only relation that
-    # OpenSearch allows against a geo_point-mapped field (see
-    # test_geo_shape_param_rejects_relations_unsupported_by_geo_point below)
-    search_dsl = GeoShapeParam(service.config.search).apply(
-        identity_simple,
-        search_dsl,
-        {"geo_shape:metadata.location": [GEO_SHAPE_POLYGON_WKT]},
-    )
-    result = search_dsl.execute()
-
-    hit_ids = {hit.id for hit in result}
-    assert hit_ids == {inside.id}
-    assert outside.id not in hit_ids
-
-
-def test_geo_shape_param_via_service_search(
-    app,
-    geo_model,
-    identity_simple,
-    search,
-    search_clear,
-    location,
-):
-    """Exercise the full service.search() flow, as a real request would."""
-    service = geo_model.proxies.current_service
-    Record = geo_model.Record
-
-    inside = service.create(
-        identity_simple,
-        {"metadata": {"title": "Inside", "location": {"lat": 50.0, "lon": 14.5}}},
-    )
-    outside = service.create(
-        identity_simple,
-        {"metadata": {"title": "Outside", "location": {"lat": 52.0, "lon": 14.5}}},
-    )
-    Record.index.refresh()
-
-    result = service.search(
-        identity_simple,
-        facets={"geo_shape:metadata.location": [f"INTERSECTS {GEO_SHAPE_POLYGON_WKT}"]},
-    )
-
-    hit_ids = {hit["id"] for hit in result.hits}
-    assert hit_ids == {inside.id}
-    assert outside.id not in hit_ids
-
-
-def test_geo_shape_param_rejects_relations_unsupported_by_geo_point(
-    app,
-    geo_model,
-    identity_simple,
-    search,
-    search_clear,
-    location,
-):
-    """WITHIN/CONTAINS/DISJOINT only apply to geo_shape-mapped fields.
-
-    OpenSearch itself enforces this (a geo_point field only supports
-    INTERSECTS), so the interpreter builds the query as requested and lets
-    OpenSearch reject it, the same way the other geo params defer field-type
-    validation to the search engine.
-    """
-    service = geo_model.proxies.current_service
-    Record = geo_model.Record
-    service.create(
-        identity_simple,
-        {"metadata": {"title": "P", "location": {"lat": 50.0, "lon": 14.5}}},
-    )
-    Record.index.refresh()
-
-    search_dsl = service.create_search(identity_simple, Record, service.config.search)
-    search_dsl = GeoShapeParam(service.config.search).apply(
-        identity_simple,
-        search_dsl,
-        {"geo_shape:metadata.location": [f"WITHIN {GEO_SHAPE_POLYGON_WKT}"]},
-    )
-    with pytest.raises(RequestError):
-        search_dsl.execute()
-
-
-def test_geo_shape_param_removes_key_from_params():
-    params = {"geo_shape:metadata.location": ["POINT (14.5 50.0)"], "other": ["x"]}
-
-    GeoShapeParam(config=None).apply(None, Search(), params)
-
-    assert params == {"other": ["x"]}
-
-
-def test_geo_shape_param_removes_key_from_facets_bucket():
-    """Must also handle geo_shape:<field> nested in params["facets"]."""
-    params = {"facets": {"geo_shape:metadata.location": ["POINT (14.5 50.0)"], "other": ["x"]}}
-
-    GeoShapeParam(config=None).apply(None, Search(), params)
-
-    assert params == {"facets": {"other": ["x"]}}
-
-
-def test_geo_shape_param_invalid_value_raises():
-    with pytest.raises(QuerystringValidationError):
-        GeoShapeParam(config=None).apply(
-            None,
-            Search(),
-            {"geo_shape:metadata.location": ["not a shape"]},
-        )
-
-
-def test_geo_shape_param_defaults_to_intersects():
-    search = GeoShapeParam(config=None).apply(
-        None,
-        Search(),
-        {"geo_shape:metadata.location": ["POINT (14.5 50.0)"]},
-    )
-
-    shape_query = search.to_dict()["query"]["bool"]["filter"][0]["geo_shape"]["metadata.location"]
-    assert shape_query == {
-        "shape": {"type": "Point", "coordinates": (14.5, 50.0)},
-        "relation": "intersects",
-    }
-
-
-@pytest.mark.parametrize("operation", ["INTERSECTS", "DISJOINT", "WITHIN", "CONTAINS", "within"])
-def test_geo_shape_param_explicit_operation(operation):
-    search = GeoShapeParam(config=None).apply(
-        None,
-        Search(),
-        {"geo_shape:metadata.location": [f"{operation} POINT (14.5 50.0)"]},
-    )
-
-    shape_query = search.to_dict()["query"]["bool"]["filter"][0]["geo_shape"]["metadata.location"]
-    assert shape_query["relation"] == operation.lower()
-
-
-# --- geo_distance:/geo_shape: place-name (Nominatim) resolution ---
+# --- geo_distance: place-name (Nominatim) resolution ---
 #
-# These mock the module-level _nominatim_geocode_point/_nominatim_geocode_shape
-# functions rather than hitting the real OpenStreetMap Nominatim service, to
-# keep the tests fast, offline and deterministic.
+# These mock the module-level _nominatim_geocode_point function rather than
+# hitting the real OpenStreetMap Nominatim service, to keep the tests fast,
+# offline and deterministic.
 
 PRAGUE_LAT, PRAGUE_LON = 50.0755, 14.4378
 
@@ -533,109 +597,33 @@ def test_geo_distance_param_location_name_without_brackets(monkeypatch):
 
 def test_geo_distance_param_numeric_coordinates_are_not_geocoded(monkeypatch):
     def fail(_name: str) -> tuple[float, float]:
-        raise AssertionError("should not geocode numeric lat/lon")
+        raise AssertionError("should not geocode numeric lon/lat")
 
     monkeypatch.setattr(spherical, "_nominatim_geocode_point", fail)
 
     GeoDistanceParam(config=None).apply(
         None,
         Search(),
-        {"geo_distance:metadata.location": ["[50.0,14.4,50km]"]},
+        {"geo_distance:metadata.location": ["[14.4,50.0,50km]"]},
     )
 
 
-def test_geo_distance_param_location_not_found_raises(monkeypatch):
-    def not_found(location_name: str) -> tuple[float, float]:
-        raise ValueError(location_name)
+@pytest.mark.parametrize(
+    "geocoder_error",
+    [ValueError("Nowhereville"), GeocoderTimedOut("timed out")],
+    ids=["not_found", "geocoder_error"],
+)
+def test_geo_distance_param_geocoding_failure_raises(monkeypatch, geocoder_error):
+    def fail(_name: str) -> tuple[float, float]:
+        raise geocoder_error
 
-    monkeypatch.setattr(spherical, "_nominatim_geocode_point", not_found)
-
-    with pytest.raises(QuerystringValidationError):
-        GeoDistanceParam(config=None).apply(
-            None,
-            Search(),
-            {"geo_distance:metadata.location": ["[Nowhereville,50km]"]},
-        )
-
-
-def test_geo_distance_param_geocoder_error_raises(monkeypatch):
-    def timed_out(_name: str) -> tuple[float, float]:
-        raise GeocoderTimedOut("timed out")
-
-    monkeypatch.setattr(spherical, "_nominatim_geocode_point", timed_out)
+    monkeypatch.setattr(spherical, "_nominatim_geocode_point", fail)
 
     with pytest.raises(QuerystringValidationError):
         GeoDistanceParam(config=None).apply(
             None,
             Search(),
             {"geo_distance:metadata.location": ["[Prague, Czechia,50km]"]},
-        )
-
-
-def test_geo_shape_param_resolves_location_name(monkeypatch):
-    calls = []
-    prague_geojson = {"type": "Point", "coordinates": [PRAGUE_LON, PRAGUE_LAT]}
-
-    def fake_geocode_shape(location_name: str) -> dict:
-        calls.append(location_name)
-        return prague_geojson
-
-    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", fake_geocode_shape)
-
-    search = GeoShapeParam(config=None).apply(
-        None,
-        Search(),
-        {"geo_shape:metadata.location": ["WITHIN Prague, Czechia"]},
-    )
-
-    assert calls == ["Prague, Czechia"]
-    shape_query = search.to_dict()["query"]["bool"]["filter"][0]["geo_shape"]["metadata.location"]
-    # the geocoded GeoJSON is round-tripped through shapely (shape() then
-    # mapping()) so it comes out with tuple coordinates, not the original lists
-    assert shape_query == {
-        "shape": {"type": "Point", "coordinates": (PRAGUE_LON, PRAGUE_LAT)},
-        "relation": "within",
-    }
-
-
-def test_geo_shape_param_location_name_defaults_to_intersects(monkeypatch):
-    prague_geojson = {"type": "Point", "coordinates": [PRAGUE_LON, PRAGUE_LAT]}
-    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", lambda _name: prague_geojson)
-
-    search = GeoShapeParam(config=None).apply(
-        None,
-        Search(),
-        {"geo_shape:metadata.location": ["Prague, Czechia"]},
-    )
-
-    shape_query = search.to_dict()["query"]["bool"]["filter"][0]["geo_shape"]["metadata.location"]
-    assert shape_query["relation"] == "intersects"
-
-
-def test_geo_shape_param_wkt_is_not_geocoded(monkeypatch):
-    def fail(_name: str) -> dict:
-        raise AssertionError("should not geocode a valid WKT value")
-
-    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", fail)
-
-    GeoShapeParam(config=None).apply(
-        None,
-        Search(),
-        {"geo_shape:metadata.location": ["POLYGON ((0 0, 1 0, 1 1, 0 0))"]},
-    )
-
-
-def test_geo_shape_param_location_not_found_raises(monkeypatch):
-    def not_found(location_name: str) -> dict:
-        raise ValueError(location_name)
-
-    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", not_found)
-
-    with pytest.raises(QuerystringValidationError):
-        GeoShapeParam(config=None).apply(
-            None,
-            Search(),
-            {"geo_shape:metadata.location": ["Nowhereville"]},
         )
 
 
@@ -676,16 +664,5 @@ def test_get_geocode_min_delay_seconds_is_configurable(app):
         # policy even if some test forgets to mock the geocoder out
         assert geocode.min_delay_seconds == app.config["NOMINATIM_MIN_DELAY_SECONDS"]
         assert geocode.min_delay_seconds >= 5
-    finally:
-        _get_geocode.cache_clear()
-
-
-def test_get_geocode_is_cached_process_wide(app):
-    _get_geocode.cache_clear()
-    try:
-        with app.app_context():
-            first = _get_geocode()
-            second = _get_geocode()
-        assert first is second
     finally:
         _get_geocode.cache_clear()

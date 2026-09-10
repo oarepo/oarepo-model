@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 import re
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
 from flask import current_app
 from geopy.exc import GeopyError
@@ -27,7 +27,8 @@ from shapely import wkt as shapely_wkt
 from shapely.errors import ShapelyError
 from shapely.geometry import mapping as shapely_mapping
 from shapely.geometry import shape as shapely_shape
-from shapely.ops import transform as shapely_transform
+
+from oarepo_model.datatypes.spherical import icrs_shape_to_lon_lat, ra_dec_to_lat_lon
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -94,6 +95,31 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * _EARTH_RADIUS_KM * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+def _normalize_latitude(lat: float) -> float:
+    """Fold a latitude into the ``-90 <= lat <= 90`` range OpenSearch requires.
+
+    The guard is load-bearing: without it the modulo carries the North Pole at
+    90 over to -90, on the far side of the planet, and in-range values pick up
+    float noise from the round trip. Both ends are genuine distinct places, so
+    the range is closed, unlike longitude below.
+    """
+    if -90 <= lat <= 90:  # noqa: PLR2004
+        return lat
+    return (lat + 90) % 180 - 90
+
+
+def _normalize_longitude(lon: float) -> float:
+    """Fold a longitude into the ``[-180, 180)`` range OpenSearch requires.
+
+    The guard keeps in-range values free of the float noise a 180-degree round
+    trip adds, but stops short of +180, which is the same meridian as -180 and
+    so folds rather than staying put.
+    """
+    if -180 <= lon < 180:  # noqa: PLR2004
+        return lon
+    return (lon + 180) % 360 - 180
+
+
 def _format_km(value: float) -> str:
     """Format a kilometer distance for use as a distance_feature pivot."""
     rounded = round(value, 3)
@@ -114,16 +140,6 @@ def _degrees_to_km(degrees: float) -> float:
     "surface" it's nominally measuring actually represents.
     """
     return _EARTH_RADIUS_KM * math.radians(degrees)
-
-
-def _ra_dec_to_lat_lon(ra: float, dec: float) -> tuple[float, float]:
-    """Convert ICRS right ascension/declination (degrees) to lat/lon.
-
-    Mirrors the conversion ICRSDumperExt applies when indexing an icrs field
-    as geo_point, so queries against that field see the same coordinates
-    that were actually indexed.
-    """
-    return dec, ((ra + 180) % 360) - 180
 
 
 class _PrefixedGeoParam(ParamInterpreter):
@@ -202,9 +218,10 @@ class _PrefixedGeoParam(ParamInterpreter):
             ) from error
 
 
-#: Matches ``[lat,lon,distance]`` or ``lat,lon,distance``.
+#: Matches ``[lon,lat,distance]`` or ``lon,lat,distance``, longitude before
+#: latitude, the order RFC 7946 gives a GeoJSON position.
 _DISTANCE_VALUE_RE = re.compile(
-    r"^\[?\s*(?P<lat>[+-]?\d+(?:\.\d+)?)\s*,\s*(?P<lon>[+-]?\d+(?:\.\d+)?)\s*,\s*"
+    r"^\[?\s*(?P<lon>[+-]?\d+(?:\.\d+)?)\s*,\s*(?P<lat>[+-]?\d+(?:\.\d+)?)\s*,\s*"
     r"(?P<distance>\d+(?:\.\d+)?\s*[a-zA-Z]+)\s*\]?$"
 )
 
@@ -225,16 +242,34 @@ _LOCATION_DISTANCE_VALUE_RE = re.compile(
 _NUMBER_RE = re.compile(r"^[+-]?\d+(?:\.\d+)?$")
 
 
+class _PointDistance(NamedTuple):
+    """A point and a distance around it, the point as ``[lon, lat]``.
+
+    A named tuple because both coordinates are plain floats: as a bare tuple it
+    was possible to hand ``_apply_value`` a transposed pair and have nothing,
+    not even the type checker, notice.
+    """
+
+    lon: float
+    lat: float
+    distance: str
+
+
 class GeoDistanceParam(_PrefixedGeoParam):
-    """Evaluate ``geo_distance:<field>=[lat,lon,distance]`` query parameters.
+    """Evaluate ``geo_distance:<field>=[lon,lat,distance]`` query parameters.
 
-    For every occurrence of this parameter, records within ``distance`` of
-    ``(lat, lon)`` are kept (``geo_distance`` filter on ``field``), and
-    records closer to the point are additionally boosted in relevance via a
-    ``distance_feature`` query, with the pivot set to a tenth of the
-    requested distance.
+    ``lon`` and ``lat`` are degrees and must lie in ``-180 <= lon <= 180`` and
+    ``-90 <= lat <= 90``, the range OpenSearch's geo_point field accepts. They
+    come in the longitude-first order of a GeoJSON position, which is *not* the
+    latitude-first order of a 'geo' URI. ``distance`` is a positive number with
+    a unit OpenSearch understands (``km``, ``m``, ``mi``, ...).
 
-    Instead of ``lat,lon``, a place name may be given, e.g.
+    For every occurrence of this parameter, records within ``distance`` of the
+    point are kept (``geo_distance`` filter on ``field``), and records closer to
+    it are additionally boosted in relevance via a ``distance_feature`` query,
+    with the pivot set to a tenth of the requested distance.
+
+    Instead of ``lon,lat``, a place name may be given, e.g.
     ``[Prague, Czechia,50km]``: if the part before the first comma doesn't
     parse as a number, everything up to the last comma is geocoded (via
     OpenStreetMap Nominatim) to get the point.
@@ -246,12 +281,12 @@ class GeoDistanceParam(_PrefixedGeoParam):
     pivot_divisor: ClassVar[int] = 10
 
     def _apply_value(self, search: Search, field: str, value: str) -> Search:
-        lat, lon, distance = self._parse_value(field, value)
+        point = self._parse_value(field, value)
 
         search = search.filter(
             "geo_distance",
-            distance=distance,
-            **{field: {"lat": lat, "lon": lon}},
+            distance=point.distance,
+            **{field: {"lat": point.lat, "lon": point.lon}},
         )
         return search.query(
             "bool",
@@ -259,36 +294,41 @@ class GeoDistanceParam(_PrefixedGeoParam):
                 Q(
                     "distance_feature",
                     field=field,
-                    origin={"lat": lat, "lon": lon},
-                    pivot=self._pivot(distance),
+                    origin={"lat": point.lat, "lon": point.lon},
+                    pivot=self._pivot(point.distance),
                 )
             ],
         )
 
-    def _parse_value(self, field: str, value: str) -> tuple[float, float, str]:
+    def _parse_value(self, field: str, value: str) -> _PointDistance:
         value = value.strip()
         match = _DISTANCE_VALUE_RE.match(value)
         if match:
-            return (
-                float(match.group("lat")),
-                float(match.group("lon")),
-                match.group("distance").replace(" ", ""),
+            return _PointDistance(
+                lon=float(match.group("lon")),
+                lat=float(match.group("lat")),
+                distance=match.group("distance").replace(" ", ""),
             )
 
-        # Not "[lat,lon,distance]": if the first component isn't a number,
+        # Not "[lon,lat,distance]": if the first component isn't a number,
         # treat everything up to the last comma as a place name (which may
         # itself contain commas, e.g. "Prague, Czechia") and geocode it.
         first_part = value.removeprefix("[").split(",", 1)[0].strip()
         location_match = _LOCATION_DISTANCE_VALUE_RE.match(value)
         if location_match and not _NUMBER_RE.match(first_part):
+            # The geocoder answers latitude first, unlike the wire format.
             lat, lon = self._geocode_point(field, location_match.group("location"))
-            return lat, lon, location_match.group("distance").replace(" ", "")
+            return _PointDistance(
+                lon=lon,
+                lat=lat,
+                distance=location_match.group("distance").replace(" ", ""),
+            )
 
         raise QuerystringValidationError(
             _(
                 "Invalid value %(value)r for parameter '%(param)s%(field)s'. "
-                "Expected '[lat,lon,distance]' or '[location name,distance]', "
-                "e.g. '[50.0,14.4,50km]' or '[Prague, Czechia,50km]'.",
+                "Expected '[lon,lat,distance]' or '[location name,distance]', "
+                "e.g. '[14.4,50.0,50km]' or '[Prague, Czechia,50km]'.",
                 value=value,
                 param=self.prefix,
                 field=field,
@@ -304,18 +344,56 @@ class GeoDistanceParam(_PrefixedGeoParam):
         return f"{pivot_value}{match.group('unit')}"
 
 
-#: Matches ``[lat,lon,lat,lon]`` or ``lat,lon,lat,lon`` (two opposite corners).
+#: Matches ``[lon,lat,lon,lat]`` or ``lon,lat,lon,lat``: the two opposite
+#: corners in the ``[west, south, east, north]`` axis order RFC 7946 defines
+#: for a bounding box, longitude before latitude.
 _BOUNDING_BOX_VALUE_RE = re.compile(
-    r"^\[?\s*(?P<lat1>[+-]?\d+(?:\.\d+)?)\s*,\s*(?P<lon1>[+-]?\d+(?:\.\d+)?)\s*,\s*"
-    r"(?P<lat2>[+-]?\d+(?:\.\d+)?)\s*,\s*(?P<lon2>[+-]?\d+(?:\.\d+)?)\s*\]?$"
+    r"^\[?\s*(?P<west>[+-]?\d+(?:\.\d+)?)\s*,\s*(?P<south>[+-]?\d+(?:\.\d+)?)\s*,\s*"
+    r"(?P<east>[+-]?\d+(?:\.\d+)?)\s*,\s*(?P<north>[+-]?\d+(?:\.\d+)?)\s*\]?$"
 )
 
 
-class GeoBoundingBoxParam(_PrefixedGeoParam):
-    """Evaluate ``geo_bounding_box:<field>=[lat,lon,lat,lon]`` query parameters.
+class _BoundingBox(NamedTuple):
+    """A box's corners as ``[west, south, east, north]``, the GeoJSON order.
 
-    The two points are opposite corners of the box, in any order. For every
-    occurrence of this parameter, records inside the box are kept
+    A named tuple because all four corners are plain floats: as a bare tuple it
+    was possible to hand ``_apply_value`` a transposed pair and have nothing,
+    not even the type checker, notice.
+    """
+
+    west: float
+    south: float
+    east: float
+    north: float
+
+
+class GeoBoundingBoxParam(_PrefixedGeoParam):
+    """Evaluate ``geo_bounding_box:<field>=[lon,lat,lon,lat]`` query parameters.
+
+    The corners follow the axis order RFC 7946 defines for a bounding box,
+    ``[west, south, east, north]``, longitude before latitude, the way GeoJSON
+    positions are ordered too. This is *not* the latitude-first order of a
+    'geo' URI. Coordinates are degrees and must preferably lie in
+    ``-90 <= lat <= 90`` and ``-180 <= lon <= 180``, the range OpenSearch's
+    geo_point field accepts.
+
+    The two points are the box's southwesterly and northeasterly corners, given
+    in a strict order: the first must have the lower latitude, and the longitude
+    range always runs *eastward* from the first point to the second one. That is
+    RFC 7946 Section 5.2, which likewise lets a crossing box have an east
+    longitude smaller than its own west one. The order is therefore meaningful:
+    ``[170,49.5,-170,50.5]`` is a 20-degree-wide box crossing the antimeridian,
+    while ``[-170,49.5,170,50.5]`` is the complementary box spanning 340 degrees
+    of longitude.
+
+    Latitude does not wrap around the way longitude does, so a box cannot run
+    past a pole; it ends at one. RFC 7946 Section 5.3 writes a box reaching the
+    North Pole as ``[-180, minlat, 180, 90]``, and this parameter accepts that
+    shape: west and east then share a meridian, which is read as the whole
+    globe rather than as a box of no width, and OpenSearch is given the full
+    longitude span it needs to match a polar cap.
+
+    For every occurrence of this parameter, records inside the box are kept
     (``geo_bounding_box`` filter on ``field``), and records closer to the
     center of the box are additionally boosted in relevance via a
     ``distance_feature`` query, with the pivot set to half of the box's
@@ -325,14 +403,42 @@ class GeoBoundingBoxParam(_PrefixedGeoParam):
     prefix: ClassVar[str] = "geo_bounding_box:"
 
     def _apply_value(self, search: Search, field: str, value: str) -> Search:
-        lat1, lon1, lat2, lon2 = self._parse_value(field, value)
+        box = self._parse_value(field, value)
+        south = _normalize_latitude(box.south)
+        north = _normalize_latitude(box.north)
+        west = _normalize_longitude(box.west)
+        east = _normalize_longitude(box.east)
 
-        top_left = {"lat": max(lat1, lat2), "lon": min(lon1, lon2)}
-        bottom_right = {"lat": min(lat1, lat2), "lon": max(lon1, lon2)}
-        center = {"lat": (lat1 + lat2) / 2, "lon": (lon1 + lon2) / 2}
-        # The diagonal length is the same regardless of which pair of opposite
-        # corners was supplied, so it can be computed directly from the input.
-        half_diagonal_km = _haversine_km(lat1, lon1, lat2, lon2) / 2
+        # West and east landing on the same meridian means the box runs all the
+        # way round, not nowhere: [-180, minlat, 180, maxlat] is how RFC 7946
+        # writes a box reaching a pole, and 180 folds onto -180, so that is the
+        # shape it arrives in. OpenSearch rejects a zero-width box outright, so
+        # the full ring is spelled out for it.
+        full_ring = west == east
+        west_lon, east_lon = (-180.0, 180.0) if full_ring else (west, east)
+        lon_span = 360.0 if full_ring else (east - west) % 360
+
+        # A GeoJSON bbox is named by its southwesterly and northeasterly
+        # corners, but OpenSearch names the opposite diagonal, so the values
+        # have to be recombined: it takes the west longitude from top_left and
+        # the east one from bottom_right, and reads top_left lon > bottom_right
+        # lon as a box crossing the antimeridian, which is west > east.
+        top_left = {"lat": north, "lon": west_lon}
+        bottom_right = {"lat": south, "lon": east_lon}
+
+        # The center lies in the middle of the eastward longitude arc, not at
+        # the plain average of the two longitudes: the average of 170 and -170
+        # is 0, halfway around the world away from a 20-degree-wide box.
+        center_lat = (south + north) / 2
+        center_lon = _normalize_longitude(west + lon_span / 2)
+        center = {"lat": center_lat, "lon": center_lon}
+
+        # Half of the diagonal is the distance from the center to a corner.
+        # The distance between the two supplied corners cannot be used, because
+        # a great circle always takes the short way round: it reports the same
+        # length for a box and for its 360-degrees-minus-itself complement,
+        # which is what made antimeridian crossing unrepresentable.
+        half_diagonal_km = _haversine_km(center_lat, center_lon, south, west)
 
         search = search.filter(
             "geo_bounding_box",
@@ -350,24 +456,49 @@ class GeoBoundingBoxParam(_PrefixedGeoParam):
             ],
         )
 
-    def _parse_value(self, field: str, value: str) -> tuple[float, float, float, float]:
+    def _parse_value(self, field: str, value: str) -> _BoundingBox:
+        """Parse the value into the box's four corners.
+
+        The named regex groups are read into ``_BoundingBox`` by keyword, so no
+        positional step is left where corners could be transposed.
+        """
         match = _BOUNDING_BOX_VALUE_RE.match(value.strip())
         if not match:
             raise QuerystringValidationError(
                 _(
                     "Invalid value %(value)r for parameter '%(param)s%(field)s'. "
-                    "Expected '[lat,lon,lat,lon]', e.g. '[50.2,14.2,49.9,14.6]'.",
+                    "Expected '[lon,lat,lon,lat]' as '[west,south,east,north]', "
+                    "e.g. '[14.2,49.9,14.6,50.2]'.",
                     value=value,
                     param=self.prefix,
                     field=field,
                 )
             )
-        return (
-            float(match.group("lat1")),
-            float(match.group("lon1")),
-            float(match.group("lat2")),
-            float(match.group("lon2")),
+
+        box = _BoundingBox(
+            west=float(match.group("west")),
+            south=float(match.group("south")),
+            east=float(match.group("east")),
+            north=float(match.group("north")),
         )
+
+        if box.south > box.north:
+            raise QuerystringValidationError(
+                _(
+                    "Invalid value %(value)r for parameter '%(param)s%(field)s'. "
+                    "The southwesterly point must have the lower latitude, "
+                    "got %(south)s and %(north)s. Unlike longitude, latitude "
+                    "does not wrap around; to select a polar cap, run the box "
+                    "to the pole instead, e.g. '[-180,66.5,180,90]'.",
+                    value=value,
+                    param=self.prefix,
+                    field=field,
+                    south=box.south,
+                    north=box.north,
+                )
+            )
+
+        return box
 
 
 #: Relations accepted by the OpenSearch geo_shape query.
@@ -395,6 +526,10 @@ def _looks_like_wkt(text: str) -> bool:
 
 class GeoShapeParam(_PrefixedGeoParam):
     """Evaluate ``geo_shape:<field>=[OP ]<WKT>`` query parameters.
+
+    The geometry's coordinates are ``(lon, lat)`` pairs in degrees, within
+    ``-180 <= lon <= 180`` and ``-90 <= lat <= 90``, the range OpenSearch's
+    geo_shape field accepts.
 
     ``OP`` is one of ``INTERSECTS`` (the default), ``DISJOINT``, ``WITHIN`` or
     ``CONTAINS`` and becomes the ``relation`` of a ``geo_shape`` filter on
@@ -467,18 +602,22 @@ _ICRS_DISTANCE_VALUE_RE = re.compile(
 
 
 class IcrsDistanceParam(GeoDistanceParam):
-    """Evaluate ``icsr_distance:<field>=[ra,dec,distance]`` query parameters.
+    """Evaluate ``icrs_distance:<field>=[ra,dec,distance]`` query parameters.
 
-    ``ra``/``dec`` are ICRS right ascension/declination in degrees and
-    ``distance`` is a great-circle angle, also in degrees (no unit suffix,
-    unlike geo_distance:). Both are converted - ra/dec to lat/lon, distance
-    to kilometers via :func:`_degrees_to_km` - and then handled exactly like
-    geo_distance:, reusing its filter/distance_feature logic unchanged.
+    Keeps records within ``distance`` of the given point and boosts the ones
+    closer to it, just like geo_distance:, but reads the point as ICRS right
+    ascension/declination in degrees, within ``0 <= ra < 360`` and
+    ``-90 <= dec <= 90``. Right ascension comes first, which is the
+    longitude-first order of a GeoJSON position that geo_distance: uses too.
+
+    ``distance`` is a great-circle angle in degrees rather than a length, so
+    it takes no unit suffix and must be within ``0 <= distance <= 180``:
+    ``[83.6,22.0,5]`` selects everything within 5 degrees of the Crab Nebula.
     """
 
-    prefix: ClassVar[str] = "icsr_distance:"
+    prefix: ClassVar[str] = "icrs_distance:"
 
-    def _parse_value(self, field: str, value: str) -> tuple[float, float, str]:
+    def _parse_value(self, field: str, value: str) -> _PointDistance:
         match = _ICRS_DISTANCE_VALUE_RE.match(value.strip())
         if not match:
             raise QuerystringValidationError(
@@ -491,9 +630,14 @@ class IcrsDistanceParam(GeoDistanceParam):
                     field=field,
                 )
             )
-        lat, lon = _ra_dec_to_lat_lon(float(match.group("ra")), float(match.group("dec")))
+        # geo_distance: works in Earth lat/lon and in kilometers, so both
+        # halves of the value are translated into those terms before it takes
+        # over; see _degrees_to_km for why an angle may be handed to it as a
+        # kilometer distance.
+        lat, lon = ra_dec_to_lat_lon(float(match.group("ra")), float(match.group("dec")))
         distance_km = _degrees_to_km(float(match.group("distance")))
-        return lat, lon, _format_km(distance_km)
+        # ra_dec_to_lat_lon answers latitude first, unlike the wire format.
+        return _PointDistance(lon=lon, lat=lat, distance=_format_km(distance_km))
 
 
 #: Matches ``[ra,dec,ra,dec]`` or ``ra,dec,ra,dec`` (two opposite corners).
@@ -504,17 +648,27 @@ _ICRS_BOUNDING_BOX_VALUE_RE = re.compile(
 
 
 class IcrsBoundingBoxParam(GeoBoundingBoxParam):
-    """Evaluate ``icsr_bounding_box:<field>=[ra,dec,ra,dec]`` query parameters.
+    """Evaluate ``icrs_bounding_box:<field>=[ra,dec,ra,dec]`` query parameters.
 
-    The two points are opposite corners of the box in ICRS right
-    ascension/declination (degrees, any order). Each pair is converted to
-    lat/lon and then handled exactly like geo_bounding_box:, reusing its
-    normalization/filter/distance_feature logic unchanged.
+    Keeps records inside the box and boosts the ones nearer its center, just
+    like geo_bounding_box:, but with the corners given as ICRS right
+    ascension/declination in degrees, within ``0 <= ra < 360`` and
+    ``-90 <= dec <= 90``.
+
+    Right ascension comes first, so this already has the longitude-first
+    ``[west, south, east, north]`` axis order RFC 7946 gives a GeoJSON bbox,
+    which is the order geo_bounding_box: expects as well.
+
+    The two points are opposite corners, and their order carries the box's
+    meaning just as it does for geo_bounding_box:, whose rules apply here too.
+    Ranges running over the 0/360 wrap are fine: ``[350,20,10,25]`` is a
+    20-degree-wide box around ra 0, whereas ``[10,20,350,25]`` is its
+    340-degree-wide complement.
     """
 
-    prefix: ClassVar[str] = "icsr_bounding_box:"
+    prefix: ClassVar[str] = "icrs_bounding_box:"
 
-    def _parse_value(self, field: str, value: str) -> tuple[float, float, float, float]:
+    def _parse_value(self, field: str, value: str) -> _BoundingBox:
         match = _ICRS_BOUNDING_BOX_VALUE_RE.match(value.strip())
         if not match:
             raise QuerystringValidationError(
@@ -526,9 +680,15 @@ class IcrsBoundingBoxParam(GeoBoundingBoxParam):
                     field=field,
                 )
             )
-        lat1, lon1 = _ra_dec_to_lat_lon(float(match.group("ra1")), float(match.group("dec1")))
-        lat2, lon2 = _ra_dec_to_lat_lon(float(match.group("ra2")), float(match.group("dec2")))
-        return lat1, lon1, lat2, lon2
+        # Passed on to geo_bounding_box: in the lat/lon space it queries in,
+        # which is the same space ICRSDumperExt indexes ICRS points in. Note
+        # that the fold in ra_dec_to_lat_lon puts the longitude antimeridian at
+        # ra 180, not at ra 0, so which ranges cross it differs from geo. It
+        # answers in (lat, lon) order, the other way round to the box corners,
+        # which is why the two values cross over as they get bound.
+        south, west = ra_dec_to_lat_lon(float(match.group("ra1")), float(match.group("dec1")))
+        north, east = ra_dec_to_lat_lon(float(match.group("ra2")), float(match.group("dec2")))
+        return _BoundingBox(west=west, south=south, east=east, north=north)
 
 
 def _icrs_shape_coords_to_lat_lon(ra: float, dec: float, z: float | None = None) -> tuple[float, float]:
@@ -539,24 +699,29 @@ def _icrs_shape_coords_to_lat_lon(ra: float, dec: float, z: float | None = None)
     accepted but ignored.
     """
     del z
-    lat, lon = _ra_dec_to_lat_lon(ra, dec)
+    lat, lon = ra_dec_to_lat_lon(ra, dec)
     return lon, lat
 
 
 class IcrsShapeParam(GeoShapeParam):
-    """Evaluate ``icsr_shape:<field>=[OP ]<WKT>`` query parameters.
+    """Evaluate ``icrs_shape:<field>=[OP ]<WKT>`` query parameters.
 
     Like geo_shape:, but the WKT's x/y coordinates are read as ICRS right
-    ascension/declination (degrees) rather than lon/lat, and remapped
-    accordingly before being converted to GeoJSON, so it points at the same
-    coordinates ICRSDumperExt actually indexed.
+    ascension/declination in degrees rather than as lon/lat, within
+    ``0 <= ra < 360`` and ``-90 <= dec <= 90``.
+
+    A value that doesn't parse as WKT is an error: there are no place names on
+    the celestial sphere, so the geocoding fallback geo_shape: offers for those
+    is turned off here.
     """
 
-    prefix: ClassVar[str] = "icsr_shape:"
+    prefix: ClassVar[str] = "icrs_shape:"
 
     #: ICRS coordinates aren't Earth place names, so never try to geocode them.
     allow_location_name: ClassVar[bool] = False
 
     def _load_geometry(self, field: str, wkt_text: str) -> BaseGeometry:
+        # The remap puts the shape into the lat/lon space the ICRS points were
+        # indexed in, so query and index agree on what a coordinate means.
         geometry = super()._load_geometry(field, wkt_text)
-        return shapely_transform(_icrs_shape_coords_to_lat_lon, geometry)
+        return icrs_shape_to_lon_lat(geometry)
