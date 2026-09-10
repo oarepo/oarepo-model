@@ -20,7 +20,9 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Literal, cast, override
 
 import marshmallow
-from deepmerge import always_merger
+from deepmerge import DEFAULT_TYPE_SPECIFIC_MERGE_STRATEGIES
+from deepmerge.merger import Merger
+from deepmerge.strategy.core import STRATEGY_END
 from invenio_records_resources.records import Record
 
 from .model import FileContent, JSONContent
@@ -49,16 +51,17 @@ class ReadOnlyDict(Mapping):
     without touching copy's internals.
 
     This also matters for PatchJSONFile (see customizations/patch_json_file.py),
-    which merges patches into existing file content via deepmerge's
-    always_merger - deepmerge only merges recursively when both sides of a key
-    are the same recognized container type (dict/list/set). Since a
-    ReadOnlyDict is neither a dict nor a MutableMapping, deepmerge can never
-    match it against a plain dict patch value and never attempts to merge
-    "into" it (which would need item assignment and fail); it instead falls
-    back to its type-conflict strategy ("override") and produces a brand new,
-    independent dict for that key - so a patch touching this subtree always
-    duplicates/replaces it wholesale rather than mutating this shared
-    instance in place.
+    which merges patches into existing file content via deepmerge - deepmerge
+    only merges recursively when both sides of a key are the same recognized
+    container type (dict/list/set). Since a ReadOnlyDict is neither a dict nor
+    a MutableMapping, deepmerge can never match it against a plain dict patch
+    value and never attempts to merge "into" it (which would need item
+    assignment and fail); it instead falls back to its type-conflict strategy
+    ("override") and produces a brand new, independent dict for that key - so
+    a patch touching this subtree always duplicates/replaces it wholesale
+    rather than mutating this shared instance in place. `readonly_dict_merger`
+    below teaches a dedicated merger how to do this without mutating the
+    ReadOnlyDict either.
     """
 
     __slots__ = ("_data",)
@@ -88,6 +91,48 @@ class ReadOnlyDict(Mapping):
     def __deepcopy__(self, memo: dict[int, Any]) -> ReadOnlyDict:
         """Deep-copy by deep-copying the underlying dict into a new instance."""
         return ReadOnlyDict(copy.deepcopy(self._data, memo))
+
+
+def _to_plain(value: Any) -> Any:
+    """Recursively convert Mapping/list containers into plain dict/list."""
+    if isinstance(value, Mapping):
+        return {k: _to_plain(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_to_plain(v) for v in value]
+    return value
+
+
+def _resolve_readonly_dict_conflict(merger: Merger, path: list, base: Any, nxt: Any) -> Any:
+    """Deep-clone a non-dict Mapping ``base`` to a plain dict, then merge."""
+    if isinstance(base, Mapping) and not isinstance(base, dict) and isinstance(nxt, dict):
+        return merger.value_strategy(path, _to_plain(base), nxt)
+    return STRATEGY_END
+
+
+readonly_dict_merger = Merger(
+    type_strategies=DEFAULT_TYPE_SPECIFIC_MERGE_STRATEGIES,
+    fallback_strategies=["override"],
+    type_conflict_strategies=[_resolve_readonly_dict_conflict, "override"],
+)
+"""A deepmerge ``Merger`` that also knows how to merge into a ``ReadOnlyDict``.
+
+``deepmerge``'s ``always_merger`` (which this is otherwise identical to) only
+merges two values recursively when both sides of a key are the same
+recognized container type (``dict``/``list``/``set``). Since ``ReadOnlyDict``
+isn't a ``dict``, it never matches that check and instead falls through to
+the "override" type-conflict strategy, which replaces the *entire* value with
+the patch payload - e.g. patching ``{"copy_to": "boost_10"}`` onto a title
+field would wipe out its ``type``/``fields`` instead of adding ``copy_to``
+alongside them (see e.g. ``PatchIndexPropertyMapping``).
+
+This merger adds an extra type-conflict strategy: when the base side of a
+conflict is a non-dict ``Mapping`` and the incoming side is a ``dict``, the
+base is first deep-cloned into an equivalent plain ``dict`` tree, and merging
+proceeds normally from there - the original ``ReadOnlyDict`` instance is left
+untouched. It is a standalone instance (not a patched ``always_merger``), so
+it must be used explicitly wherever a merge might encounter a ``ReadOnlyDict``
+instead of ``deepmerge.always_merger``.
+"""
 
 
 def is_mro_consistent(class_list: list[type]) -> bool:
@@ -275,7 +320,7 @@ def _merged_one_of_properties(node: dict[str, Any]) -> dict[str, Any] | None:
     merged: dict[str, Any] = {}
     for branch in one_of:
         if isinstance(branch, dict) and isinstance(branch.get("properties"), dict):
-            always_merger.merge(merged, copy.deepcopy(branch["properties"]))
+            readonly_dict_merger.merge(merged, copy.deepcopy(branch["properties"]))
     return merged
 
 

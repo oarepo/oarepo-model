@@ -19,7 +19,7 @@ import copy
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, cast, override
 
-import deepmerge
+from oarepo_model.utils import readonly_dict_merger
 
 from .base import DataType
 
@@ -66,7 +66,7 @@ class WrappedDataType(DataType):
         }
         return cast(
             "dict[str, Any]",
-            deepmerge.always_merger.merge(copy.deepcopy(self.type_dict), element_without_type),
+            readonly_dict_merger.merge(copy.deepcopy(self.type_dict), element_without_type),
         )
 
     @override

@@ -18,6 +18,7 @@ from oarepo_model.utils import (
     ReadOnlyDict,
     convert_to_python_identifier,
     dump_to_json,
+    readonly_dict_merger,
     walk_type_tree_path,
     walk_type_tree_path_leaf,
 )
@@ -38,6 +39,13 @@ def test_read_only_dict():
     assert repr(dc) == "ReadOnlyDict({'a': 1, 'b': 2})"
     assert d is not dc
     assert d._data is not dc._data  # noqa: SLF001
+
+
+def test_merge_read_only_dict():
+    d = {
+        "a": ReadOnlyDict({"a": 1, "b": 2}),
+    }
+    assert readonly_dict_merger.merge(d, {"a": {"c": 3}}) == {"a": {"a": 1, "b": 2, "c": 3}}
 
 
 def test_convert_to_python_identifier():

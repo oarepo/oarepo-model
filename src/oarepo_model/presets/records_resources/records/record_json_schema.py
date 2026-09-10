@@ -12,12 +12,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast, override
 
-from deepmerge import always_merger
-
 from oarepo_model.customizations import AddJSONFile, Customization
 from oarepo_model.customizations.add_file_link import AddFileSymlink
 from oarepo_model.datatypes.tree import resolve_schema_type
 from oarepo_model.presets import Preset
+from oarepo_model.utils import readonly_dict_merger
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Mapping
@@ -41,7 +40,7 @@ class RecordJSONSchemaPreset(Preset):
     ) -> Generator[Customization]:
         jsonschema = get_json_schema(builder, model.record_type) if model.record_type is not None else {}
 
-        jsonschema = always_merger.merge(
+        jsonschema = readonly_dict_merger.merge(
             {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "id": "local://records/record-v1.0.0.json",
