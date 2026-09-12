@@ -237,7 +237,7 @@ class MultiFormatField(marshmallow.fields.Field):
 
         # otherwise return key: value dictionary
         return {
-            key: field._serialize(  # private value access
+            key: field._serialize(  # noqa SLF001 - ok to access private method here
                 value,
                 attr,
                 obj,

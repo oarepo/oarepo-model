@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 import re
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, override
 
 from flask import current_app
 from geopy.exc import GeopyError
@@ -27,6 +27,7 @@ from shapely.ops import transform as shapely_transform
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from invenio_search import RecordsSearchV2
     from opensearch_dsl.search import Search
     from shapely.geometry.base import BaseGeometry
 
@@ -131,12 +132,13 @@ class _PrefixedGeoParam(ParamInterpreter):
     #: Prefix of the query string parameter, e.g. ``geo_distance:metadata.location``.
     prefix: ClassVar[str]
 
+    @override
     def apply(
         self,
-        identity: Any,  # for override
-        search: Search,
+        identity: Any,
+        search: RecordsSearchV2,
         params: dict[str, Any],
-    ) -> Search:
+    ) -> RecordsSearchV2:
         """Evaluate the parameters on the search."""
         search = self._apply_from_mapping(search, params)
 
@@ -154,7 +156,7 @@ class _PrefixedGeoParam(ParamInterpreter):
 
         return search
 
-    def _apply_from_mapping(self, search: Search, mapping: dict[str, Any]) -> Search:
+    def _apply_from_mapping(self, search: RecordsSearchV2, mapping: dict[str, Any]) -> RecordsSearchV2:
         for key in list(mapping.keys()):
             if not key.startswith(self.prefix):
                 continue

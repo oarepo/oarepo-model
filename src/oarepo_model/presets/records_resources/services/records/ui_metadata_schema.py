@@ -55,7 +55,7 @@ class MetadataUISchemaPreset(Preset):
                 def flatten_metadata(
                     self,
                     data: dict[str, Any],
-                    **kwargs: Any,  # though not inherited, post_dump must accept **kwargs
+                    **_kwargs: Any,
                 ) -> dict[str, Any]:
                     """Flatten metadata fields to the top level.
 

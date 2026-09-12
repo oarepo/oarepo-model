@@ -288,7 +288,7 @@ class PolymorphicField(ma.fields.Field):
         discriminator_value = self.get_discriminator_value(value)
         if discriminator_value in self.alternatives:
             schema_field = self.alternatives[discriminator_value]
-            return schema_field._serialize(
+            return schema_field._serialize(  # noqa SLF001 continuing with the schema field
                 value,
                 attr,
                 obj,
@@ -312,7 +312,7 @@ class PolymorphicField(ma.fields.Field):
             self.fail("unknown_type", type=discriminator_value)
 
         schema_field = self.alternatives[discriminator_value]
-        return schema_field._deserialize(
+        return schema_field._deserialize(  # noqa SLF001 continuing with the schema field
             value,
             attr,
             data,

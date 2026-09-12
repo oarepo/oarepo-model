@@ -206,7 +206,9 @@ def dump_schema(schema: type[Schema] | Schema, dumped_schemas: set[type], dumped
     lines = [f"class {name}(\n{base_classes}\n):"]
 
     subschemas: set[type] = set()
-    for field_name, field_obj in schema._declared_fields.items():
+    # we do not want to instantiate the schema here so need to use the declared fields directly
+    declared_fields = schema._declared_fields  # noqa SLF001
+    for field_name, field_obj in declared_fields.items():
         try:
             dumped_field, other_schemas = dump_field(field_obj)
         except Exception as e:  # we want to catch all exceptions here

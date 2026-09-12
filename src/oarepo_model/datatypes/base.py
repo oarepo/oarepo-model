@@ -82,7 +82,7 @@ class DataType:
 
     def _get_ui_marshmallow_field_class(
         self,
-        field_name: str,  # for override
+        field_name: str,  # noqa ARG002 for extensibility
         element: dict[str, Any],
     ) -> type | None:
         """Get a ui marshmallow field class."""
@@ -105,8 +105,8 @@ class DataType:
 
     def create_ui_marshmallow_fields(
         self,
-        field_name: str,  # for override
-        element: dict[str, Any],  # for override
+        field_name: str,  # noqa ARG002 for extensibility
+        element: dict[str, Any],  # noqa ARG002 for extensibility
     ) -> dict[str, Field]:
         """Create a Marshmallow UI field for the data type.
 
@@ -117,7 +117,7 @@ class DataType:
 
     def _get_marshmallow_field_class(
         self,
-        field_name: str,  # for override
+        field_name: str,  # noqa ARG002 for extensibility
         element: dict[str, Any],
     ) -> type[Field]:
         """Get the Marshmallow field class for the data type.
@@ -184,7 +184,7 @@ class DataType:
 
     def create_json_schema(
         self,
-        element: dict[str, Any],  # for override
+        element: dict[str, Any],  # noqa ARG002 for extensibility
     ) -> Mapping[str, Any]:
         """Create a JSON schema for the data type.
 
@@ -202,7 +202,7 @@ class DataType:
 
     def create_mapping(
         self,
-        element: dict[str, Any],  # for override
+        element: dict[str, Any],  # noqa ARG002 for extensibility
     ) -> Mapping[str, Any]:
         """Create a mapping for the data type.
 
@@ -219,8 +219,8 @@ class DataType:
 
     def create_dynamic_mapping(
         self,
-        field_name: str,
-        element: dict[str, Any],
+        field_name: str,  # noqa ARG002 for extensibility
+        element: dict[str, Any],  # noqa ARG002 for extensibility
     ) -> Mapping[str, Any]:
         """Create additional mapping properties."""
         return {}
@@ -236,8 +236,8 @@ class DataType:
 
     def create_relations(
         self,
-        element: dict[str, Any],  # for override
-        path: list[ArrayPathMember],  # for override
+        element: dict[str, Any],  # noqa ARG002 for extensibility
+        path: list[ArrayPathMember],  # noqa ARG002 for extensibility
     ) -> list[Customization]:
         """Create relations for the data type.
 

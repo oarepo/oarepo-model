@@ -71,7 +71,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after populating the type registry."""
 
-    def after_builder_created(  # too many arguments
+    def after_builder_created(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -82,7 +82,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after the model builder is created."""
 
-    def after_presets_sorted(  # too many arguments
+    def after_presets_sorted(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -93,7 +93,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after the presets are sorted."""
 
-    def after_user_customizations_applied(  # too many arguments
+    def after_user_customizations_applied(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -104,7 +104,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after user customizations are applied."""
 
-    def after_model_built(
+    def after_model_built(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -140,7 +140,7 @@ type PresetList = (
 )
 
 
-def model(  # too many arguments
+def model(  # noqa PLR0913 arguments needed in callback
     name: str,
     presets: PresetList,
     *,
@@ -179,7 +179,7 @@ def model(  # too many arguments
     return _internal_model(**params)
 
 
-def _internal_model(  # too many arguments
+def _internal_model(  # noqa PLR0913 arguments needed in callback
     name: str,
     presets: PresetList,
     *,

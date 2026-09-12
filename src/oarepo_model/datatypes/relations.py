@@ -221,7 +221,7 @@ class PIDRelation(ObjectDataType):
 
     def _relation_path(
         self,
-        element: dict[str, Any],
+        element: dict[str, Any],  # noqa ARG002 for extensibility
         path: list[ArrayPathMember],
     ) -> list:
         """Get the relation path for the PID relation."""
@@ -238,7 +238,7 @@ class PIDRelation(ObjectDataType):
     def _relation_pid_field(
         self,
         element: dict[str, Any],
-        path: list[ArrayPathMember],
+        path: list[ArrayPathMember],  # noqa ARG002 for extensibility
     ) -> PIDFieldContext:
         """Get the PID field from the element."""
         if "pid_field" in element:
@@ -265,14 +265,14 @@ class PIDRelation(ObjectDataType):
     def _relation_cache_key(
         self,
         element: dict[str, Any],
-        path: list[ArrayPathMember],
+        path: list[ArrayPathMember],  # noqa ARG002 for extensibility
     ) -> str | None:
         return element.get("cache_key")
 
     def _relation_key_names(
         self,
         element: dict[str, Any],
-        path: list[ArrayPathMember],
+        path: list[ArrayPathMember],  # noqa ARG002 for extensibility
     ) -> list[str]:
         keys = set()
         for key in element.get("keys", []):

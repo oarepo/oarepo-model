@@ -28,7 +28,7 @@ class AddMetadataExport(Customization):
 
     modifies = ("exports",)
 
-    def __init__(  # too many arguments
+    def __init__(  # noqa PLR0913 arguments needed in callback
         self,
         code: str,
         name: LazyString,

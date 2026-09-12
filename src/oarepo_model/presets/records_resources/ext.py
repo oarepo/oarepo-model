@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 
     from flask import Flask
     from flask.blueprints import BlueprintSetupState
+    from invenio_indexer.registry import IndexerRegistry
+    from invenio_records_resources.registry import ServiceRegistry
     from invenio_records_resources.resources.records import RecordResource
     from invenio_records_resources.services.records import RecordService
 
@@ -205,27 +207,31 @@ class ExtPreset(Preset):
             ext = app.extensions[model.base_name]
 
             # register service
-            sregistry = app.extensions["invenio-records-resources"].registry
+            # neither registry exposes a listing/contains check, but get() raises KeyError
+            # for an id that has not been registered yet
+            sregistry = cast("ServiceRegistry", app.extensions["invenio-records-resources"].registry)
             for service_getter, service_id_getter in runtime_dependencies.get(
                 "services_registry_list",
             ):
                 service = service_getter(ext)
                 service_id = service_id_getter(ext)
-                if (
-                    service_id not in sregistry._services  # private member access
-                ):
+                try:
+                    sregistry.get(service_id)
+                except KeyError:
                     sregistry.register(service, service_id=service_id)
 
             # Register indexer
-            iregistry = app.extensions["invenio-indexer"].registry
+            iregistry = cast("IndexerRegistry", app.extensions["invenio-indexer"].registry)
             for indexer_getter, service_id_getter in runtime_dependencies.get(
                 "indexers_registry_list",
             ):
                 indexer = indexer_getter(ext)
                 service_id = service_id_getter(ext)
-                if (
-                    indexer and service_id not in iregistry._indexers  # private member access
-                ):
+                if indexer is None:
+                    continue
+                try:
+                    iregistry.get(service_id)
+                except KeyError:
                     iregistry.register(indexer, indexer_id=service_id)
 
         add_to_service_and_indexer_registry.__name__ = f"{model.base_name}_add_to_service_and_indexer_registry"

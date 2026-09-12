@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 class AddToDictionary(Customization):
     """Customization to add a value to a dictionary to the model."""
 
-    def __init__(
+    def __init__(  # noqa PLR0913 arguments needed in callback
         self,
         dictionary_name: str,
         *values: dict[Any, Any],
