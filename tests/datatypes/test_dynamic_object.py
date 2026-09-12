@@ -1,17 +1,11 @@
-#
-# Copyright (c) 2026 University of West Bohemia
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2026 University of West Bohemia
+# SPDX-License-Identifier: MIT
+
 """Tests for the dynamic-object bug fix.
 
 Bug 2 — dynamic-object: arbitrary data loaded correctly but dump always returned {}
     because PermissiveSchema has no declared fields (collections.py).
 """
-# ruff: noqa: D102, SLF001
 
 from __future__ import annotations
 
@@ -37,6 +31,7 @@ class TestDynamicObjectRoundTrip:
 
     @pytest.fixture
     def dynamic_field(self, datatype_registry):
+        """Return a marshmallow field for a dynamic-object element."""
         element = {"type": "dynamic-object"}
         return datatype_registry.get_type(element).create_marshmallow_field(field_name="a", element=element)
 

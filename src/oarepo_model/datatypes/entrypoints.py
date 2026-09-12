@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Entry points registry for OARepo data types.
 
@@ -76,13 +70,7 @@ DATA_TYPES: dict[str, type[DataType] | dict[str, Any]] = {
     LazyPIDRelation.TYPE: LazyPIDRelation,
     InternalRelationDataType.TYPE: InternalRelationDataType,
     ICRSShapeDataType.TYPE: ICRSShapeDataType,
-    "multilingual-type": MultilingualDataType,
-    "multilingual": {
-        "type": "multilingual-type",
-        "items": {
-            "type": "i18n",
-        },
-    },
+    MultilingualDataType.TYPE: MultilingualDataType,
     "i18n": {
         "type": "object",
         "properties": {

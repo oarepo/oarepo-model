@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Data type registry for OARepo models.
 
@@ -25,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
 
 from .base import DataType
 from .wrapped import WrappedDataType
@@ -51,7 +45,7 @@ class DataTypeRegistry:
         :param type_dict: A dictionary where keys are type names and values are either DataType
                          subclasses or dictionaries defining the type.
         """
-        self._unwind_shortcuts_in_properties(type_dict)
+        type_dict = self._unwind_shortcuts_in_properties(type_dict)
 
         for type_name, type_cls_or_dict in type_dict.items():
             if isinstance(type_cls_or_dict, dict):
@@ -59,7 +53,7 @@ class DataTypeRegistry:
                     type_name,
                     WrappedDataType(self, type_name, type_cls_or_dict),
                 )
-            elif issubclass(type_cls_or_dict, DataType):
+            elif isinstance(type_cls_or_dict, type) and issubclass(type_cls_or_dict, DataType):
                 self.register(type_name, type_cls_or_dict(self, type_name))
             else:
                 raise TypeError(
@@ -107,11 +101,13 @@ class DataTypeRegistry:
     ) -> dict[str, Any]:
         ret: dict[str, Any] = {}
         for k, v in type_dict.items():
-            vv = v
             if k.endswith("[]"):
-                vv = {"type": "array", "items": vv}
-            vv = self._unwind_shortcuts(vv)
-            ret[k] = vv
+                # "[]" is only the array shortcut marker: strip it so it does not leak into the
+                # declared name (marshmallow field, JSON Schema property, OpenSearch field)
+                name, value = k[:-2], {"type": "array", "items": v}
+            else:
+                name, value = k, v
+            ret[name] = self._unwind_shortcuts(value)
         return ret
 
     def _unwind_shortcuts(self, v: Any) -> Any:
@@ -124,53 +120,51 @@ class DataTypeRegistry:
         return v
 
 
-def from_json(file_name: str, origin: str | None = None) -> dict[str, Any]:
-    """Load custom data types from JSON files.
+def _from_serialized(file_name: str, origin: str | None, load: Callable[[str], Any]) -> dict[str, Any]:
+    """Load data type definitions from a file parsed by ``load``.
 
-    Supports two formats:
-    - A list of objects, each with a 'name' field (converted into a dictionary keyed by 'name')
-    - A dictionary of named objects directly
+    Accepts either a list of objects, each with a 'name' field (converted into a
+    dictionary keyed by 'name'), or a dictionary of named objects directly.
 
     If `origin` is provided, `file_name` is resolved relative to the directory of the origin file.
     Otherwise, it is resolved relative to the current working directory.
+
+    :param file_name: Name of the file containing the data type definitions.
+    :param origin: Optional path to the file from which the load is being called (e.g., `__file__`),
+                   used to resolve the relative path to `file_name`.
+    :param load: Callable that parses the file's text content (e.g. `json.loads`).
+    :return: A dictionary of data type definitions.
+    :raises TypeError: If the loaded content is neither a list nor a dictionary.
+    """
+    path = Path(origin).parent / file_name if origin else Path.cwd() / file_name
+
+    raw = load(path.read_text(encoding="utf-8"))
+    if isinstance(raw, list):
+        return {item.pop("name"): item for item in raw}
+    if isinstance(raw, dict):
+        return raw
+    raise TypeError(f"Expected dict or list, got {type(raw)}")
+
+
+def from_json(file_name: str, origin: str | None = None) -> dict[str, Any]:
+    """Load custom data types from a JSON file (see `_from_serialized` for the format).
 
     :param file_name: Name of the JSON file containing the data type definitions.
     :param origin: Optional path to the file from which the load is being called (e.g., `__file__`),
                    used to resolve the relative path to `file_name`.
-    :return: A callable that returns a dictionary of data types when called.
+    :return: A dictionary of data type definitions.
     :raises TypeError: If the loaded content is neither a list nor a dictionary.
     """
-    path = Path(origin).parent / file_name if origin else Path.cwd() / file_name
-
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    if isinstance(raw, list):
-        return {item.pop("name"): item for item in raw}
-    if isinstance(raw, dict):
-        return raw
-    raise TypeError(f"Expected dict or list, got {type(raw)}")  # pragma: no cover
+    return _from_serialized(file_name, origin, json.loads)
 
 
 def from_yaml(file_name: str, origin: str | None = None) -> dict[str, Any]:
-    """Load custom data types from YAML files.
-
-    Supports two formats:
-    - A list of objects, each with a 'name' field (converted into a dictionary keyed by 'name')
-    - A dictionary of named objects directly
-
-    If `origin` is provided, `file_name` is resolved relative to the directory of the origin file.
-    Otherwise, it is resolved relative to the current working directory.
+    """Load custom data types from a YAML file (see `_from_serialized` for the format).
 
     :param file_name: Name of the YAML file containing the data type definitions.
     :param origin: Optional path to the file from which the load is being called (e.g., `__file__`),
                    used to resolve the relative path to `file_name`.
-    :return: A callable that returns a dictionary of data types when called.
+    :return: A dictionary of data type definitions.
     :raises TypeError: If the loaded content is neither a list nor a dictionary.
     """
-    path = Path(origin).parent / file_name if origin else Path.cwd() / file_name
-
-    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if isinstance(raw, list):
-        return {item.pop("name"): item for item in raw}
-    if isinstance(raw, dict):
-        return raw
-    raise TypeError(f"Expected dict or list, got {type(raw)}")  # pragma: no cover
+    return _from_serialized(file_name, origin, yaml.safe_load)

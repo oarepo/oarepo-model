@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Tests for the OARepo model CLI commands."""
 
 from __future__ import annotations
@@ -181,7 +176,7 @@ def test_dump_schema_field_exception():
             self._internal_validate = "placeholder"
 
         @property
-        def validate(self) -> Any:  # type: ignore[override]
+        def validate(self) -> Any:
             """Property that raises an exception when accessed."""
             raise ValueError("Intentional error for testing")
 

@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """High-level customization for adding item link to service config."""
 
 from __future__ import annotations
@@ -32,7 +27,7 @@ class AddLink(Customization):
 
     def __init__(self, name: str, link: ExternalLink | EndpointLink | ConditionalLink):
         """Initialize the AddLink customization."""
-        super().__init__("AddLink")
+        super().__init__(name)
         self._name = name
         self._link = link
 

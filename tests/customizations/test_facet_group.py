@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -14,13 +9,39 @@ import pytest
 
 from oarepo_model.builder import InvenioModelBuilder
 from oarepo_model.customizations import AddFacetGroup
-from oarepo_model.errors import AlreadyRegisteredError
+from oarepo_model.errors import AlreadyRegisteredError, PartialNotFoundError
 
 
-def test_add_facet_group_defaults_drafts_to_facets():
+def _facet_builder() -> tuple[InvenioModelBuilder, MagicMock]:
     model = MagicMock()
     type_registry = MagicMock()
     builder = InvenioModelBuilder(model, type_registry)
+    builder.add_dictionary("FacetGroups")
+    builder.add_dictionary("DraftFacetGroups")
+    return builder, model
+
+
+def test_add_facet_group_missing_dictionaries_raise():
+    model = MagicMock()
+    type_registry = MagicMock()
+    builder = InvenioModelBuilder(model, type_registry)
+
+    with pytest.raises(PartialNotFoundError, match="FacetGroups"):
+        AddFacetGroup("default", ["metadata.a"]).apply(builder, model)
+
+
+def test_add_facet_group_missing_draft_dictionaries_raise():
+    model = MagicMock()
+    type_registry = MagicMock()
+    builder = InvenioModelBuilder(model, type_registry)
+    builder.add_dictionary("FacetGroups")
+
+    with pytest.raises(PartialNotFoundError, match="DraftFacetGroups"):
+        AddFacetGroup("default", ["metadata.a"]).apply(builder, model)
+
+
+def test_add_facet_group_defaults_drafts_to_facets():
+    builder, model = _facet_builder()
 
     AddFacetGroup("default", ["metadata.a", "metadata.b"]).apply(builder, model)
 
@@ -29,9 +50,7 @@ def test_add_facet_group_defaults_drafts_to_facets():
 
 
 def test_add_facet_group_with_explicit_draft_facets():
-    model = MagicMock()
-    type_registry = MagicMock()
-    builder = InvenioModelBuilder(model, type_registry)
+    builder, model = _facet_builder()
 
     AddFacetGroup(
         "curator",
@@ -47,9 +66,7 @@ def test_add_facet_group_with_explicit_draft_facets():
 
 
 def test_add_facet_group_duplicate_raises():
-    model = MagicMock()
-    type_registry = MagicMock()
-    builder = InvenioModelBuilder(model, type_registry)
+    builder, model = _facet_builder()
 
     AddFacetGroup("default", ["metadata.a"]).apply(builder, model)
 
@@ -58,9 +75,7 @@ def test_add_facet_group_duplicate_raises():
 
 
 def test_add_facet_group_exists_ok_overwrites():
-    model = MagicMock()
-    type_registry = MagicMock()
-    builder = InvenioModelBuilder(model, type_registry)
+    builder, model = _facet_builder()
 
     AddFacetGroup("default", ["metadata.a"]).apply(builder, model)
     AddFacetGroup("default", ["metadata.b"], exists_ok=True).apply(builder, model)

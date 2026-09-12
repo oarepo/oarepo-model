@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Module to generate json shema of an invenio record."""
 
 from __future__ import annotations
@@ -29,7 +24,7 @@ class RecordJSONSchemaPreset(Preset):
     """Preset for record service class."""
 
     modifies = ("jsonschemas",)
-    provides = ("record-jsonschema",)
+    provides = ("record-jsonschema", "record-jsonschema-link")
 
     @override
     def apply(
@@ -74,4 +69,4 @@ class RecordJSONSchemaPreset(Preset):
 def get_json_schema(builder: InvenioModelBuilder, schema_type: Any) -> Mapping[str, Any]:
     """Get the JSON schema for a given schema type."""
     datatype, element = resolve_schema_type(builder, schema_type)
-    return cast("Any", datatype).create_json_schema(element)  # type: ignore[no-any-return]
+    return cast("Any", datatype).create_json_schema(element)

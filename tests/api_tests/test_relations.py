@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 import sys
@@ -59,45 +54,45 @@ def register_fake_runtime_model():
 
 
 # ---------------------------------------------------------------------------
-# PIDRelation._get_properties / _lookup_property / _get_target_properties
+# PIDRelation._get_properties / _lookup_target_element / _get_target_properties
 # ---------------------------------------------------------------------------
 
 
 def test_get_properties_reraises_when_model_unresolvable_and_not_ignoring(pid_relation):
     element = {"model": "does_not_exist_at_all", "keys": ["id"]}
     with pytest.raises(ModuleNotFoundError):
-        pid_relation._get_properties(element, ignore_missing=False)  # noqa: SLF001
+        pid_relation._get_properties(element, ignore_missing=False)
 
 
 def test_get_properties_raises_key_error_with_model_name_in_message(pid_relation, register_fake_runtime_model):
     register_fake_runtime_model("fake_empty_model")  # no oarepo_model_arguments -> target_properties == {}
     element = {"model": "fake_empty_model", "keys": ["nonexistent_key"]}
     with pytest.raises(KeyError, match=r"nonexistent_key.*fake_empty_model"):
-        pid_relation._get_properties(element, ignore_missing=False)  # noqa: SLF001
+        pid_relation._get_properties(element, ignore_missing=False)
 
 
 def test_get_properties_raises_key_error_without_model_name(pid_relation):
     # no "model" key at all - target_properties is {} without even trying to import anything.
     element = {"keys": ["nonexistent_key"]}
     with pytest.raises(KeyError, match="Model name is not available"):
-        pid_relation._get_properties(element, ignore_missing=False)  # noqa: SLF001
+        pid_relation._get_properties(element, ignore_missing=False)
 
 
 def test_get_properties_raises_type_error_for_invalid_key_type(pid_relation):
     element = {"keys": [123]}
     with pytest.raises(TypeError, match="Invalid key type"):
-        pid_relation._get_properties(element)  # noqa: SLF001
+        pid_relation._get_properties(element)
 
 
-def test_lookup_property_returns_none_for_malformed_properties_value(pid_relation):
+def test_lookup_target_element_returns_none_for_malformed_properties_value(pid_relation):
     # "parent.properties" is a string, not a dict - the path can't be descended into.
     malformed_properties = {"parent": {"properties": "not-a-dict"}}
-    assert pid_relation._lookup_property(malformed_properties, "parent.child") is None  # noqa: SLF001
+    assert pid_relation._lookup_target_element(malformed_properties, "parent.child") is None
 
 
 def test_get_target_properties_returns_empty_when_no_model_metadata(pid_relation, register_fake_runtime_model):
     register_fake_runtime_model("fake_no_metadata")
-    properties = pid_relation._get_target_properties({"model": "fake_no_metadata"})  # noqa: SLF001
+    properties = pid_relation._get_target_properties({"model": "fake_no_metadata"})
     assert properties == {}
 
 
@@ -119,7 +114,7 @@ def test_get_target_properties_includes_record_and_metadata_type_properties(
         "fake_with_record_type",
         oarepo_model_arguments={"model_metadata": model_metadata},
     )
-    properties = pid_relation._get_target_properties({"model": "fake_with_record_type"})  # noqa: SLF001
+    properties = pid_relation._get_target_properties({"model": "fake_with_record_type"})
     assert properties["pid"] == {"type": "keyword"}
     assert properties["metadata"] == {"properties": {"title": {"type": "keyword"}}}
 
@@ -134,30 +129,27 @@ def test_relation_pid_field_calls_resolved_pid_field(pid_relation):
         return element["keys"]
 
     element = {"pid_field": _pid_field_getter, "keys": ["id"]}
-    assert pid_relation._relation_pid_field(element, []) == ["id"]  # noqa: SLF001
+    assert pid_relation._relation_pid_field(element, []) == ["id"]
 
 
-def test_relation_pid_field_raises_when_pid_field_not_callable(pid_relation):
-    element = {"pid_field": 42}  # a non-string, non-callable, truthy value
-    with pytest.raises(ValueError, match="could not be imported"):
-        pid_relation._relation_pid_field(element, [])  # noqa: SLF001
-
-
-def test_relation_pid_field_raises_when_record_cls_has_no_pid(pid_relation):
-    element = {"record_cls": object()}  # a plain object has no 'pid' attribute
-    with pytest.raises(ValueError, match="does not have a 'pid' attribute"):
-        pid_relation._relation_pid_field(element, [])  # noqa: SLF001
-
-
-def test_relation_pid_field_raises_when_neither_pid_field_nor_record_cls(pid_relation):
-    with pytest.raises(ValueError, match="Either 'pid_field' or 'record_cls'"):
-        pid_relation._relation_pid_field({}, [])  # noqa: SLF001
+@pytest.mark.parametrize(
+    ("element", "match"),
+    [
+        ({"pid_field": 42}, "could not be imported"),  # a non-string, non-callable, truthy value
+        ({"record_cls": object()}, "does not have a 'pid' attribute"),
+        ({}, "Either 'pid_field' or 'record_cls'"),
+    ],
+    ids=["pid_field_not_callable", "record_cls_has_no_pid", "neither_pid_field_nor_record_cls"],
+)
+def test_relation_pid_field_raises_value_error(pid_relation, element, match):
+    with pytest.raises(ValueError, match=match):
+        pid_relation._relation_pid_field(element, [])
 
 
 def test_relation_key_names_raises_type_error_for_invalid_key_type(pid_relation):
     element = {"keys": [123]}
     with pytest.raises(TypeError, match="Invalid key type"):
-        pid_relation._relation_key_names(element, [])  # noqa: SLF001
+        pid_relation._relation_key_names(element, [])
 
 
 def test_relations(

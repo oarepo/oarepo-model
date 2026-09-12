@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """High-level customization for adding internal (same-record) relations to models.
 
 This module provides the AddInternalRelation customization that creates an
@@ -61,8 +56,7 @@ class AddInternalRelation(RelationFieldCustomization):
             relation's ids up against (see oarepo_runtime's InternalRelations
             system field - it must be configured with a superset of this path).
         """
-        super().__init__("add_internal_relation")
-        self.name = name
+        super().__init__(name)
         self.path = path
         self.keys = keys
         self.target_path = target_path

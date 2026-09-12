@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -16,6 +11,7 @@ from oarepo_model.builder import InvenioModelBuilder
 from oarepo_model.customizations import (
     AddToDictionary,
 )
+from oarepo_model.errors import PartialNotFoundError
 
 
 def test_add_to_dictionary():
@@ -36,8 +32,18 @@ def test_add_to_dictionary():
     AddToDictionary("ADict", key="a", value="d", patch=True).apply(builder, model)
     assert builder.get_dictionary("ADict")["a"] == "d"
 
+    builder.add_dictionary("BDict")
     AddToDictionary("BDict", {"a": "1"}).apply(builder, model)
     assert builder.get_dictionary("BDict")["a"] == "1"
+
+
+def test_add_to_dictionary_missing_dictionary_raises():
+    model = MagicMock()
+    type_registry = MagicMock()
+    builder = InvenioModelBuilder(model, type_registry)
+
+    with pytest.raises(PartialNotFoundError, match="NoDict"):
+        AddToDictionary("NoDict", {"a": "1"}).apply(builder, model)
 
 
 def test_add_to_dictionary_override_values():
@@ -72,3 +78,13 @@ def test_add_to_dictionary_override_values():
         "b": "3",
         "nested": {"x": "original"},
     }
+
+
+def test_add_to_dictionary_patch_without_key_raises():
+    with pytest.raises(ValueError, match="patch=True has no key"):
+        AddToDictionary("ADict", {"a": 1}, patch=True)
+
+
+def test_add_to_dictionary_patch_with_exists_ok_raises():
+    with pytest.raises(ValueError, match="patch=True cannot be combined"):
+        AddToDictionary("ADict", key="a", value=1, patch=True, exists_ok=True)

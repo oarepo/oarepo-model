@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Extension preset for media file handling functionality.
 
 This module provides the ExtMediaFilesPreset that configures
@@ -26,9 +21,7 @@ from oarepo_model.customizations import (
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
-from oarepo_model.presets.records_resources.ext_files import (
-    RecordWithFilesExtensionProtocol,
-)
+from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -43,7 +36,7 @@ if TYPE_CHECKING:
 class ExtMediaFilesPreset(Preset):
     """Preset for extension class."""
 
-    modifies = ("Ext",)
+    modifies = ("Ext", "services_registry_list")
 
     @override
     def apply(
@@ -52,7 +45,7 @@ class ExtMediaFilesPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class ExtMediaFilesMixin(ModelMixin, RecordWithFilesExtensionProtocol):
+        class ExtMediaFilesMixin(ModelMixin, RecordExtensionProtocol):
             """Mixin for extension class."""
 
             app: Flask

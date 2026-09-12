@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Exception classes for OARepo model building and processing.
 
@@ -19,6 +13,25 @@ from __future__ import annotations
 
 class ModelBuildError(Exception):
     """Exception raised for errors in the model building process."""
+
+
+class PresetDeclarationWarning(FutureWarning):
+    """Warning raised when a preset declares provides/modifies that do not match what it does.
+
+    Subclasses FutureWarning, not DeprecationWarning, because it is shown by default: the
+    misdeclared preset is usually in a package the person running the application did not write,
+    and DeprecationWarning is hidden unless the code runs in __main__.
+    """
+
+
+class PostBuildMutationWarning(FutureWarning):
+    """Warning raised when an already built partial is mutated through its raw containers.
+
+    Such a mutation is silently lost, so the preset that performs it usually misses the partial in
+    its `modifies`. Subclasses FutureWarning, not DeprecationWarning, because it is shown by
+    default: the offending preset is usually in a package the person running the application did
+    not write.
+    """
 
 
 class AlreadyRegisteredError(ModelBuildError):

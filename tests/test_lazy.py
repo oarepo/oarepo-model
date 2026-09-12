@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2026 University of West Bohemia
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2026 University of West Bohemia
+# SPDX-License-Identifier: MIT
+
 """Unit tests for the lazy-resolution primitives in oarepo_model.lazy.
 
 The helper classes below are plain concrete subclasses of the abstract
@@ -17,12 +12,15 @@ fully built and registered model.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import marshmallow
 import pytest
 
 from oarepo_model.lazy import LazyJSONNamespaceFilePart, LazyMarshmallowSchema, LazyPythonMapping
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class CountingLazyMapping(LazyPythonMapping):
@@ -71,7 +69,7 @@ class DictJSONNamespaceFilePart(LazyJSONNamespaceFilePart):
 class DictJSONNamespaceFilePartWithExtraFields(DictJSONNamespaceFilePart):
     """A DictJSONNamespaceFilePart that always contributes an 'id' extra field."""
 
-    extra_fields = {"id": 42}  # noqa: RUF012
+    extra_fields: Mapping[str, Any] = {"id": 42}
 
 
 class DefaultLazyMarshmallowSchema(LazyMarshmallowSchema):

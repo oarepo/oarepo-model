@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -16,6 +11,7 @@ from oarepo_model.builder import InvenioModelBuilder
 from oarepo_model.customizations import (
     AddToList,
 )
+from oarepo_model.errors import PartialNotFoundError
 
 
 def test_add_to_list():
@@ -36,5 +32,15 @@ def test_add_to_list():
     AddToList("AList", "item1", exists_ok=True).apply(builder, model)
     assert list(builder.get_list("AList")) == ["item1", "item2", "item1"]
 
+    builder.add_list("BList")
     AddToList("BList", ["item3"]).apply(builder, model)
     assert list(builder.get_list("BList")) == [["item3"]]
+
+
+def test_add_to_list_missing_list_raises():
+    model = MagicMock()
+    type_registry = MagicMock()
+    builder = InvenioModelBuilder(model, type_registry)
+
+    with pytest.raises(PartialNotFoundError, match="NoList"):
+        AddToList("NoList", "item1").apply(builder, model)

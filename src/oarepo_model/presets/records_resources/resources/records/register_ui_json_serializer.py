@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Registration preset for UI JSON serializer in record response handlers.
 
 This module provides a preset that registers the JSONUISerializer with the record
@@ -54,12 +49,20 @@ class RegisterJSONUISerializerPreset(Preset):
     ) -> Generator[Customization]:
         runtime_deps = builder.get_runtime_dependencies()
 
+        def _get_ui_serializer() -> BaseSerializer:
+            """Get the JSON ui serializer from the runtime dependencies.
+
+            The .get needs to be called during runtime so a LazyProxy calling
+            this function is used.
+            """
+            return runtime_deps.get("JSONUISerializer")()
+
         yield AddMetadataExport(
             code="ui_json",
             name=_("UI JSON"),
             mimetype="application/vnd.inveniordm.v1+json",
             serializer=cast(
                 "BaseSerializer",
-                LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),  # noqa: PLW0108
+                LocalProxy(_get_ui_serializer),
             ),
         )

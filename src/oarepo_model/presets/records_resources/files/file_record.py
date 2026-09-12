@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for creating FileRecord API class.
 
 This module provides a preset that creates a FileRecord class based on
@@ -33,29 +28,44 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class FileRecordPreset(Preset):
-    """Preset for FileRecord class."""
+def file_record_preset(name: str, *, model_cls_name: str, record_cls_name: str) -> type[Preset]:
+    """Build a Preset that creates a FileRecord-derived API class.
 
-    provides = ("FileRecord",)
+    ``FileRecordPreset``, ``FileDraftPreset``, ``MediaFileRecordPreset`` and
+    ``MediaFileDraftPreset`` are otherwise identical: each adds an
+    ``InvenioFileRecord`` subclass whose only per-role difference is which
+    ``FileMetadata``-like DB model (``model_cls``) and which parent
+    record/draft (``record_cls``) it is bound to.
 
-    @override
-    def apply(
-        self,
-        builder: InvenioModelBuilder,
-        model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        class FileRecordMixin:
-            """Mixin for the file record."""
+    :param name: the partial name to create, e.g. "FileRecord" or "MediaFileDraft".
+    :param model_cls_name: partial name of the DB model class holding this file's metadata,
+        e.g. "FileMetadata" or "MediaFileDraftMetadata".
+    :param record_cls_name: partial name of the parent record/draft class this file belongs
+        to, e.g. "Record" or "DraftMediaFiles".
+    """
 
-            model_cls = Dependency("FileMetadata")
-            record_cls = Dependency("Record")
+    class FileRecordMixin:
+        """Mixin for the file record."""
 
-        yield AddClass(
-            "FileRecord",
-            clazz=InvenioFileRecord,
-        )
-        yield PrependMixin(
-            "FileRecord",
-            FileRecordMixin,
-        )
+        model_cls = Dependency(model_cls_name)
+        record_cls = Dependency(record_cls_name)
+
+    class FileRecordPreset(Preset):
+        provides = (name,)
+
+        @override
+        def apply(
+            self,
+            builder: InvenioModelBuilder,
+            model: InvenioModel,
+            dependencies: dict[str, Any],
+        ) -> Generator[Customization]:
+            yield AddClass(name, clazz=InvenioFileRecord)
+            yield PrependMixin(name, FileRecordMixin)
+
+    FileRecordPreset.__name__ = FileRecordPreset.__qualname__ = f"{name}Preset"
+    FileRecordPreset.__doc__ = f'Preset for creating the "{name}" file record API class.'
+    return FileRecordPreset
+
+
+FileRecordPreset = file_record_preset("FileRecord", model_cls_name="FileMetadata", record_cls_name="Record")

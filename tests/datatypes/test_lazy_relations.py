@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2026 University of West Bohemia
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2026 University of West Bohemia
+# SPDX-License-Identifier: MIT
+
 """Unit tests for LazyPIDRelation._relation_pid_field and .create_relations.
 
 These call the two methods directly against a registered "lazy-pid-relation"
@@ -15,13 +10,21 @@ mocks, and no need to actually build/register a full model.
 
 from __future__ import annotations
 
+import copy
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
 import marshmallow
 import pytest
+from invenio_records.systemfields.relations import InvalidRelationValue
+from invenio_records_resources.records.systemfields.pid import PIDFieldContext
+from invenio_records_resources.records.systemfields.relations import (
+    PIDRelation as InvenioPIDRelation,
+)
 
 from oarepo_model.customizations.base import Customization
 from oarepo_model.customizations.high_level.add_pid_relation import AddLazyRelation, AddPIDRelation
+from oarepo_model.datatypes import lazy_relations as lazy_relations_module
 from oarepo_model.datatypes.base import DataType
 from oarepo_model.datatypes.lazy_relations import (
     LazyModelPIDFieldContext,
@@ -52,8 +55,8 @@ class NoopRelationDataType(DataType):
 
     def create_relations(
         self,
-        element: dict[str, Any],  # noqa: ARG002
-        path: list[str | type[ARRAY_PATH_ITEM]],  # noqa: ARG002
+        element: dict[str, Any],
+        path: list[str | type[ARRAY_PATH_ITEM]],
     ) -> list[Customization]:
         """Return a single Customization that is not a RelationFieldCustomization."""
         return [NoopCustomization("noop")]
@@ -75,7 +78,7 @@ def test_relation_pid_field_with_pid_field_delegates_to_super(lazy_pid_relation)
         return "the-pid-field"
 
     element = {"pid_field": _pid_field_getter, "keys": []}
-    assert lazy_pid_relation._relation_pid_field(element, []) == "the-pid-field"  # noqa: SLF001
+    assert lazy_pid_relation._relation_pid_field(element, []) == "the-pid-field"
 
 
 def test_relation_pid_field_with_record_cls_delegates_to_super(lazy_pid_relation):
@@ -83,14 +86,96 @@ def test_relation_pid_field_with_record_cls_delegates_to_super(lazy_pid_relation
         pid = object()
 
     element = {"record_cls": DummyRecord, "keys": []}
-    assert lazy_pid_relation._relation_pid_field(element, []) is DummyRecord.pid  # noqa: SLF001
+    assert lazy_pid_relation._relation_pid_field(element, []) is DummyRecord.pid
 
 
 def test_relation_pid_field_falls_back_to_lazy_context_for_bare_model_name(lazy_pid_relation):
     element = {"model": "some_self_referencing_model", "keys": []}
-    pid_field = lazy_pid_relation._relation_pid_field(element, [])  # noqa: SLF001
+    pid_field = lazy_pid_relation._relation_pid_field(element, [])
     assert isinstance(pid_field, LazyModelPIDFieldContext)
     assert pid_field.model_name == "some_self_referencing_model"
+
+
+# ---------------------------------------------------------------------------
+# LazyModelPIDFieldContext
+#
+# The lazy context never calls super().__init__ (the target's real field cannot
+# be known at build time), so everything invenio reads off the context must be
+# delegated to the target's real PIDFieldContext on first use.
+# ---------------------------------------------------------------------------
+
+
+class _FakeTargetRecord:
+    """Stands in for the target model's published Record class."""
+
+
+class _FakeTargetPIDField:
+    """Stands in for the target model's PIDField (the system field itself)."""
+
+    _pid_type = "recid"
+
+
+@pytest.fixture
+def real_pid_field_context() -> PIDFieldContext:
+    """Return a real PIDFieldContext, the way ``Record.pid`` hands one out."""
+    return PIDFieldContext(field=_FakeTargetPIDField(), record_cls=_FakeTargetRecord)
+
+
+@pytest.fixture
+def lazy_pid_field_context(monkeypatch, real_pid_field_context) -> LazyModelPIDFieldContext:
+    """Return a lazy context whose model name resolves to `real_pid_field_context`."""
+    namespace = SimpleNamespace(Record=SimpleNamespace(pid=real_pid_field_context))
+    monkeypatch.setattr(lazy_relations_module, "import_runtime_model", lambda _name: namespace)
+    return LazyModelPIDFieldContext("some_self_referencing_model")
+
+
+def test_lazy_context_proxies_attributes_of_the_real_context(lazy_pid_field_context, real_pid_field_context):
+    # record_cls/field are the ones invenio's PIDRelation.parse_value reads
+    assert lazy_pid_field_context.record_cls is _FakeTargetRecord
+    assert lazy_pid_field_context.field is real_pid_field_context.field
+    # ... as well as the underlying (unset-on-the-wrapper) storage attributes
+    assert lazy_pid_field_context._record_cls is _FakeTargetRecord
+    assert lazy_pid_field_context._field is real_pid_field_context.field
+
+
+def test_lazy_context_unknown_attribute_raises_attribute_error(lazy_pid_field_context):
+    # delegation must not turn every typo into a silently resolved target lookup
+    with pytest.raises(AttributeError, match="not_a_pid_field_attribute"):
+        _ = lazy_pid_field_context.not_a_pid_field_attribute
+
+
+def test_lazy_context_resolve_is_explicitly_delegated(lazy_pid_field_context, monkeypatch):
+    # resolve is defined on PIDFieldContext, so __getattr__ alone would not catch it
+    monkeypatch.setattr(PIDFieldContext, "resolve", lambda self, pid_value, **kwargs: f"resolved:{pid_value}")
+    assert lazy_pid_field_context.resolve("abc") == "resolved:abc"
+
+
+def test_lazy_context_deepcopy_does_not_copy_the_resolved_field(lazy_pid_field_context):
+    assert lazy_pid_field_context.record_cls is _FakeTargetRecord  # force resolution
+
+    copied = copy.deepcopy(lazy_pid_field_context)
+
+    assert isinstance(copied, LazyModelPIDFieldContext)
+    assert copied.model_name == "some_self_referencing_model"
+    # the copy must not carry (a copy of) the resolved target field
+    assert "_real_field" not in copied.__dict__
+    assert copied.record_cls is _FakeTargetRecord
+
+
+def test_relation_with_lazy_context_reports_an_invalid_value(lazy_pid_field_context):
+    """A non-str value must fail as an invalid relation value, naming the target.
+
+    invenio's parse_value reads `record_cls` twice - to recognise a record instance
+    and to build this very message - so a context that does not expose it cannot
+    report the failure at all.
+    """
+    relation = InvenioPIDRelation("direct", keys=["id"], pid_field=lazy_pid_field_context)
+
+    with pytest.raises(InvalidRelationValue, match="_FakeTargetRecord"):
+        relation.parse_value(1234)
+
+    # string PID values (what the REST payload actually carries) are unaffected
+    assert relation.parse_value("deadbeef") == "deadbeef"
 
 
 # ---------------------------------------------------------------------------

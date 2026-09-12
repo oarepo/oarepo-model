@@ -1,12 +1,9 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
+
+import logging
 
 import pytest
 from geopy.exc import GeocoderTimedOut
@@ -156,7 +153,7 @@ def test_geo_distance_param_invalid_value_raises():
 )
 def test_geo_distance_param_pivot(distance, expected_pivot):
     interpreter = GeoDistanceParam(config=None)
-    assert interpreter._pivot(distance) == expected_pivot  # noqa: SLF001
+    assert interpreter._pivot(distance) == expected_pivot
 
 
 def _distance_query(value: str) -> dict:
@@ -608,23 +605,40 @@ def test_geo_distance_param_numeric_coordinates_are_not_geocoded(monkeypatch):
     )
 
 
-@pytest.mark.parametrize(
-    "geocoder_error",
-    [ValueError("Nowhereville"), GeocoderTimedOut("timed out")],
-    ids=["not_found", "geocoder_error"],
-)
-def test_geo_distance_param_geocoding_failure_raises(monkeypatch, geocoder_error):
-    def fail(_name: str) -> tuple[float, float]:
-        raise geocoder_error
+def test_geo_distance_param_location_not_found_raises(monkeypatch):
+    def not_found(location_name: str) -> tuple[float, float]:
+        raise ValueError(location_name)
 
-    monkeypatch.setattr(spherical, "_nominatim_geocode_point", fail)
+    monkeypatch.setattr(spherical, "_nominatim_geocode_point", not_found)
 
     with pytest.raises(QuerystringValidationError):
         GeoDistanceParam(config=None).apply(
             None,
             Search(),
+            {"geo_distance:metadata.location": ["[Nowhereville,50km]"]},
+        )
+
+
+def test_geo_distance_param_geocoder_error_raises(monkeypatch, caplog):
+    """A failing geocoder is an upstream problem, so it must not be reported as a 400."""
+
+    def timed_out(_name: str) -> tuple[float, float]:
+        raise GeocoderTimedOut("timed out")
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_point", timed_out)
+
+    with (
+        pytest.raises(GeocoderTimedOut),
+        caplog.at_level(logging.WARNING, logger="oarepo_model"),
+    ):
+        GeoDistanceParam(config=None).apply(
+            None,
+            Search(),
             {"geo_distance:metadata.location": ["[Prague, Czechia,50km]"]},
         )
+
+    assert "Geocoding of 'Prague, Czechia' for parameter 'geo_distance:metadata.location' failed" in caplog.text
+    assert "GeocoderTimedOut" in caplog.text
 
 
 # --- _get_geocode() itself: lazy construction, config-driven, no network call ---
