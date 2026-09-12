@@ -1,12 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-# Copyright (c) 2026 University of West Bohemia
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Collection data types for OARepo models.
 
@@ -38,6 +31,25 @@ class NoPropertiesError(Exception):
     """Raised when no properties are found for a data type."""
 
 
+class NoItemsError(Exception):
+    """Raised when no item definition is found for an array data type."""
+
+
+def _facet_child_path(path: str, key: str) -> str:
+    """Build the facet path for a child property named ``key`` under ``path``.
+
+    Compares ``key`` against the *last dot-separated segment* of ``path`` (not
+    a substring match) so that a child whose name happens to end with the same
+    characters as its parent's path (e.g. parent path "surname", child key
+    "name") is not mistaken for the "path already includes this key" case.
+    """
+    if not path:
+        return key
+    if path.rsplit(".", 1)[-1] == key:
+        return path
+    return f"{path}.{key}"
+
+
 class ObjectDataType(DataType):
     """A data type representing an object in the Oarepo model.
 
@@ -56,7 +68,7 @@ class ObjectDataType(DataType):
         This method can be overridden by subclasses to provide specific properties logic.
         """
         if "properties" not in element:
-            raise NoPropertiesError(f"Element must contain 'properties' key. Got {element}")  # pragma: no cover
+            raise NoPropertiesError(f"Element must contain 'properties' key. Got {element}")
         if not isinstance(element["properties"], dict):
             raise TypeError(
                 "Element 'properties' must be a dictionary.",
@@ -160,12 +172,7 @@ class ObjectDataType(DataType):
             for key, value in properties.items():
                 if ignored_keys is not None and key in ignored_keys:
                     continue
-                if path == "":
-                    _path = key
-                elif path.endswith(key):
-                    _path = path
-                else:
-                    _path = path + "." + key
+                _path = _facet_child_path(path, key)
                 facets.update(self._registry.get_type(value).get_facet(_path, value, nested_facets, facets))
 
         return facets
@@ -202,10 +209,12 @@ class ObjectDataType(DataType):
         field_name: str,
         element: dict[str, Any],
     ) -> dict[str, Any]:
-        return {
-            "nested": self.create_marshmallow_schema(element),
-            **super()._get_marshmallow_field_args(field_name, element),
-        }
+        ret = super()._get_marshmallow_field_args(field_name, element)
+        # 'nested' is only meaningful for Nested fields; any other field class would
+        # swallow it into its metadata and marshmallow would warn about the unknown arg.
+        if issubclass(self._get_marshmallow_field_class(field_name, element), marshmallow.fields.Nested):
+            ret["nested"] = self.create_marshmallow_schema(element)
+        return ret
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> Mapping[str, Any]:
@@ -298,7 +307,7 @@ class NestedDataType(ObjectDataType):
             for key, value in properties.items():
                 if ignored_keys is not None and key in ignored_keys:
                     continue
-                _path = path if path.endswith(key) else f"{path}.{key}"
+                _path = _facet_child_path(path, key)
 
                 facets.update(
                     self._registry.get_type(value).get_facet(
@@ -339,18 +348,30 @@ class ArrayDataType(FacetMixin, DataType):
     jsonschema_type = "array"
     marshmallow_field_class = marshmallow.fields.List
 
+    def _get_items(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Get the items for the array data type.
+
+        This method can be overridden by subclasses to provide specific item logic.
+        """
+        if "items" not in element:
+            raise NoItemsError(f"Element must contain 'items' key. Got {element}")
+        if not isinstance(element["items"], dict):
+            raise TypeError(
+                "Element 'items' must be a dictionary.",
+            )
+        return element["items"]
+
     @override
     def _get_marshmallow_field_args(
         self,
         field_name: str,
         element: dict[str, Any],
     ) -> dict[str, Any]:
-        if "items" not in element:
-            raise ValueError("Element must contain 'items' key.")
+        items = self._get_items(element)
         ret = super()._get_marshmallow_field_args(field_name, element)
         ret["cls_or_instance"] = self._registry.get_type(
-            element["items"],
-        ).create_marshmallow_field(ARRAY_ITEM_PATH, element["items"])
+            items,
+        ).create_marshmallow_field(ARRAY_ITEM_PATH, items)
         if "min_items" in element or "max_items" in element:
             ret.setdefault("validate", []).append(
                 marshmallow.validate.Length(
@@ -385,8 +406,8 @@ class ArrayDataType(FacetMixin, DataType):
 
         # retrieve formatting options (e.g. for the date items type -> long, short etc.)
         items_fields = self._registry.get_type(
-            element["items"],
-        ).create_ui_marshmallow_fields("item", element["items"])
+            self._get_items(element),
+        ).create_ui_marshmallow_fields("item", self._get_items(element))
         # no transformations
         if not items_fields:
             return {}
@@ -400,25 +421,28 @@ class ArrayDataType(FacetMixin, DataType):
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        items = self._get_items(element)
         return {
             **super().create_json_schema(element),
-            "items": self._registry.get_type(element["items"]).create_json_schema(
-                element["items"],
+            "items": self._registry.get_type(items).create_json_schema(
+                items,
             ),
         }
 
     @override
     def create_mapping(self, element: dict[str, Any]) -> Mapping[str, Any]:
         # skip the array in mapping
-        return self._registry.get_type(element["items"]).create_mapping(
-            element["items"],
+        items = self._get_items(element)
+        return self._registry.get_type(items).create_mapping(
+            items,
         )
 
     @override
     def visit(self, element: dict[str, Any], path: list[str], visitor: Any) -> None:
         """Visit array data type and its item data type."""
         super().visit(element, path, visitor)
-        self._registry.get_type(element["items"]).visit(element["items"], [*path, ARRAY_ITEM_PATH], visitor)
+        items = self._get_items(element)
+        self._registry.get_type(items).visit(items, [*path, ARRAY_ITEM_PATH], visitor)
 
     @override
     def create_ui_model(
@@ -431,8 +455,9 @@ class ArrayDataType(FacetMixin, DataType):
         This method should be overridden by subclasses to provide specific UI model creation logic.
         """
         ret = super().create_ui_model(element, path)
-        ret["child"] = self._registry.get_type(element["items"]).create_ui_model(
-            element["items"],
+        items = self._get_items(element)
+        ret["child"] = self._registry.get_type(items).create_ui_model(
+            items,
             [*path, ARRAY_ITEM_PATH],
         )
         if "min_items" in element or "max_items" in element:
@@ -448,11 +473,13 @@ class ArrayDataType(FacetMixin, DataType):
         element: dict[str, Any],
         path: list[ArrayPathMember],
     ) -> list[Customization]:
-        return self._registry.get_type(element["items"]).create_relations(
-            element["items"],
+        items = self._get_items(element)
+        return self._registry.get_type(items).create_relations(
+            items,
             [*path, ARRAY_PATH_ITEM],
         )
 
+    @override
     def get_facet(
         self,
         path: str,
@@ -460,14 +487,15 @@ class ArrayDataType(FacetMixin, DataType):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Create facets for the data type."""
-        _ = path_suffix  # path suffix is not used for arrays
-        path = path.removesuffix("[]")
-        value = element.get("items", element)
-        if "label" in element and "label" not in value:
-            value = {**value, "label": element["label"]}
-        facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
+        _ = path_suffix, ignored_keys  # not used for arrays
+        with contextlib.suppress(NoItemsError):
+            value = self._get_items(element)
+            if "label" in element and "label" not in value:
+                value = {**value, "label": element["label"]}
+            facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
         return facets
 
 
@@ -481,38 +509,31 @@ class PermissiveSchema(marshmallow.Schema):
 
 
 class DynamicObjectDataType(ObjectDataType):
-    """A data type for multilingual dictionaries.
+    """A data type for objects whose keys are not known in advance.
 
-    Their serialization is:
+    Unlike a regular object, no properties are declared, so any content is accepted:
     {
-        "en": "English text",
-        "fi": "Finnish text",
+        "any": "key",
+        "can": {"appear": "here"},
         ...
     }
+
+    The value is passed through marshmallow unchanged (fields.Raw), described in
+    JSON schema as an object with additionalProperties, and indexed by a dynamic
+    OpenSearch mapping. As its keys are unknown, it supports neither relations
+    nor UI fields.
     """
 
     TYPE = "dynamic-object"
+
+    # passes arbitrary JSON through unchanged on both load and dump; a Nested
+    # PermissiveSchema would load it fine but dump nothing, as it declares no fields
+    marshmallow_field_class = marshmallow.fields.Raw
 
     @override
     def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
         """Get properties for the data type."""
         return {}  # dynamic object has no explicit properties
-
-    @override
-    def create_marshmallow_field(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> marshmallow.fields.Field:
-        """Return a Raw field that passes arbitrary JSON through unchanged on both load and dump."""
-        # Use the base DataType args, not ObjectDataType's override, because
-        # ObjectDataType._get_marshmallow_field_args injects 'nested' which is
-        # only meaningful for Nested fields and causes a marshmallow warning on Raw.
-        from .base import DataType
-
-        return marshmallow.fields.Raw(
-            **DataType._get_marshmallow_field_args(self, field_name, element),  # noqa: SLF001
-        )
 
     @override
     def create_marshmallow_schema(

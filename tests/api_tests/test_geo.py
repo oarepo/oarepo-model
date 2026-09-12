@@ -1,15 +1,12 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
+import logging
+
 import pytest
-from geopy.exc import GeocoderTimedOut
+from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
 from invenio_records_resources.services.errors import QuerystringValidationError
 from opensearch_dsl import Search
 from opensearchpy.exceptions import RequestError
@@ -159,7 +156,7 @@ def test_geo_distance_param_invalid_value_raises():
 )
 def test_geo_distance_param_pivot(distance, expected_pivot):
     interpreter = GeoDistanceParam(config=None)
-    assert interpreter._pivot(distance) == expected_pivot  # noqa: SLF001
+    assert interpreter._pivot(distance) == expected_pivot
 
 
 # A ~1x1 degree box roughly covering Prague. lat: 49.5-50.5, lon: 14.0-15.0.
@@ -450,11 +447,12 @@ def test_geo_shape_param_removes_key_from_facets_bucket():
 
 
 def test_geo_shape_param_invalid_value_raises():
+    """Malformed WKT is a client error; plain text is not invalid, it is a place name."""
     with pytest.raises(QuerystringValidationError):
         GeoShapeParam(config=None).apply(
             None,
             Search(),
-            {"geo_shape:metadata.location": ["not a shape"]},
+            {"geo_shape:metadata.location": ["POINT (abc)"]},
         )
 
 
@@ -558,17 +556,39 @@ def test_geo_distance_param_location_not_found_raises(monkeypatch):
         )
 
 
-def test_geo_distance_param_geocoder_error_raises(monkeypatch):
+def test_geo_distance_param_geocoder_error_raises(monkeypatch, caplog):
+    """A failing geocoder is an upstream problem, so it must not be reported as a 400."""
+
     def timed_out(_name: str) -> tuple[float, float]:
         raise GeocoderTimedOut("timed out")
 
     monkeypatch.setattr(spherical, "_nominatim_geocode_point", timed_out)
 
-    with pytest.raises(QuerystringValidationError):
+    with (
+        pytest.raises(GeocoderTimedOut),
+        caplog.at_level(logging.WARNING, logger="oarepo_model"),
+    ):
         GeoDistanceParam(config=None).apply(
             None,
             Search(),
             {"geo_distance:metadata.location": ["[Prague, Czechia,50km]"]},
+        )
+
+    assert "Geocoding of 'Prague, Czechia' for parameter 'geo_distance:metadata.location' failed" in caplog.text
+    assert "GeocoderTimedOut" in caplog.text
+
+
+def test_geo_shape_param_geocoder_error_raises(monkeypatch):
+    def unavailable(_name: str) -> dict:
+        raise GeocoderUnavailable("unavailable")
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", unavailable)
+
+    with pytest.raises(GeocoderUnavailable):
+        GeoShapeParam(config=None).apply(
+            None,
+            Search(),
+            {"geo_shape:metadata.location": ["Prague, Czechia"]},
         )
 
 

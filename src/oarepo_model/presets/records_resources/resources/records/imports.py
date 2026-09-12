@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Imports preset for records."""
 
 from __future__ import annotations
@@ -43,13 +38,22 @@ class ImportsPreset(Preset):
         yield AddList(
             "imports",
         )
+
+        def _get_deserializer() -> JSONDeserializer:
+            """Get the JSON deserializer from the runtime dependencies.
+
+            The .get needs to be called during runtime so a LazyProxy calling
+            this function is used.
+            """
+            return runtime_dependencies.get("JSONDeserializer")()
+
         yield AddMetadataImport(
             code="json",
             name=_("JSON"),
             mimetype="application/json",
             deserializer=cast(
                 "JSONDeserializer",
-                LazyProxy(lambda: runtime_dependencies.get("JSONDeserializer")()),  # noqa: PLW0108
+                LazyProxy(_get_deserializer),
             ),
             description=_("json import"),
         )

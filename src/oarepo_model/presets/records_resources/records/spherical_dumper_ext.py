@@ -1,28 +1,17 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Spherical coordinate dumper extensions generated from model data types."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import Any
 
-from oarepo_model.customizations import AddToList, Customization
 from oarepo_model.datatypes.spherical import ICRSDataType
-from oarepo_model.datatypes.tree import get_model_nodes
-from oarepo_model.presets import Preset
-from oarepo_model.presets.records_resources.records.path_dumper_ext import PathDumperExtBase
-
-if TYPE_CHECKING:
-    from collections.abc import Generator
-
-    from oarepo_model.builder import InvenioModelBuilder
-    from oarepo_model.model import InvenioModel
+from oarepo_model.presets.records_resources.records.path_dumper_ext import (
+    PathDumperExtBase,
+    PathDumperExtPreset,
+)
 
 
 class ICRSDumperExt(PathDumperExtBase):
@@ -47,27 +36,8 @@ class ICRSDumperExt(PathDumperExtBase):
         }
 
 
-class ICRSDumperExtPreset(Preset):
+class ICRSDumperExtPreset(PathDumperExtPreset):
     """Preset that converts icrs fields to geo_point opensearch fields and vice versa."""
 
-    modifies = ("record_dumper_extensions",)
-
-    @override
-    def apply(
-        self,
-        builder: InvenioModelBuilder,
-        model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        paths = [
-            path
-            for _datatype, path in get_model_nodes(
-                builder,
-                model,
-                lambda datatype: isinstance(datatype, ICRSDataType),
-                unique=True,
-            )
-        ]
-
-        if paths:
-            yield AddToList("record_dumper_extensions", ICRSDumperExt(paths))
+    datatype_class = ICRSDataType
+    dumper_ext_class = ICRSDumperExt

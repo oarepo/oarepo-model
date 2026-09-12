@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Customization for adding values to lists in the model.
 
 This module provides the AddToList customization that allows appending new
@@ -38,9 +33,11 @@ class AddToList(Customization):
         self.value = value
         self.exists_ok = exists_ok
 
+    modifies_own_name = True
+
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-        d = builder.add_list(self.name, exists_ok=True)
+        d = builder.get_list(self.name)
         if self.value in d and not self.exists_ok:
             raise ValueError(
                 f"Value '{self.value}' already exists in list '{self.name}'.",

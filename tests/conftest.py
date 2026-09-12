@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 import logging
@@ -112,52 +107,54 @@ def model_types_in_yaml_with_origin():
 #
 
 
+def _build_model(name, types, presets, customizations=(), **kwargs):
+    """Build, register and time a session-scoped test model."""
+    from oarepo_model.api import model
+
+    t1 = time.time()
+    built = model(
+        name=name,
+        version=kwargs.pop("version", "1.0.0"),
+        presets=presets,
+        types=types if isinstance(types, list) else [types],
+        metadata_type=kwargs.pop("metadata_type", "Metadata"),
+        customizations=list(customizations),
+        **kwargs,
+    )
+    built.register()
+    log.info("Model %s created in %.2f seconds", name, time.time() - t1)
+    return built
+
+
 @pytest.fixture(scope="session")
 def empty_model(model_types):
-    from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.ui_links import ui_links_preset
 
-    t1 = time.time()
-
-    empty_model = model(
-        name="test",
-        version="1.0.0",
-        presets=[records_resources_preset, ui_links_preset],
-        types=[model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "test",
+        model_types,
+        [records_resources_preset, ui_links_preset],
     )
-    empty_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return empty_model
 
 
 @pytest.fixture(scope="session")
 def synthetic_metadata_model(model_types):
-    from oarepo_model.api import model
     from oarepo_model.customizations.high_level.set_synthetic_metadata import (
         SetSyntheticMetadata,
     )
     from oarepo_model.presets.records_resources import records_resources_preset
 
-    synthetic_metadata_model = model(
-        name="synthetic_metadata_test",
-        version="1.0.0",
-        presets=[records_resources_preset],
-        types=[model_types],
-        metadata_type="Metadata",
-        customizations=[
+    return _build_model(
+        "synthetic_metadata_test",
+        model_types,
+        [records_resources_preset],
+        [
             SetSyntheticMetadata(
                 title_upper=lambda d: d["title"].upper(),
             ),
         ],
     )
-    synthetic_metadata_model.register()
-    return synthetic_metadata_model
 
 
 @pytest.fixture(scope="session")
@@ -168,7 +165,6 @@ def csv_imports_model(model_types):
 
     from flask_resources.deserializers.base import DeserializerMixin
 
-    from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.ui_links import ui_links_preset
 
@@ -210,15 +206,11 @@ def csv_imports_model(model_types):
                     pass
             return s
 
-    t1 = time.time()
-
-    csv_imports_model = model(
-        name="csv_imports_test",
-        version="1.0.0",
-        presets=[records_resources_preset, ui_links_preset],
-        types=[model_types],
-        metadata_type="Metadata",
-        customizations=[
+    return _build_model(
+        "csv_imports_test",
+        model_types,
+        [records_resources_preset, ui_links_preset],
+        [
             AddMetadataImport(
                 code="csv",
                 name=_("CSV"),
@@ -229,12 +221,6 @@ def csv_imports_model(model_types):
             )
         ],
     )
-    csv_imports_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return csv_imports_model
 
 
 @pytest.fixture(scope="session")
@@ -244,7 +230,6 @@ def datacite_exports_model(model_types):
 
     from flask_resources.serializers import BaseSerializer
 
-    from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_records_preset
     from oarepo_model.presets.records_resources import records_preset
     from oarepo_model.presets.ui import ui_preset
@@ -258,20 +243,11 @@ def datacite_exports_model(model_types):
             with (Path(__file__).parent / "data/datacite_export.json").open() as f:
                 return json.load(f)["data"]["attributes"]
 
-    t1 = time.time()
-
-    datacite_exports_model = model(
-        name="datacite_export_test",
-        version="1.0.0",
-        presets=[
-            records_preset,
-            drafts_records_preset,
-            ui_links_preset,
-            ui_preset,
-        ],
-        types=[model_types],
-        metadata_type="Metadata",
-        customizations=[
+    return _build_model(
+        "datacite_export_test",
+        model_types,
+        [records_preset, drafts_records_preset, ui_links_preset, ui_preset],
+        [
             AddMetadataExport(
                 code="datacite",
                 name=_("Datacite"),
@@ -285,93 +261,50 @@ def datacite_exports_model(model_types):
         ],
         configuration={"ui_blueprint_name": "datacite_export_test_ui"},
     )
-    datacite_exports_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return datacite_exports_model
 
 
 @pytest.fixture(scope="session")
 def draft_model(model_types):
-    from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_records_preset
     from oarepo_model.presets.records_resources import records_preset
     from oarepo_model.presets.ui_links import ui_links_preset
 
-    t1 = time.time()
-
-    draft_model = model(
-        name="draft_test",
-        version="1.0.0",
-        presets=[records_preset, drafts_records_preset, ui_links_preset],
-        types=[model_types],
-        metadata_type="Metadata",
-        customizations=[
-            SetDefaultSearchFields("title"),
-        ],
+    return _build_model(
+        "draft_test",
+        model_types,
+        [records_preset, drafts_records_preset, ui_links_preset],
+        [SetDefaultSearchFields("title")],
     )
-    draft_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return draft_model
 
 
 @pytest.fixture(scope="session")
 def facet_model(model_types):
-    from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_records_preset
     from oarepo_model.presets.records_resources import records_preset
 
-    t1 = time.time()
-
-    facet_model = model(
-        name="facet_test",
-        version="1.0.0",
-        presets=[records_preset, drafts_records_preset],
-        types=[facet_model_types, record_model_types],
-        metadata_type="Metadata",
-        record_type="Record",
-        customizations=[
+    return _build_model(
+        "facet_test",
+        [facet_model_types, record_model_types],
+        [records_preset, drafts_records_preset],
+        [
             AddFacetGroup("curator", ["metadata.b", "metadata.jej.c", "metadata.vlastni"]),
             AddFacetGroup("default", ["metadata.b", "metadata.jej.c"]),
             AddFacetGroup("owner", ["metadata.jej.c", "metadata.b"]),
         ],
+        record_type="Record",
     )
-
-    facet_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return facet_model
 
 
 @pytest.fixture(scope="session")
 def draft_model_with_files(model_types):
-    from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_preset
     from oarepo_model.presets.records_resources import records_resources_preset
 
-    t1 = time.time()
-
-    draft_model = model(
-        name="draft_with_files",
-        version="1.0.0",
-        presets=[records_resources_preset, drafts_preset],
-        types=[model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "draft_with_files",
+        model_types,
+        [records_resources_preset, drafts_preset],
     )
-    draft_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return draft_model
 
 
 facet_model_types = {
@@ -708,70 +641,39 @@ multilingual_model_types = {
 
 @pytest.fixture(scope="session")
 def relation_model(empty_model):
-    from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
 
-    t1 = time.time()
-
-    relation_model = model(
-        name="relation_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset],
-        types=[relation_model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "relation_test",
+        relation_model_types,
+        [records_resources_preset, relations_preset],
     )
-    relation_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return relation_model
 
 
 @pytest.fixture(scope="session")
 def recursive_relation_model(empty_model):
-    from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
 
-    t1 = time.time()
-
-    relation_model = model(
-        name="recursive_relation_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, ui_preset],
-        types=[recursive_relation_model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "recursive_relation_test",
+        recursive_relation_model_types,
+        [records_resources_preset, relations_preset, ui_preset],
     )
-    relation_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return relation_model
 
 
 @pytest.fixture(scope="session")
 def records_cf_model(model_types):
-    from oarepo_model.api import model
     from oarepo_model.presets.custom_fields import custom_fields_preset
     from oarepo_model.presets.records_resources import records_resources_preset
 
-    m = model(
-        name="records_cf",
-        version="1.0.0",
-        presets=[records_resources_preset, custom_fields_preset],
-        types=[model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "records_cf",
+        model_types,
+        [records_resources_preset, custom_fields_preset],
     )
-    m.register()
-
-    return m
 
 
 geo_model_types = {
@@ -786,20 +688,9 @@ geo_model_types = {
 
 @pytest.fixture(scope="session")
 def geo_model():
-    from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_preset
 
-    m = model(
-        name="geo_test",
-        version="1.0.0",
-        presets=[records_preset],
-        types=[geo_model_types],
-        metadata_type="Metadata",
-        customizations=[],
-    )
-    m.register()
-
-    return m
+    return _build_model("geo_test", geo_model_types, [records_preset])
 
 
 icrs_model_types = {
@@ -814,45 +705,26 @@ icrs_model_types = {
 
 @pytest.fixture(scope="session")
 def icrs_model():
-    from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_preset
 
-    m = model(
-        name="icrs_test",
-        version="1.0.0",
-        presets=[records_preset],
-        types=[icrs_model_types],
-        metadata_type="Metadata",
-        customizations=[],
-    )
-    m.register()
-
-    return m
+    return _build_model("icrs_test", icrs_model_types, [records_preset])
 
 
 @pytest.fixture(scope="session")
 def drafts_cf_model(model_types):
-    from oarepo_model.api import model
     from oarepo_model.presets.custom_fields import custom_fields_preset
     from oarepo_model.presets.drafts import drafts_preset
     from oarepo_model.presets.records_resources import records_resources_preset
 
-    m = model(
-        name="drafts_cf",
-        version="1.0.0",
-        presets=[records_resources_preset, drafts_preset, custom_fields_preset],
-        types=[model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "drafts_cf",
+        model_types,
+        [records_resources_preset, drafts_preset, custom_fields_preset],
     )
-    m.register()
-
-    return m
 
 
 @pytest.fixture(scope="session")
 def vocabulary_model(empty_model):
-    from oarepo_model.api import model
     from oarepo_model.customizations import (
         SetIndexNestedFieldsLimit,
         SetIndexTotalFieldsLimit,
@@ -861,81 +733,42 @@ def vocabulary_model(empty_model):
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
 
-    t1 = time.time()
-
-    vocabulary_model = model(
-        name="vocabulary_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, ui_preset],
-        types=[vocabulary_model_types],
-        metadata_type="Metadata",
-        customizations=[
+    return _build_model(
+        "vocabulary_test",
+        vocabulary_model_types,
+        [records_resources_preset, relations_preset, ui_preset],
+        [
             SetIndexTotalFieldsLimit(2000),
             SetIndexNestedFieldsLimit(1000),
         ],
     )
-    vocabulary_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return vocabulary_model
 
 
 @pytest.fixture(scope="session")
 def multilingual_model(empty_model):
-    from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
 
-    t1 = time.time()
-
-    multilingual_model = model(
-        name="multilingual_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset],
-        types=[multilingual_model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "multilingual_test",
+        multilingual_model_types,
+        [records_resources_preset, relations_preset],
     )
-    multilingual_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return multilingual_model
 
 
 @pytest.fixture(scope="session")
 def ui_links_model(model_types):
-    from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_records_preset
     from oarepo_model.presets.records_resources import records_preset
     from oarepo_model.presets.ui import ui_preset
     from oarepo_model.presets.ui_links import ui_links_preset
 
-    t1 = time.time()
-
-    ui_links_model = model(
-        name="test_ui_links",
-        version="1.0.0",
-        presets=[
-            records_preset,
-            drafts_records_preset,
-            ui_links_preset,
-            ui_preset,
-        ],
-        types=[model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "test_ui_links",
+        model_types,
+        [records_preset, drafts_records_preset, ui_links_preset, ui_preset],
         configuration={"ui_blueprint_name": "test_ui_links_ui"},
     )
-    ui_links_model.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return ui_links_model
 
 
 internal_relation_model_types = {
@@ -1006,28 +839,16 @@ internal_relation_nested_key_model_types = {
 
 @pytest.fixture(scope="session")
 def internal_relation_model(empty_model):
-    from oarepo_model.api import model
     from oarepo_model.presets.internal_relations import internal_relations_preset
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
 
-    t1 = time.time()
-
-    im = model(
-        name="ir_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
-        types=[internal_relation_model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "ir_test",
+        internal_relation_model_types,
+        [records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
     )
-    im.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return im
 
 
 # Model types for testing an internal-relation whose target is an array of a
@@ -1080,55 +901,31 @@ internal_relation_polymorphic_target_model_types = {
 @pytest.fixture(scope="session")
 def internal_relation_polymorphic_target_model(empty_model):
     """Model with an internal relation targeting an array of a polymorphic type."""
-    from oarepo_model.api import model
     from oarepo_model.presets.internal_relations import internal_relations_preset
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
 
-    t1 = time.time()
-
-    im = model(
-        name="ir_polymorphic_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
-        types=[internal_relation_polymorphic_target_model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "ir_polymorphic_test",
+        internal_relation_polymorphic_target_model_types,
+        [records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
     )
-    im.register()
-
-    t2 = time.time()
-    log.info("Polymorphic-target model created in %.2f seconds", t2 - t1)
-
-    return im
 
 
 @pytest.fixture(scope="session")
 def internal_relation_nested_key_model(empty_model):
     """Model with internal relation using nested keys like 'provider.name'."""
-    from oarepo_model.api import model
     from oarepo_model.presets.internal_relations import internal_relations_preset
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
 
-    t1 = time.time()
-
-    im = model(
-        name="irnkd",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
-        types=[internal_relation_nested_key_model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "irnkd",
+        internal_relation_nested_key_model_types,
+        [records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
     )
-    im.register()
-
-    t2 = time.time()
-    log.info("Nested key model created in %.2f seconds", t2 - t1)
-
-    return im
 
 
 internal_relation_draft_model_types = {
@@ -1208,62 +1005,38 @@ internal_relation_array_model_types = {
 
 @pytest.fixture(scope="session")
 def internal_relation_draft_model(empty_model):
-    from oarepo_model.api import model
     from oarepo_model.presets.drafts import drafts_preset
     from oarepo_model.presets.internal_relations import internal_relations_preset
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
 
-    t1 = time.time()
-
-    im = model(
-        name="ir_draft_test",
-        version="1.0.0",
-        presets=[
+    return _build_model(
+        "ir_draft_test",
+        internal_relation_draft_model_types,
+        [
             records_resources_preset,
             drafts_preset,
             relations_preset,
             internal_relations_preset,
             ui_preset,
         ],
-        types=[internal_relation_draft_model_types],
-        metadata_type="Metadata",
-        customizations=[],
     )
-    im.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return im
 
 
 @pytest.fixture(scope="session")
 def internal_relation_array_model(empty_model):
     """Model with an array internal relation (used_instruments) for testing."""
-    from oarepo_model.api import model
     from oarepo_model.presets.internal_relations import internal_relations_preset
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
 
-    t1 = time.time()
-
-    im = model(
-        name="ir_array_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
-        types=[internal_relation_array_model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "ir_array_test",
+        internal_relation_array_model_types,
+        [records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
     )
-    im.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return im
 
 
 # Model types for testing nested-relation discovery inside an internal
@@ -1331,28 +1104,16 @@ def internal_relation_nested_model(empty_model):
     set for the duration of *this* model's own build, long gone by the time
     `_resolve_nested_relation_fields` actually runs).
     """
-    from oarepo_model.api import model
     from oarepo_model.presets.internal_relations import internal_relations_preset
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
 
-    t1 = time.time()
-
-    im = model(
-        name="ir_nested_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
-        types=[internal_relation_nested_model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "ir_nested_test",
+        internal_relation_nested_model_types,
+        [records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
     )
-    im.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return im
 
 
 # Model types for relations whose 'keys' do NOT list "id" explicitly. Both
@@ -1384,28 +1145,16 @@ internal_relation_no_id_key_model_types = {
 @pytest.fixture(scope="session")
 def internal_relation_no_id_key_model(empty_model):
     """Model with an internal relation whose 'keys' omit "id"."""
-    from oarepo_model.api import model
     from oarepo_model.presets.internal_relations import internal_relations_preset
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
 
-    t1 = time.time()
-
-    im = model(
-        name="ir_no_id_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
-        types=[internal_relation_no_id_key_model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "ir_no_id_test",
+        internal_relation_no_id_key_model_types,
+        [records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
     )
-    im.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return im
 
 
 recursive_relation_no_id_key_model_types = {
@@ -1425,27 +1174,15 @@ recursive_relation_no_id_key_model_types = {
 @pytest.fixture(scope="session")
 def recursive_relation_no_id_key_model(empty_model):
     """Model with a self-referencing pid relation whose 'keys' omit "id"."""
-    from oarepo_model.api import model
     from oarepo_model.presets.records_resources import records_resources_preset
     from oarepo_model.presets.relations import relations_preset
     from oarepo_model.presets.ui import ui_preset
 
-    t1 = time.time()
-
-    rm = model(
-        name="recursive_no_id_test",
-        version="1.0.0",
-        presets=[records_resources_preset, relations_preset, ui_preset],
-        types=[recursive_relation_no_id_key_model_types],
-        metadata_type="Metadata",
-        customizations=[],
+    return _build_model(
+        "recursive_no_id_test",
+        recursive_relation_no_id_key_model_types,
+        [records_resources_preset, relations_preset, ui_preset],
     )
-    rm.register()
-
-    t2 = time.time()
-    log.info("Model created in %.2f seconds", t2 - t1)
-
-    return rm
 
 
 @pytest.fixture(scope="module")
@@ -1479,7 +1216,7 @@ def app_config(
     app_config["RECORDS_CF_CUSTOM_FIELDS"] = {
         TextCF(  # a text input field that will allow HTML tags
             name="cern:experiment",
-            field_cls=SanitizedHTML,  # type: ignore[assignment]
+            field_cls=SanitizedHTML,
         ),
     }
 

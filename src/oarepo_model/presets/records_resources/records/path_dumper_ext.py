@@ -1,23 +1,25 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
-"""Base class for dumper extensions that convert field values at model paths."""
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
+"""Base machinery for dumper extensions that convert field values at model paths."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar, override
 
 from invenio_records.dumpers import SearchDumperExt
 
+from oarepo_model.customizations import AddToList, Customization
 from oarepo_model.datatypes.base import ARRAY_ITEM_PATH
+from oarepo_model.datatypes.tree import get_model_nodes
+from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Generator
+
+    from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.datatypes.base import DataType
+    from oarepo_model.model import InvenioModel
 
 
 class PathDumperExtBase(SearchDumperExt):
@@ -33,27 +35,27 @@ class PathDumperExtBase(SearchDumperExt):
         super().__init__()
         self.paths = paths
 
-    def dump(  # pyright: ignore[reportIncompatibleMethodOverride]
+    @override
+    def dump(
         self,
         record: Any,
         data: dict[str, Any],
-    ) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Convert fields into their search representation."""
+    ) -> None:
+        """Convert fields into their search representation, mutating data in place."""
         _ = record
         for path in self.paths:
             self._apply(data, path, self._data_to_opensearch)
-        return data
 
-    def load(  # pyright: ignore[reportIncompatibleMethodOverride]
+    @override
+    def load(
         self,
         data: dict[str, Any],
         record_cls: type,
-    ) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Convert fields back from their search representation."""
+    ) -> None:
+        """Convert fields back from their search representation, mutating data in place."""
         _ = record_cls
         for path in self.paths:
             self._apply(data, path, self._data_from_opensearch)
-        return data
 
     def _apply(
         self,
@@ -90,3 +92,32 @@ class PathDumperExtBase(SearchDumperExt):
         This method must be overridden by subclasses.
         """
         raise NotImplementedError("Subclasses must implement this method.")
+
+
+class PathDumperExtPreset(Preset):
+    """Preset that adds a PathDumperExtBase for all fields of a given datatype."""
+
+    modifies = ("record_dumper_extensions",)
+
+    datatype_class: ClassVar[type[DataType]]
+    dumper_ext_class: ClassVar[type[PathDumperExtBase]]
+
+    @override
+    def apply(
+        self,
+        builder: InvenioModelBuilder,
+        model: InvenioModel,
+        dependencies: dict[str, Any],
+    ) -> Generator[Customization]:
+        paths = [
+            path
+            for _datatype, path in get_model_nodes(
+                builder,
+                model,
+                lambda datatype: isinstance(datatype, self.datatype_class),
+                unique=True,
+            )
+        ]
+
+        if paths:
+            yield AddToList("record_dumper_extensions", self.dumper_ext_class(paths))

@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Customization for replacing base classes of model classes.
 
 This module provides the ReplaceBaseClass customization that allows replacing one
@@ -55,6 +50,8 @@ class ReplaceBaseClass(Customization):
         self.new_base_class = new_base_class
         self.fail = fail
         self.subclass = subclass
+
+    modifies_own_name = True
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:

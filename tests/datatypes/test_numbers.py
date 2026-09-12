@@ -1,12 +1,7 @@
-#
-# Copyright (c) 2026 University of West Bohemia
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
-"""Additional tests for numeric data types.
+# SPDX-FileCopyrightText: 2026 University of West Bohemia
+# SPDX-License-Identifier: MIT
+
+"""Tests for numeric data types.
 
 Covers:
 - LongDataType (64-bit integer bounds)
@@ -16,7 +11,6 @@ Covers:
 - Number facet generation
 - FormatNumber UI field presence
 """
-# ruff: noqa: D102
 
 from __future__ import annotations
 
@@ -42,25 +36,30 @@ class TestLongDataType:
     """64-bit integer type — distinct from int (32-bit)."""
 
     def test_long_accepts_value_within_range(self, datatype_registry):
+        """Load zero and large values well inside the 64-bit bounds."""
         schema = make_schema(datatype_registry, {"type": "long"})
         assert schema.load({"a": 0}) == {"a": 0}
         assert schema.load({"a": 2**62}) == {"a": 2**62}
         assert schema.load({"a": -(2**62)}) == {"a": -(2**62)}
 
     def test_long_accepts_max_value(self, datatype_registry):
+        """Load an integer at the exact 64-bit upper bound."""
         schema = make_schema(datatype_registry, {"type": "long"})
         assert schema.load({"a": 2**63 - 1}) == {"a": 2**63 - 1}
 
     def test_long_accepts_min_value(self, datatype_registry):
+        """Load an integer at the exact 64-bit lower bound."""
         schema = make_schema(datatype_registry, {"type": "long"})
         assert schema.load({"a": -(2**63)}) == {"a": -(2**63)}
 
     def test_long_rejects_value_above_max(self, datatype_registry):
+        """Reject values one step above the 64-bit maximum."""
         schema = make_schema(datatype_registry, {"type": "long"})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": 2**63})
 
     def test_long_rejects_value_below_min(self, datatype_registry):
+        """Reject values one step below the 64-bit minimum."""
         schema = make_schema(datatype_registry, {"type": "long"})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": -(2**63) - 1})
@@ -72,6 +71,7 @@ class TestLongDataType:
             schema.load({"a": 3.14})
 
     def test_long_rejects_string(self, datatype_registry):
+        """Reject a non-numeric string."""
         schema = make_schema(datatype_registry, {"type": "long"})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": "not a number"})
@@ -82,11 +82,13 @@ class TestLongDataType:
         assert schema.load({"a": 2**31}) == {"a": 2**31}
 
     def test_long_mapping_type_is_long(self, datatype_registry):
+        """Return a mapping that keeps the long type."""
         dt = datatype_registry.get_type({"type": "long"})
         mapping = dt.create_mapping({"type": "long"})
         assert mapping["type"] == "long"
 
     def test_long_with_custom_range(self, datatype_registry):
+        """Accept values inside a custom inclusive range and reject those outside it."""
         schema = make_schema(
             datatype_registry,
             {"type": "long", "min_inclusive": 0, "max_inclusive": 100},
@@ -107,6 +109,7 @@ class TestDoubleDataType:
     """Double-precision floating-point type."""
 
     def test_double_accepts_float(self, datatype_registry):
+        """Load a double-precision float preserving its fractional digits."""
         schema = make_schema(datatype_registry, {"type": "double"})
         result = schema.load({"a": 3.141592653589793})
         assert abs(result["a"] - 3.141592653589793) < 1e-10
@@ -117,26 +120,31 @@ class TestDoubleDataType:
         assert schema.load({"a": 42}) == {"a": 42.0}
 
     def test_double_accepts_negative(self, datatype_registry):
+        """Load a large negative floating-point value unchanged."""
         schema = make_schema(datatype_registry, {"type": "double"})
         result = schema.load({"a": -1.23e100})
         assert result["a"] == -1.23e100
 
     def test_double_rejects_string(self, datatype_registry):
+        """Reject a non-numeric string."""
         schema = make_schema(datatype_registry, {"type": "double"})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": "not a number"})
 
     def test_double_mapping_type_is_double(self, datatype_registry):
+        """Return a mapping that keeps the double type."""
         dt = datatype_registry.get_type({"type": "double"})
         mapping = dt.create_mapping({"type": "double"})
         assert mapping["type"] == "double"
 
     def test_double_json_schema_type_is_number(self, datatype_registry):
+        """Return a JSON schema whose type is number."""
         dt = datatype_registry.get_type({"type": "double"})
         schema = dt.create_json_schema({"type": "double"})
         assert schema["type"] == "number"
 
     def test_double_with_range(self, datatype_registry):
+        """Accept values inside a custom inclusive range and reject those outside it."""
         schema = make_schema(
             datatype_registry,
             {"type": "double", "min_inclusive": 0.0, "max_inclusive": 1.0},
@@ -157,30 +165,35 @@ class TestExclusiveRangeBoundaries:
     """min_exclusive / max_exclusive must exclude the boundary value."""
 
     def test_int_min_exclusive_rejects_boundary(self, datatype_registry):
+        """Reject the min_exclusive boundary value and accept the next integer."""
         schema = make_schema(datatype_registry, {"type": "int", "min_exclusive": 0})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": 0})
         assert schema.load({"a": 1}) == {"a": 1}
 
     def test_int_max_exclusive_rejects_boundary(self, datatype_registry):
+        """Reject the max_exclusive boundary value and accept the previous integer."""
         schema = make_schema(datatype_registry, {"type": "int", "max_exclusive": 10})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": 10})
         assert schema.load({"a": 9}) == {"a": 9}
 
     def test_float_min_exclusive_rejects_boundary(self, datatype_registry):
+        """Reject the min_exclusive boundary value and accept a slightly larger float."""
         schema = make_schema(datatype_registry, {"type": "float", "min_exclusive": 0.0})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": 0.0})
         assert schema.load({"a": 0.001})["a"] == pytest.approx(0.001)
 
     def test_int_min_inclusive_accepts_boundary(self, datatype_registry):
+        """Accept the min_inclusive boundary value and reject a smaller one."""
         schema = make_schema(datatype_registry, {"type": "int", "min_inclusive": 5})
         assert schema.load({"a": 5}) == {"a": 5}
         with pytest.raises(ma.ValidationError):
             schema.load({"a": 4})
 
     def test_int_max_inclusive_accepts_boundary(self, datatype_registry):
+        """Accept the max_inclusive boundary value and reject a larger one."""
         schema = make_schema(datatype_registry, {"type": "int", "max_inclusive": 5})
         assert schema.load({"a": 5}) == {"a": 5}
         with pytest.raises(ma.ValidationError):
@@ -196,15 +209,18 @@ class TestStrictValidation:
     """strict_validation=False must allow string-to-number coercion."""
 
     def test_int_strict_default_rejects_string(self, datatype_registry):
+        """Reject a numeric string under the default strict validation."""
         schema = make_schema(datatype_registry, {"type": "int"})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": "42"})
 
     def test_int_non_strict_coerces_string(self, datatype_registry):
+        """Coerce a numeric string to an integer when strict_validation is disabled."""
         schema = make_schema(datatype_registry, {"type": "int", "strict_validation": False})
         assert schema.load({"a": "42"}) == {"a": 42}
 
     def test_float_non_strict_coerces_string(self, datatype_registry):
+        """Coerce a numeric string to a float when strict_validation is disabled."""
         schema = make_schema(datatype_registry, {"type": "float", "strict_validation": False})
         result = schema.load({"a": "3.14"})
         assert result["a"] == pytest.approx(3.14)
@@ -220,6 +236,7 @@ class TestNumberFacets:
 
     @pytest.mark.parametrize("type_name", ["int", "long", "float", "double"])
     def test_numeric_type_produces_facet(self, datatype_registry, type_name):
+        """Return a facet registered at the requested path for each numeric type."""
         dt = datatype_registry.get_type({"type": type_name})
         facets = {}
         result = dt.get_facet(

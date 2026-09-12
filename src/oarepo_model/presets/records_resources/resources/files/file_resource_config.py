@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """File to generate file resource configuration class."""
 
 from __future__ import annotations
@@ -32,7 +27,7 @@ if TYPE_CHECKING:
 class FileResourceConfigPreset(Preset):
     """Preset for file resource config class."""
 
-    provides = ("FileResourceConfig",)
+    provides = ("FileResourceConfig", "file_response_handlers")
 
     @override
     def apply(

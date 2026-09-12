@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Module to generate record mapping json file."""
 
 from __future__ import annotations
@@ -33,7 +28,8 @@ class PatchIndexSettings(PatchJSONFile):
                 if isinstance(settings[k], int) and isinstance(v, int):
                     settings[k] = max(settings[k], v)
                 elif isinstance(settings[k], list) and isinstance(v, list):
-                    settings[k] = list(set(settings[k]) | set(v))
+                    base = settings[k]
+                    settings[k] = [*base, *(x for x in v if x not in base)]
                 elif isinstance(settings[k], dict) and isinstance(v, dict):
                     settings[k].update(v)
                     settings[k] = {kk: vv for kk, vv in settings[k].items() if vv is not None}
