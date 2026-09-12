@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Utilities for OAREPO model."""
 
 from __future__ import annotations
@@ -224,7 +219,7 @@ class MultiFormatField(marshmallow.fields.Field):
         :param kwargs: Additional keyword arguments.
         """
         super().__init__(*args, **kwargs)
-        if len(subfields) < 2:  # noqa: PLR2004   magic constant
+        if len(subfields) < 2:  # magic constant
             raise ValueError("MultiFormatField requires at least two subfields.")
 
         self.subfields = subfields
@@ -242,7 +237,7 @@ class MultiFormatField(marshmallow.fields.Field):
 
         # otherwise return key: value dictionary
         return {
-            key: field._serialize(  # noqa: SLF001 private value access
+            key: field._serialize(  # private value access
                 value,
                 attr,
                 obj,

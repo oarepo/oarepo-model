@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2026 University of West Bohemia
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2026 University of West Bohemia
+# SPDX-License-Identifier: MIT
+
 """Additional tests for DataTypeRegistry and loader functions.
 
 Covers:
@@ -18,7 +13,6 @@ Covers:
 - registry.items() returns all registered types
 - Duplicate type registration emits a warning (or silently overwrites)
 """
-# ruff: noqa: D102
 
 from __future__ import annotations
 
@@ -44,11 +38,13 @@ class TestFromJson:
         return str(path)
 
     def test_dict_format_returns_dict(self, tmp_path):
+        """Return the JSON mapping unchanged when the file uses the dict format."""
         path = self._write_json({"MyType": {"type": "keyword"}}, directory=str(tmp_path))
         result = from_json(path)
         assert result == {"MyType": {"type": "keyword"}}
 
     def test_list_format_returns_dict_keyed_by_name(self, tmp_path):
+        """Return a dict keyed by each entry's popped name field."""
         path = self._write_json([{"name": "MyType", "type": "keyword"}], directory=str(tmp_path))
         result = from_json(path)
         assert "MyType" in result
@@ -57,6 +53,7 @@ class TestFromJson:
         assert result["MyType"]["type"] == "keyword"
 
     def test_list_format_multiple_entries(self, tmp_path):
+        """Return one key per element of a multi-element list format."""
         path = self._write_json(
             [
                 {"name": "TypeA", "type": "keyword"},
@@ -89,12 +86,14 @@ class TestFromYaml:
     """from_yaml must parse both dict and list formats."""
 
     def test_dict_format_returns_dict(self, tmp_path):
+        """Return the YAML mapping unchanged when the file uses the dict format."""
         path = tmp_path / "types.yaml"
         path.write_text(yaml.dump({"MyType": {"type": "keyword"}}), encoding="utf-8")
         result = from_yaml(str(path))
         assert result == {"MyType": {"type": "keyword"}}
 
     def test_list_format_returns_dict_keyed_by_name(self, tmp_path):
+        """Return a dict keyed by each entry's popped name field."""
         path = tmp_path / "types.yaml"
         path.write_text(
             yaml.dump([{"name": "MyType", "type": "keyword"}]),
@@ -106,6 +105,7 @@ class TestFromYaml:
         assert result["MyType"]["type"] == "keyword"
 
     def test_list_format_multiple_entries(self, tmp_path):
+        """Return one key per element of a multi-element YAML list."""
         path = tmp_path / "types.yaml"
         path.write_text(
             yaml.dump([{"name": "A", "type": "keyword"}, {"name": "B", "type": "int"}]),
@@ -115,6 +115,7 @@ class TestFromYaml:
         assert set(result.keys()) == {"A", "B"}
 
     def test_origin_resolves_relative_path(self, tmp_path):
+        """Resolve a relative YAML file name against the parent directory of origin."""
         origin_file = tmp_path / "pkg" / "__init__.py"
         origin_file.parent.mkdir()
         origin_file.write_text("")
@@ -135,26 +136,31 @@ class TestGetTypeErrorPaths:
     """get_type must raise clear errors for unknown or ambiguous inputs."""
 
     def test_unknown_string_type_raises_key_error(self, datatype_registry):
+        """Raise KeyError naming the type when no datatype carries that name."""
         with pytest.raises(KeyError, match="not_a_real_type"):
             datatype_registry.get_type("not_a_real_type")
 
     def test_dict_without_type_or_properties_or_items_raises_value_error(self, datatype_registry):
+        """Raise ValueError when a dict offers no type, properties or items key."""
         with pytest.raises(ValueError, match=r"."):
             datatype_registry.get_type({"something": "else"})
 
     def test_dict_with_type_key_resolves_correctly(self, datatype_registry):
+        """Resolve a dict carrying a type key to the datatype that key names."""
         from oarepo_model.datatypes.strings import KeywordDataType
 
         dt = datatype_registry.get_type({"type": "keyword"})
         assert isinstance(dt, KeywordDataType)
 
     def test_dict_with_properties_key_resolves_to_object(self, datatype_registry):
+        """Resolve a dict with a properties key to the object datatype."""
         from oarepo_model.datatypes.collections import ObjectDataType
 
         dt = datatype_registry.get_type({"properties": {"x": {"type": "int"}}})
         assert isinstance(dt, ObjectDataType)
 
     def test_dict_with_items_key_resolves_to_array(self, datatype_registry):
+        """Resolve a dict with an items key to the array datatype."""
         from oarepo_model.datatypes.collections import ArrayDataType
 
         dt = datatype_registry.get_type({"items": {"type": "int"}})
@@ -170,18 +176,22 @@ class TestAddTypesErrorPaths:
     """add_types must raise TypeError for values that are neither dicts nor DataType subclasses."""
 
     def test_add_types_with_invalid_value_raises_type_error(self, datatype_registry):
+        """Reject a value that is neither a dict nor a DataType subclass with TypeError."""
         with pytest.raises(TypeError):
             datatype_registry.add_types({"BadType": 42})
 
     def test_add_types_with_string_value_raises_type_error(self, datatype_registry):
+        """Reject a plain string value with TypeError."""
         with pytest.raises(TypeError):
             datatype_registry.add_types({"BadType": "not_a_class"})
 
     def test_add_types_with_non_datatype_class_raises_type_error(self, datatype_registry):
+        """Reject a class that does not subclass DataType with TypeError."""
         with pytest.raises(TypeError):
             datatype_registry.add_types({"BadType": int})
 
     def test_add_types_with_dict_registers_wrapped_datatype(self, datatype_registry):
+        """Register a dict definition as a WrappedDataType under the given name."""
         from oarepo_model.datatypes.wrapped import WrappedDataType
 
         datatype_registry.add_types({"CustomKw": {"type": "keyword"}})
@@ -189,6 +199,7 @@ class TestAddTypesErrorPaths:
         assert isinstance(dt, WrappedDataType)
 
     def test_add_types_with_datatype_subclass_registers_instance(self, datatype_registry):
+        """Register a DataType subclass as an instance of that subclass."""
         from oarepo_model.datatypes.strings import KeywordDataType
 
         datatype_registry.add_types({"MyKeyword": KeywordDataType})
@@ -200,11 +211,13 @@ class TestRegistryItems:
     """items() must expose all registered types as (name, DataType) pairs."""
 
     def test_items_contains_builtin_types(self, datatype_registry):
+        """Expose the builtin keyword, fulltext, numeric and boolean types."""
         names = {name for name, _ in datatype_registry.items()}
         for expected in ("keyword", "fulltext", "fulltext+keyword", "int", "float", "boolean"):
             assert expected in names, f"Expected {expected!r} in registry"
 
     def test_items_reflects_add_types(self, datatype_registry):
+        """Expose a name added through add_types among the registry items."""
         datatype_registry.add_types({"UniqueTestType999": {"type": "keyword"}})
         names = {name for name, _ in datatype_registry.items()}
         assert "UniqueTestType999" in names
@@ -219,7 +232,7 @@ class TestDuplicateRegistration:
     """Registering a type name twice must overwrite the old registration."""
 
     def test_duplicate_type_overwrites_silently(self, datatype_registry):
-
+        """Override the first registration so the last mapping added wins."""
         datatype_registry.add_types({"DupType": {"type": "keyword"}})
         datatype_registry.add_types({"DupType": {"type": "fulltext"}})
         # The second registration wins; the type should produce a text mapping.

@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """OAREPO Model CLI commands."""
 
 from __future__ import annotations
@@ -64,7 +59,7 @@ def list_models() -> None:
     def get_api_url(model: Model) -> str:
         try:
             return str(model.api_url("search"))
-        except Exception:  # noqa: BLE001 # in case the url needs some arguments
+        except Exception:  # in case the url needs some arguments
             return "N/A"
 
     for model in current_runtime.models.values():
@@ -211,10 +206,10 @@ def dump_schema(schema: type[Schema] | Schema, dumped_schemas: set[type], dumped
     lines = [f"class {name}(\n{base_classes}\n):"]
 
     subschemas: set[type] = set()
-    for field_name, field_obj in schema._declared_fields.items():  # noqa SLF001
+    for field_name, field_obj in schema._declared_fields.items():
         try:
             dumped_field, other_schemas = dump_field(field_obj)
-        except Exception as e:  # noqa: BLE001 # we want to catch all exceptions here
+        except Exception as e:  # we want to catch all exceptions here
             dumped_field = f"# Error dumping field: {e}"
             other_schemas = []
         lines.append(f"    {field_name} = {dumped_field}")

@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 from datetime import date, datetime, time
@@ -309,8 +304,8 @@ def test_date_field(test_schema):
 
 
 def test_datetime_field(test_schema):
-    min_dt = datetime(2023, 1, 1, 0, 0, 0)  # noqa: DTZ001 no naive datetime
-    max_dt = datetime(2023, 12, 31, 23, 59, 59)  # noqa: DTZ001 no naive datetime
+    min_dt = datetime(2023, 1, 1, 0, 0, 0)  # no naive datetime
+    max_dt = datetime(2023, 12, 31, 23, 59, 59)  # no naive datetime
     schema = test_schema(
         {
             "type": "datetime",

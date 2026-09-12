@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type for internal (same-record) relations.
 
 This module provides the InternalRelationDataType data type for creating
@@ -108,7 +103,7 @@ class InternalRelationDataType(LazyPIDRelation):
                 "InternalRelationDataType can only be used while a model is "
                 "being built (api.current_model is not set).",
             )
-        return cast("str", model.name)
+        return model.name
 
     @override
     def _get_relation_model(self, element: dict[str, Any], must_exist: bool = False) -> str:

@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2026 University of West Bohemia
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2026 University of West Bohemia
+# SPDX-License-Identifier: MIT
+
 """Additional tests for collection data types.
 
 Covers:
@@ -20,7 +15,6 @@ Covers:
 - DynamicObjectDataType JSON schema and mapping
 - ArrayDataType create_mapping delegates to items (skips the array wrapper)
 """
-# ruff: noqa: D102
 
 from __future__ import annotations
 
@@ -66,7 +60,7 @@ class DateRangeMixin(ma.Schema):
     """Mixin declaring a schema-wide validator that compares two properties."""
 
     @ma.validates_schema
-    def check_range(self, data, **kwargs: Any) -> None:  # noqa: ARG002
+    def check_range(self, data, **kwargs: Any) -> None:
         """Reject an 'end' value that comes before 'start'."""
         start, end = data.get("start"), data.get("end")
         if start and end and start > end:
@@ -77,7 +71,7 @@ class RequiredTogetherMixin(ma.Schema):
     """Second mixin with a schema-wide validator, used to check that mixins stack."""
 
     @ma.validates_schema
-    def check_together(self, data, **kwargs: Any) -> None:  # noqa: ARG002
+    def check_together(self, data, **kwargs: Any) -> None:
         """Reject data where only one of city/country is present."""
         if ("city" in data) != ("country" in data):
             raise ma.ValidationError({"country": ["city and country must be used together"]})
@@ -106,23 +100,29 @@ class TestUniqueValidator:
     """unique_validator must raise only when duplicates are present."""
 
     def test_empty_list_is_valid(self):
+        """Accept an empty list without raising a validation error."""
         unique_validator([])  # must not raise
 
     def test_list_of_unique_scalars_is_valid(self):
+        """Accept a list whose scalar values are all distinct."""
         unique_validator([1, 2, 3])
 
     def test_list_of_unique_dicts_is_valid(self):
+        """Accept a list of dicts that differ in their contents."""
         unique_validator([{"a": 1}, {"a": 2}])
 
     def test_list_with_duplicate_scalar_raises(self):
+        """Reject a list in which the same scalar value appears twice."""
         with pytest.raises(ma.ValidationError):
             unique_validator([1, 2, 1])
 
     def test_list_with_duplicate_dict_raises(self):
+        """Reject a list that repeats an equal dict."""
         with pytest.raises(ma.ValidationError):
             unique_validator([{"a": 1}, {"a": 1}])
 
     def test_list_with_multiple_duplicates_raises(self):
+        """Reject a list reporting more than one duplicated value."""
         with pytest.raises(ma.ValidationError):
             unique_validator([1, 1, 2, 2])
 
@@ -136,6 +136,7 @@ class TestUniqueItemsInArray:
     """unique_items=True on an array element must reject duplicate entries."""
 
     def test_unique_items_rejects_duplicates(self, datatype_registry):
+        """Reject loading an array declared unique_items when a value repeats."""
         schema = make_schema(
             datatype_registry,
             {"type": "array", "items": {"type": "keyword"}, "unique_items": True},
@@ -144,6 +145,7 @@ class TestUniqueItemsInArray:
             schema.load({"a": ["x", "x"]})
 
     def test_unique_items_accepts_distinct_values(self, datatype_registry):
+        """Load a unique_items array unchanged when all of its values differ."""
         schema = make_schema(
             datatype_registry,
             {"type": "array", "items": {"type": "keyword"}, "unique_items": True},
@@ -151,6 +153,7 @@ class TestUniqueItemsInArray:
         assert schema.load({"a": ["x", "y", "z"]}) == {"a": ["x", "y", "z"]}
 
     def test_without_unique_items_duplicates_are_accepted(self, datatype_registry):
+        """Load duplicate array values unchanged when unique_items is not declared."""
         schema = make_schema(
             datatype_registry,
             {"type": "array", "items": {"type": "keyword"}},
@@ -167,6 +170,7 @@ class TestArrayLengthConstraints:
     """min_items and max_items must be enforced via marshmallow.validate.Length."""
 
     def test_min_items_rejects_too_few(self, datatype_registry):
+        """Reject loading an array shorter than the declared min_items."""
         schema = make_schema(
             datatype_registry,
             {"type": "array", "items": {"type": "int"}, "min_items": 2},
@@ -175,6 +179,7 @@ class TestArrayLengthConstraints:
             schema.load({"a": [1]})
 
     def test_min_items_accepts_exact_count(self, datatype_registry):
+        """Load an array whose length is exactly the declared min_items."""
         schema = make_schema(
             datatype_registry,
             {"type": "array", "items": {"type": "int"}, "min_items": 2},
@@ -182,6 +187,7 @@ class TestArrayLengthConstraints:
         assert schema.load({"a": [1, 2]}) == {"a": [1, 2]}
 
     def test_max_items_rejects_too_many(self, datatype_registry):
+        """Reject loading an array longer than the declared max_items."""
         schema = make_schema(
             datatype_registry,
             {"type": "array", "items": {"type": "int"}, "max_items": 2},
@@ -190,6 +196,7 @@ class TestArrayLengthConstraints:
             schema.load({"a": [1, 2, 3]})
 
     def test_max_items_accepts_exact_count(self, datatype_registry):
+        """Load an array whose length is exactly the declared max_items."""
         schema = make_schema(
             datatype_registry,
             {"type": "array", "items": {"type": "int"}, "max_items": 2},
@@ -206,16 +213,19 @@ class TestNestedDataType:
     """nested type must produce ES mapping type 'nested', not 'object'."""
 
     def test_nested_mapping_type_is_nested(self, datatype_registry):
+        """Return a mapping whose type is nested rather than object."""
         dt = datatype_registry.get_type({"type": "nested"})
         mapping = dt.create_mapping({"type": "nested", "properties": {"x": {"type": "keyword"}}})
         assert mapping["type"] == "nested"
 
     def test_nested_mapping_contains_properties(self, datatype_registry):
+        """Return a nested mapping that carries the declared properties over."""
         dt = datatype_registry.get_type({"type": "nested"})
         mapping = dt.create_mapping({"type": "nested", "properties": {"score": {"type": "int"}}})
         assert "score" in mapping["properties"]
 
     def test_nested_schema_round_trip(self, datatype_registry):
+        """Round-trip a list of nested items through load without changing it."""
         schema = make_schema(
             datatype_registry,
             {
@@ -477,11 +487,13 @@ class TestDynamicObjectDataType:
     """dynamic-object must advertise open schema and dynamic mapping."""
 
     def test_json_schema_allows_additional_properties(self, datatype_registry):
+        """Return a JSON schema for dynamic-object that sets additionalProperties to true."""
         dt = datatype_registry.get_type({"type": "dynamic-object"})
         schema = dt.create_json_schema({"type": "dynamic-object"})
         assert schema.get("additionalProperties") is True
 
     def test_mapping_uses_dynamic_true(self, datatype_registry):
+        """Return a dynamic-object mapping that marks the field as dynamic."""
         dt = datatype_registry.get_type({"type": "dynamic-object"})
         mapping = dt.create_mapping({"type": "dynamic-object"})
         assert mapping.get("dynamic") in ("true", True)
@@ -496,11 +508,13 @@ class TestArrayMappingDelegation:
     """Arrays are transparent in ES: create_mapping must return the items mapping."""
 
     def test_array_of_keywords_produces_keyword_mapping(self, datatype_registry):
+        """Return the items' keyword mapping, skipping the array wrapper."""
         dt = datatype_registry.get_type({"type": "array"})
         mapping = dt.create_mapping({"type": "array", "items": {"type": "keyword"}})
         assert mapping["type"] == "keyword"
 
     def test_array_of_ints_produces_integer_mapping(self, datatype_registry):
+        """Return the items' integer mapping for an array of ints."""
         dt = datatype_registry.get_type({"type": "array"})
         mapping = dt.create_mapping({"type": "array", "items": {"type": "int"}})
         assert mapping["type"] == "integer"

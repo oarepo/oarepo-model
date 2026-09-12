@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type wrapper implementation for oarepo-model.
 
 This module provides the WrappedDataType class that wraps dictionary-based
@@ -64,10 +59,7 @@ class WrappedDataType(DataType):
             for key, value in element.items()
             if key != "type"  # remove type to avoid conflicts
         }
-        return cast(
-            "dict[str, Any]",
-            readonly_dict_merger.merge(copy.deepcopy(self.type_dict), element_without_type),
-        )
+        return readonly_dict_merger.merge(copy.deepcopy(self.type_dict), element_without_type)
 
     @override
     def create_marshmallow_field(

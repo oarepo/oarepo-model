@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type for polymorphic schemas with discriminator fields.
 
 This module provides the PolymorphicDataType class for handling fields that can
@@ -293,7 +288,7 @@ class PolymorphicField(ma.fields.Field):
         discriminator_value = self.get_discriminator_value(value)
         if discriminator_value in self.alternatives:
             schema_field = self.alternatives[discriminator_value]
-            return schema_field._serialize(  # noqa: SLF001
+            return schema_field._serialize(
                 value,
                 attr,
                 obj,
@@ -317,7 +312,7 @@ class PolymorphicField(ma.fields.Field):
             self.fail("unknown_type", type=discriminator_value)
 
         schema_field = self.alternatives[discriminator_value]
-        return schema_field._deserialize(  # noqa: SLF001
+        return schema_field._deserialize(
             value,
             attr,
             data,

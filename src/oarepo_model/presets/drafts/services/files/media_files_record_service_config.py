@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for configuring media files record service.
 
 This module provides a preset that creates a specialized record service configuration
@@ -66,11 +61,11 @@ class MediaFilesRecordServiceConfigPreset(Preset):
             service_id = f"{builder.model.base_name}_media_files"
 
             @property
-            def components(self) -> list[type[ServiceComponent]]:  # type: ignore[]
+            def components(self) -> list[type[ServiceComponent]]:
                 # TODO: needs to be fixed as we have multiple mixins and the sources
                 # in oarepo-runtime do not support this yet
                 # return process_service_configs(
-                #     self, self.get_model_dependency("record_service_components")  # noqa
+                #     self, self.get_model_dependency("record_service_components")
                 return [
                     *super().components,
                     *cast(

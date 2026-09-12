@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2026 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -34,8 +29,8 @@ def test_set_synthetic_metadata_writes_keys_into_dictionary():
     builder = InvenioModelBuilder(m, type_registry)
     builder.add_dictionary("synthetic_metadata")
 
-    fn_a = lambda _: "value-a"  # noqa: E731
-    fn_b = lambda d: d.get("title", "untitled")  # noqa: E731
+    fn_a = lambda _: "value-a"
+    fn_b = lambda d: d.get("title", "untitled")
 
     SetSyntheticMetadata(a=fn_a, b=fn_b).apply(builder, m)
 
@@ -50,7 +45,7 @@ def test_set_synthetic_metadata_overrides_existing_keys():
     builder = InvenioModelBuilder(m, type_registry)
     builder.add_dictionary("synthetic_metadata", default={"a": "old"})
 
-    fn_a = lambda _: "new"  # noqa: E731
+    fn_a = lambda _: "new"
     SetSyntheticMetadata(a=fn_a).apply(builder, m)
 
     assert builder.get_dictionary("synthetic_metadata")["a"] is fn_a

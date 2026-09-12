@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Module to generate record search options class."""
 
 from __future__ import annotations
@@ -57,7 +52,7 @@ class DraftSearchOptionsPreset(Preset):
 
             @property
             def params_interpreters_cls(self) -> Any:
-                interpreter_classes = super().params_interpreters_cls  # type: ignore[misc]
+                interpreter_classes = super().params_interpreters_cls
                 # make a copy of the list
                 interpreter_classes = list(interpreter_classes)
                 # replace FacetsParam with GroupedFacetsParam

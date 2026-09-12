@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Search parameter interpreters for geo filtering."""
 
 from __future__ import annotations
@@ -60,7 +55,7 @@ def _get_geocode() -> Callable[..., Any]:
     user_agent = current_app.config.get("NOMINATIM_USER_AGENT", default_user_agent)
     min_delay_seconds = current_app.config.get("NOMINATIM_MIN_DELAY_SECONDS", 1)
     geolocator = Nominatim(user_agent=user_agent)
-    return RateLimiter(  # type: ignore[no-any-return]
+    return RateLimiter(
         geolocator.geocode,
         min_delay_seconds=min_delay_seconds,
         swallow_exceptions=False,
@@ -82,7 +77,7 @@ def _nominatim_geocode_shape(location_name: str) -> dict[str, Any]:
     location = _get_geocode()(location_name, geometry="geojson")
     if location is None or "geojson" not in location.raw:
         raise ValueError(location_name)
-    return location.raw["geojson"]  # type: ignore[no-any-return]
+    return location.raw["geojson"]
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -136,9 +131,9 @@ class _PrefixedGeoParam(ParamInterpreter):
     #: Prefix of the query string parameter, e.g. ``geo_distance:metadata.location``.
     prefix: ClassVar[str]
 
-    def apply(  # type: ignore[reportIncompatibleMethodOverride]
+    def apply(
         self,
-        identity: Any,  # noqa: ARG002 for override
+        identity: Any,  # for override
         search: Search,
         params: dict[str, Any],
     ) -> Search:
@@ -297,7 +292,7 @@ class GeoDistanceParam(_PrefixedGeoParam):
 
     def _pivot(self, distance: str) -> str:
         match = _DISTANCE_RE.match(distance)
-        assert match is not None  # noqa: S101 -- already validated by _parse_value
+        assert match is not None  # already validated by _parse_value
         pivot_value = round(float(match.group("value")) / self.pivot_divisor, 6)
         if pivot_value == int(pivot_value):
             pivot_value = int(pivot_value)

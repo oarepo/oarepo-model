@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Module to generate record class."""
 
 from __future__ import annotations
@@ -79,9 +74,7 @@ class RecordPreset(Preset):
             dumper = Dependency(
                 "RecordDumper",
                 "record_dumper_extensions",
-                transform=lambda RecordDumper, record_dumper_extensions: RecordDumper(  # noqa: N803
-                    record_dumper_extensions
-                ),
+                transform=lambda RecordDumper, record_dumper_extensions: RecordDumper(record_dumper_extensions),
             )
 
             if dependencies.get("synthetic_metadata"):

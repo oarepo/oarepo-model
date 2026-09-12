@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Extension preset for records and resources functionality.
 
 This module provides the ExtPreset that configures the main Flask extension
@@ -49,16 +44,16 @@ class RecordExtensionProtocol(Protocol):
     @property
     def model_arguments(self) -> dict[str, Any]:
         """Return model arguments for the extension."""
-        return super().model_arguments  # type: ignore[no-any-return,misc]  # pragma: no cover
+        return super().model_arguments  # pragma: no cover
 
     @property
     def records_service_params(self) -> dict[str, Any]:
         """Return parameters for the records service."""
-        return super().records_service_params  # type: ignore[no-any-return,misc]  # pragma: no cover
+        return super().records_service_params  # pragma: no cover
 
     def init_config(self, _app: Flask) -> None:
         """Initialize configuration."""
-        return super().init_config(_app)  # type: ignore[no-any-return,misc]  # pragma: no cover
+        return super().init_config(_app)  # pragma: no cover
 
 
 class ExtPreset(Preset):
@@ -72,7 +67,7 @@ class ExtPreset(Preset):
     )
 
     @override
-    def apply(  # noqa C901: complexity is high
+    def apply(  # complexity is high
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
@@ -217,7 +212,7 @@ class ExtPreset(Preset):
                 service = service_getter(ext)
                 service_id = service_id_getter(ext)
                 if (
-                    service_id not in sregistry._services  # noqa: SLF001 private member access
+                    service_id not in sregistry._services  # private member access
                 ):
                     sregistry.register(service, service_id=service_id)
 
@@ -229,7 +224,7 @@ class ExtPreset(Preset):
                 indexer = indexer_getter(ext)
                 service_id = service_id_getter(ext)
                 if (
-                    indexer and service_id not in iregistry._indexers  # noqa: SLF001 private member access
+                    indexer and service_id not in iregistry._indexers  # private member access
                 ):
                     iregistry.register(indexer, indexer_id=service_id)
 

@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Metadata UI schema preset for Invenio record serialization.
 
 This module provides a preset that extends the base RecordUISchema with metadata-specific
@@ -60,7 +55,7 @@ class MetadataUISchemaPreset(Preset):
                 def flatten_metadata(
                     self,
                     data: dict[str, Any],
-                    **kwargs: Any,  # noqa: ARG002 - though not inherited, post_dump must accept **kwargs
+                    **kwargs: Any,  # though not inherited, post_dump must accept **kwargs
                 ) -> dict[str, Any]:
                     """Flatten metadata fields to the top level.
 

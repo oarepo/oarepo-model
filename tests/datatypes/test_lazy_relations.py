@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2026 University of West Bohemia
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2026 University of West Bohemia
+# SPDX-License-Identifier: MIT
+
 """Unit tests for LazyPIDRelation._relation_pid_field and .create_relations.
 
 These call the two methods directly against a registered "lazy-pid-relation"
@@ -52,8 +47,8 @@ class NoopRelationDataType(DataType):
 
     def create_relations(
         self,
-        element: dict[str, Any],  # noqa: ARG002
-        path: list[str | type[ARRAY_PATH_ITEM]],  # noqa: ARG002
+        element: dict[str, Any],
+        path: list[str | type[ARRAY_PATH_ITEM]],
     ) -> list[Customization]:
         """Return a single Customization that is not a RelationFieldCustomization."""
         return [NoopCustomization("noop")]
@@ -75,7 +70,7 @@ def test_relation_pid_field_with_pid_field_delegates_to_super(lazy_pid_relation)
         return "the-pid-field"
 
     element = {"pid_field": _pid_field_getter, "keys": []}
-    assert lazy_pid_relation._relation_pid_field(element, []) == "the-pid-field"  # noqa: SLF001
+    assert lazy_pid_relation._relation_pid_field(element, []) == "the-pid-field"
 
 
 def test_relation_pid_field_with_record_cls_delegates_to_super(lazy_pid_relation):
@@ -83,12 +78,12 @@ def test_relation_pid_field_with_record_cls_delegates_to_super(lazy_pid_relation
         pid = object()
 
     element = {"record_cls": DummyRecord, "keys": []}
-    assert lazy_pid_relation._relation_pid_field(element, []) is DummyRecord.pid  # noqa: SLF001
+    assert lazy_pid_relation._relation_pid_field(element, []) is DummyRecord.pid
 
 
 def test_relation_pid_field_falls_back_to_lazy_context_for_bare_model_name(lazy_pid_relation):
     element = {"model": "some_self_referencing_model", "keys": []}
-    pid_field = lazy_pid_relation._relation_pid_field(element, [])  # noqa: SLF001
+    pid_field = lazy_pid_relation._relation_pid_field(element, [])
     assert isinstance(pid_field, LazyModelPIDFieldContext)
     assert pid_field.model_name == "some_self_referencing_model"
 

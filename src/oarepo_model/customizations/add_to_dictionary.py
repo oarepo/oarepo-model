@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Customization for adding key-value pairs to dictionaries in the model.
 
 This module provides the AddToDictionary customization that allows adding or
@@ -30,7 +25,7 @@ if TYPE_CHECKING:
 class AddToDictionary(Customization):
     """Customization to add a value to a dictionary to the model."""
 
-    def __init__(  # noqa PLR0913
+    def __init__(
         self,
         dictionary_name: str,
         *values: dict[Any, Any],

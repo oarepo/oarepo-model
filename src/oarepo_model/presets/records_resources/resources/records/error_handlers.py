@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2026 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for adding resource error handlers."""
 
 from __future__ import annotations
@@ -41,7 +36,7 @@ class ErrorHandlersPreset(Preset):
             "record_error_handlers",
             {
                 AuthExceptionGroup: create_error_handler(
-                    lambda exc: HTTPJSONException(  # noqa ARG005
+                    lambda exc: HTTPJSONException(
                         code=401,
                         description="Authentication failed.",
                     )

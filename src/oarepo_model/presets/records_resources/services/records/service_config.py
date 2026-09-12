@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Module to generate config for the record service."""
 
 from __future__ import annotations
@@ -108,11 +103,11 @@ class RecordServiceConfigPreset(Preset):
             search_items_use_full_links: bool = False
 
             @property
-            def components(self) -> tuple[type[ServiceComponent], ...]:  # type: ignore[reportIncompatibleVariableOverride]
+            def components(self) -> tuple[type[ServiceComponent], ...]:
                 # TODO: needs to be fixed as we have multiple mixins and the sources
                 # in oarepo-runtime do not support this yet
                 # return process_service_configs(
-                #     self, self.get_model_dependency("record_service_components") # noqa: ERA001
+                #     self, self.get_model_dependency("record_service_components")
                 #
                 return (
                     *super().components,
@@ -125,7 +120,7 @@ class RecordServiceConfigPreset(Preset):
             model = builder.model.name
 
             @property
-            def links_item(  # type: ignore[reportIncompatibleVariableOverride]
+            def links_item(
                 self,
             ) -> Mapping[str, Callable[..., Link | EndpointLink] | Link | EndpointLink]:
                 try:
@@ -140,14 +135,14 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search_item(self) -> Mapping[str, Link]:  # type: ignore[reportIncompatibleVariableOverride]
+            def links_search_item(self) -> Mapping[str, Link]:
                 if self.search_items_use_full_links:
-                    return self.links_item  # type: ignore[return-value]
+                    return self.links_item
 
                 try:
                     # this is oarepo extension - do not put all links on search result
                     # item
-                    supercls_links = super().links_search_item  # type: ignore[misc]
+                    supercls_links = super().links_search_item
                 except AttributeError:  # if they aren't defined in the superclass
                     supercls_links = {}
                 links = {
@@ -157,7 +152,7 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search(  # type: ignore[reportIncompatibleVariableOverride]
+            def links_search(
                 self,
             ) -> Mapping[str, Callable[..., Link | EndpointLink] | Link | EndpointLink]:
                 try:

@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for configuring draft-enabled record service.
 
 This module provides a preset that extends the record service configuration
@@ -98,7 +93,7 @@ class DraftServiceConfigPreset(Preset):
             )
 
             @property
-            def links_search_drafts(  # type: ignore[reportIncompatibleVariableOverride]
+            def links_search_drafts(
                 self,
             ) -> dict[str, Link | EndpointLink | Callable[..., Link | EndpointLink]]:
                 try:
@@ -112,7 +107,7 @@ class DraftServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search_versions(self) -> dict[str, Link | EndpointLink]:  # type: ignore[reportIncompatibleVariableOverride]
+            def links_search_versions(self) -> dict[str, Link | EndpointLink]:
                 try:
                     supercls_links = super().links_search_versions
                 except AttributeError:  # if they aren't defined in the superclass

@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type for controlled vocabulary references.
 
 This module provides the VocabularyDataType class for creating references to
@@ -55,7 +50,7 @@ class VocabularyDataType(FacetMixin, PIDRelation):
 
     TYPE = "vocabulary"
 
-    def _resolve_keys(self, element: dict[str, Any]) -> dict[str, Any]:  # noqa: C901
+    def _resolve_keys(self, element: dict[str, Any]) -> dict[str, Any]:
         """Resolve keys for the vocabulary."""
         ret: dict[str, Any] = {}
         keys = element.setdefault("keys", [])

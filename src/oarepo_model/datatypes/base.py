@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Base classes and interfaces for OARepo data types.
 
@@ -88,7 +82,7 @@ class DataType:
 
     def _get_ui_marshmallow_field_class(
         self,
-        field_name: str,  # noqa: ARG002 for override
+        field_name: str,  # for override
         element: dict[str, Any],
     ) -> type | None:
         """Get a ui marshmallow field class."""
@@ -111,8 +105,8 @@ class DataType:
 
     def create_ui_marshmallow_fields(
         self,
-        field_name: str,  # noqa: ARG002 for override
-        element: dict[str, Any],  # noqa: ARG002 for override
+        field_name: str,  # for override
+        element: dict[str, Any],  # for override
     ) -> dict[str, Field]:
         """Create a Marshmallow UI field for the data type.
 
@@ -123,7 +117,7 @@ class DataType:
 
     def _get_marshmallow_field_class(
         self,
-        field_name: str,  # noqa: ARG002 for override
+        field_name: str,  # for override
         element: dict[str, Any],
     ) -> type[Field]:
         """Get the Marshmallow field class for the data type.
@@ -190,7 +184,7 @@ class DataType:
 
     def create_json_schema(
         self,
-        element: dict[str, Any],  # noqa: ARG002 for override
+        element: dict[str, Any],  # for override
     ) -> Mapping[str, Any]:
         """Create a JSON schema for the data type.
 
@@ -208,7 +202,7 @@ class DataType:
 
     def create_mapping(
         self,
-        element: dict[str, Any],  # noqa: ARG002 for override
+        element: dict[str, Any],  # for override
     ) -> Mapping[str, Any]:
         """Create a mapping for the data type.
 
@@ -225,8 +219,8 @@ class DataType:
 
     def create_dynamic_mapping(
         self,
-        field_name: str,  # noqa: ARG002
-        element: dict[str, Any],  # noqa: ARG002
+        field_name: str,
+        element: dict[str, Any],
     ) -> Mapping[str, Any]:
         """Create additional mapping properties."""
         return {}
@@ -242,8 +236,8 @@ class DataType:
 
     def create_relations(
         self,
-        element: dict[str, Any],  # noqa: ARG002 for override
-        path: list[ArrayPathMember],  # noqa: ARG002 for override
+        element: dict[str, Any],  # for override
+        path: list[ArrayPathMember],  # for override
     ) -> list[Customization]:
         """Create relations for the data type.
 

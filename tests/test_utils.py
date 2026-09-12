@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2026 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Corner cases tests for utils."""
 
 from __future__ import annotations
@@ -38,7 +33,7 @@ def test_read_only_dict():
     assert list(dc) == ["a", "b"]
     assert repr(dc) == "ReadOnlyDict({'a': 1, 'b': 2})"
     assert d is not dc
-    assert d._data is not dc._data  # noqa: SLF001
+    assert d._data is not dc._data
 
 
 def test_merge_read_only_dict():

@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for draft record API model.
 
 This module provides the DraftRecordPreset that creates
@@ -93,9 +88,7 @@ class DraftPreset(Preset):
             dumper = Dependency(
                 "RecordDumper",
                 "record_dumper_extensions",
-                transform=lambda RecordDumper, record_dumper_extensions: RecordDumper(  # noqa: N803
-                    record_dumper_extensions
-                ),
+                transform=lambda RecordDumper, record_dumper_extensions: RecordDumper(record_dumper_extensions),
             )
 
             # note: we need to use the has_draft field from rdm records

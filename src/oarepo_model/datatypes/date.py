@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Date and time data types for OARepo models.
 
@@ -43,7 +37,7 @@ from oarepo_runtime.services.schema.ui import (
 class KeepOriginalStringMixin(marshmallow.fields.Field):
     """Mixin schema to keep the original string value."""
 
-    SERIALIZATION_FUNCS: dict[str, Callable] = {"iso": lambda val: val}  # noqa RUFF012
+    SERIALIZATION_FUNCS: dict[str, Callable] = {"iso": lambda val: val}
 
     @override
     def deserialize(
@@ -273,7 +267,7 @@ class CachedMultilayerEDTFValidator(EDTFValidator):
         """Validate the EDTF value and return it."""
         return self._cached_validation(value)
 
-    @functools.lru_cache(maxsize=1024)  # noqa memory consumption ok
+    @functools.lru_cache(maxsize=1024)  # memory consumption ok
     def _cached_validation(self, value: str) -> str:
         """Validate EDTF string.
 
@@ -282,8 +276,8 @@ class CachedMultilayerEDTFValidator(EDTFValidator):
         # at first try to parse the value as a date because it is much faster
         # and most of the time it is a date
         try:
-            datetime.strptime(value, "%Y-%m-%d")  # noqa naive datetime ok here
-        except Exception:  # noqa catching all exceptions is ok here
+            datetime.strptime(value, "%Y-%m-%d")  # naive datetime ok here
+        except Exception:  # catching all exceptions is ok here
             value = super().__call__(value)
         return value
 

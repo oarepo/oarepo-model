@@ -1,12 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-# Copyright (c) 2026 University of West Bohemia
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Collection data types for OARepo models.
 
@@ -511,7 +504,7 @@ class DynamicObjectDataType(ObjectDataType):
         from .base import DataType
 
         return marshmallow.fields.Raw(
-            **DataType._get_marshmallow_field_args(self, field_name, element),  # noqa: SLF001
+            **DataType._get_marshmallow_field_args(self, field_name, element),
         )
 
     @override

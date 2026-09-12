@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Extension preset for file handling functionality in published records.
 
 This module provides the ExtFilesPreset that configures
@@ -45,7 +40,7 @@ class RecordWithFilesExtensionProtocol(RecordExtensionProtocol):
     @property
     def files_service(self) -> FileService:
         """File service instance."""
-        return super().files_service  # type: ignore[no-any-return,misc] # pragma: no cover
+        return super().files_service  # pragma: no cover
 
 
 class ExtFilesPreset(Preset):

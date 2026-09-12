@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type for PID-based record relations.
 
 This module provides the PIDRelation data type for creating relationships
@@ -89,7 +84,7 @@ class PIDRelation(ObjectDataType):
             raise KeyError("model is required")
         return cast("str", model)
 
-    def _get_properties(  # noqa: PLR0912,C901 too many branches
+    def _get_properties(  # too many branches
         self,
         element: dict[str, Any],
         ignore_missing: bool = False,
@@ -226,7 +221,7 @@ class PIDRelation(ObjectDataType):
 
     def _relation_path(
         self,
-        element: dict[str, Any],  # noqa: ARG002
+        element: dict[str, Any],
         path: list[ArrayPathMember],
     ) -> list:
         """Get the relation path for the PID relation."""
@@ -243,7 +238,7 @@ class PIDRelation(ObjectDataType):
     def _relation_pid_field(
         self,
         element: dict[str, Any],
-        path: list[ArrayPathMember],  # noqa: ARG002
+        path: list[ArrayPathMember],
     ) -> PIDFieldContext:
         """Get the PID field from the element."""
         if "pid_field" in element:
@@ -270,14 +265,14 @@ class PIDRelation(ObjectDataType):
     def _relation_cache_key(
         self,
         element: dict[str, Any],
-        path: list[ArrayPathMember],  # noqa: ARG002
+        path: list[ArrayPathMember],
     ) -> str | None:
         return element.get("cache_key")
 
     def _relation_key_names(
         self,
         element: dict[str, Any],
-        path: list[ArrayPathMember],  # noqa: ARG002
+        path: list[ArrayPathMember],
     ) -> list[str]:
         keys = set()
         for key in element.get("keys", []):

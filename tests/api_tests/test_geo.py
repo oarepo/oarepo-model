@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 import pytest
@@ -159,7 +154,7 @@ def test_geo_distance_param_invalid_value_raises():
 )
 def test_geo_distance_param_pivot(distance, expected_pivot):
     interpreter = GeoDistanceParam(config=None)
-    assert interpreter._pivot(distance) == expected_pivot  # noqa: SLF001
+    assert interpreter._pivot(distance) == expected_pivot
 
 
 # A ~1x1 degree box roughly covering Prague. lat: 49.5-50.5, lon: 14.0-15.0.
