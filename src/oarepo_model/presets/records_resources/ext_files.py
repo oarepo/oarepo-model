@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Extension preset for file handling functionality in published records.
 
 This module provides the ExtFilesPreset that configures
@@ -15,11 +10,14 @@ the Flask extension for handling files in published record repositories.
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, Protocol, override
 
+# the "files" feature is implemented by invenio-records-resources, so its
+# version is recorded from there - same source as FilesFeaturePreset, making
+# the duplicate declaration order-independent
+from invenio_records_resources import __version__
 from oarepo_runtime.config import build_config
 
-import oarepo_model
 from oarepo_model.customizations import (
     AddToList,
     Customization,
@@ -27,7 +25,7 @@ from oarepo_model.customizations import (
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
-from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol
+from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol, RecordExtensionProtocolTyping
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -39,19 +37,30 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class RecordWithFilesExtensionProtocol(RecordExtensionProtocol):
-    """Protocol for record extensions with files support."""
+class RecordWithFilesExtensionProtocolTyping(RecordExtensionProtocolTyping, Protocol):
+    """Structural shape adding 'files_service' on top of RecordExtensionProtocolTyping.
 
-    @property
-    def files_service(self) -> FileService:
-        """File service instance."""
-        return super().files_service  # type: ignore[no-any-return,misc] # pragma: no cover
+    Inherit RecordWithFilesExtensionProtocol below instead of this class, for
+    the reason given in RecordExtensionProtocolTyping's docstring.
+    """
+
+    if TYPE_CHECKING:
+
+        @property
+        def files_service(self) -> FileService:
+            """File service instance."""
+
+
+if TYPE_CHECKING:
+    RecordWithFilesExtensionProtocol = RecordWithFilesExtensionProtocolTyping
+else:
+    RecordWithFilesExtensionProtocol = object
 
 
 class ExtFilesPreset(Preset):
     """Preset for extension class."""
 
-    modifies = ("Ext",)
+    modifies = ("Ext", "services_registry_list")
 
     @override
     def apply(
@@ -106,7 +115,7 @@ class ExtFilesPreset(Preset):
                     **parent_model_args,
                     "features": {
                         **parent_model_args["features"],
-                        "files": {"version": oarepo_model.__version__},
+                        "files": {"version": __version__},
                     },
                     "file_service": self.files_service,
                 }

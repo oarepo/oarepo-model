@@ -1,14 +1,10 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 import pytest
+from geopy.exc import GeocoderUnavailable
 from invenio_records_resources.services.errors import QuerystringValidationError
 from marshmallow.exceptions import ValidationError
 from opensearch_dsl import Search
@@ -143,11 +139,12 @@ def test_geo_shape_param_removes_key_from_facets_bucket():
 
 
 def test_geo_shape_param_invalid_value_raises():
+    """Malformed WKT is a client error; plain text is not invalid, it is a place name."""
     with pytest.raises(QuerystringValidationError):
         GeoShapeParam(config=None).apply(
             None,
             Search(),
-            {"geo_shape:metadata.location": ["not a shape"]},
+            {"geo_shape:metadata.location": ["POINT (abc)"]},
         )
 
 
@@ -419,4 +416,18 @@ def test_geo_shape_param_location_not_found_raises(monkeypatch):
             None,
             Search(),
             {"geo_shape:metadata.location": ["Nowhereville"]},
+        )
+
+
+def test_geo_shape_param_geocoder_error_raises(monkeypatch):
+    def unavailable(_name: str) -> dict:
+        raise GeocoderUnavailable("unavailable")
+
+    monkeypatch.setattr(spherical, "_nominatim_geocode_shape", unavailable)
+
+    with pytest.raises(GeocoderUnavailable):
+        GeoShapeParam(config=None).apply(
+            None,
+            Search(),
+            {"geo_shape:metadata.location": ["Prague, Czechia"]},
         )

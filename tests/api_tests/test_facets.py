@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 
@@ -45,15 +40,6 @@ def test_facet(
     assert no_hit.total == 0
 
 
-def test_draft_facets_preset_adds_is_published_facet(
-    app,
-    facet_service,
-    identity_simple,
-    input_facets_data,
-    facet_model,
-    search,
-    search_clear,
-    location,
-):
+def test_draft_facets_preset_adds_is_published_facet(app, facet_model):
     """Test that DraftFacetsPreset adds is_published facet to search options."""
     assert hasattr(facet_model.facets, "is_published")

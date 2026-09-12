@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Numeric data types for OARepo models.
 
@@ -15,7 +9,7 @@ floating-point numbers for use in OARepo models.
 
 from __future__ import annotations
 
-from typing import Any, override
+from typing import Any, ClassVar, override
 
 import marshmallow.fields
 import marshmallow.validate
@@ -27,10 +21,6 @@ from .base import DataType, FacetMixin
 
 class FormatNumber(marshmallow.fields.Field):
     """Helper class for formatting single values of numbers."""
-
-    def __init__(self, *args: Any, **kwargs: Any):
-        """Initialize the FormatNumber field."""
-        super().__init__(*args, **kwargs)
 
     @override
     def _serialize(self, value: Any, attr: str | None, obj: Any, **kwargs: Any) -> Any:
@@ -44,6 +34,10 @@ class FormatNumber(marshmallow.fields.Field):
 
 class NumberDataType(FacetMixin, DataType):
     """Base class for numeric data types."""
+
+    #: value range of the concrete numeric type, appended as an extra Range
+    #: validator when set
+    range_bounds: ClassVar[tuple[float, float] | None] = None
 
     @override
     def create_ui_marshmallow_fields(
@@ -88,6 +82,13 @@ class NumberDataType(FacetMixin, DataType):
                 ),
             )
         ret["strict"] = element.get("strict_validation", True)
+        if self.range_bounds is not None:
+            ret.setdefault("validate", []).append(
+                marshmallow.validate.Range(
+                    min=self.range_bounds[0],
+                    max=self.range_bounds[1],
+                ),
+            )
         return ret
 
     @override
@@ -117,18 +118,7 @@ class IntegerDataType(NumberDataType):
     jsonschema_type = "integer"
     mapping_type = "integer"
 
-    @override
-    def _get_marshmallow_field_args(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> dict[str, Any]:
-        ret = super()._get_marshmallow_field_args(field_name, element)
-        ret.setdefault("validate", []).append(
-            marshmallow.validate.Range(min=-(2**31), max=2**31 - 1),
-        )
-        ret["strict"] = element.get("strict_validation", True)
-        return ret
+    range_bounds = (-(2**31), 2**31 - 1)
 
 
 class LongDataType(NumberDataType):
@@ -140,18 +130,7 @@ class LongDataType(NumberDataType):
     jsonschema_type = "integer"
     mapping_type = "long"
 
-    @override
-    def _get_marshmallow_field_args(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> dict[str, Any]:
-        ret = super()._get_marshmallow_field_args(field_name, element)
-        ret.setdefault("validate", []).append(
-            marshmallow.validate.Range(min=-(2**63), max=2**63 - 1),
-        )
-        ret["strict"] = element.get("strict_validation", True)
-        return ret
+    range_bounds = (-(2**63), 2**63 - 1)
 
 
 class FloatDataType(NumberDataType):
@@ -163,17 +142,7 @@ class FloatDataType(NumberDataType):
     jsonschema_type = "number"
     mapping_type = "float"
 
-    @override
-    def _get_marshmallow_field_args(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> dict[str, Any]:
-        ret = super()._get_marshmallow_field_args(field_name, element)
-        ret.setdefault("validate", []).append(
-            marshmallow.validate.Range(min=-3.402823466e38, max=3.402823466e38),
-        )
-        return ret
+    range_bounds = (-3.402823466e38, 3.402823466e38)
 
 
 class DoubleDataType(NumberDataType):
@@ -184,3 +153,4 @@ class DoubleDataType(NumberDataType):
 
     marshmallow_field_class = marshmallow.fields.Float
     jsonschema_type = "number"
+    # no range_bounds: python's float is IEEE double, so the field already covers the full range

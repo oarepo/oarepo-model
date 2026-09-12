@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Base classes and interfaces for OARepo data types.
 
@@ -16,13 +10,15 @@ that define how data types are implemented and used within OARepo models.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, cast, override
 
 from invenio_base.utils import obj_or_import_string
 from marshmallow.fields import Field
 from oarepo_runtime.services.facets.utils import get_basic_facet
 
 if TYPE_CHECKING:
+    import marshmallow
+
     from oarepo_model.customizations.base import Customization
     from oarepo_model.utils import ArrayPathMember
 
@@ -88,7 +84,7 @@ class DataType:
 
     def _get_ui_marshmallow_field_class(
         self,
-        field_name: str,  # noqa: ARG002 for override
+        field_name: str,  # noqa ARG002 for extensibility
         element: dict[str, Any],
     ) -> type | None:
         """Get a ui marshmallow field class."""
@@ -96,23 +92,52 @@ class DataType:
             return cast("type", obj_or_import_string(element["ui_marshmallow_field_class"]))
         return None
 
-    def get_facet(
+    def create_marshmallow_schema(
+        self,
+        element: dict[str, Any],
+    ) -> type[marshmallow.Schema]:
+        """Create a Marshmallow schema for the data type.
+
+        This method should be overridden by subclasses to provide specific schema creation logic.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} (type '{self.name}') does not implement create_marshmallow_schema",
+        )
+
+    def create_ui_marshmallow_schema(
+        self,
+        element: dict[str, Any],
+    ) -> type[marshmallow.Schema]:
+        """Create a Marshmallow UI schema for the data type.
+
+        This method should be overridden by subclasses to provide specific schema creation logic.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} (type '{self.name}') does not implement create_ui_marshmallow_schema",
+        )
+
+    def get_facet(  # noqa PLR0913 signature is part of the datatype contract
         self,
         path: str,
         element: dict[str, Any],
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
-        """Create facets for the data type."""
-        _, _, _, _, _ = path, element, nested_facets, facets, path_suffix
+        """Create facets for the data type.
+
+        ``ignored_keys`` is meaningful only for data types that walk their
+        properties (e.g. objects/relations); leaf types accept and ignore it.
+        """
+        _, _, _, _, _, _ = path, element, nested_facets, facets, path_suffix, ignored_keys
 
         return facets
 
     def create_ui_marshmallow_fields(
         self,
-        field_name: str,  # noqa: ARG002 for override
-        element: dict[str, Any],  # noqa: ARG002 for override
+        field_name: str,  # noqa ARG002 for extensibility
+        element: dict[str, Any],  # noqa ARG002 for extensibility
     ) -> dict[str, Field]:
         """Create a Marshmallow UI field for the data type.
 
@@ -123,7 +148,7 @@ class DataType:
 
     def _get_marshmallow_field_class(
         self,
-        field_name: str,  # noqa: ARG002 for override
+        field_name: str,  # noqa ARG002 for extensibility
         element: dict[str, Any],
     ) -> type[Field]:
         """Get the Marshmallow field class for the data type.
@@ -190,7 +215,7 @@ class DataType:
 
     def create_json_schema(
         self,
-        element: dict[str, Any],  # noqa: ARG002 for override
+        element: dict[str, Any],  # noqa ARG002 for extensibility
     ) -> Mapping[str, Any]:
         """Create a JSON schema for the data type.
 
@@ -208,7 +233,7 @@ class DataType:
 
     def create_mapping(
         self,
-        element: dict[str, Any],  # noqa: ARG002 for override
+        element: dict[str, Any],  # noqa ARG002 for extensibility
     ) -> Mapping[str, Any]:
         """Create a mapping for the data type.
 
@@ -225,8 +250,8 @@ class DataType:
 
     def create_dynamic_mapping(
         self,
-        field_name: str,  # noqa: ARG002
-        element: dict[str, Any],  # noqa: ARG002
+        field_name: str,  # noqa ARG002 for extensibility
+        element: dict[str, Any],  # noqa ARG002 for extensibility
     ) -> Mapping[str, Any]:
         """Create additional mapping properties."""
         return {}
@@ -242,8 +267,8 @@ class DataType:
 
     def create_relations(
         self,
-        element: dict[str, Any],  # noqa: ARG002 for override
-        path: list[ArrayPathMember],  # noqa: ARG002 for override
+        element: dict[str, Any],  # noqa ARG002 for extensibility
+        path: list[ArrayPathMember],  # noqa ARG002 for extensibility
     ) -> list[Customization]:
         """Create relations for the data type.
 
@@ -297,6 +322,7 @@ else:
 class FacetMixin(FacetMixinBase):
     """Mixin for basic facet generation."""
 
+    @override
     def get_facet(
         self,
         path: str,
@@ -304,8 +330,10 @@ class FacetMixin(FacetMixinBase):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Create facets for the data type."""
+        _ = ignored_keys  # a leaf facet has no properties to skip
         if element.get("searchable", True):
             return get_basic_facet(
                 facets=facets,

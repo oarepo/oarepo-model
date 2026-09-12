@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for configuring media file resource.
 
 This module provides a preset that creates and configures a MediaFileResourceConfig
@@ -29,15 +24,27 @@ from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from oarepo_model.builder import InvenioModelBuilder
+
+#: mirrors upstream's invenio_rdm_records media routes: media files live under '/media-files',
+#: not the plain '/files' inherited from FileResourceConfig - the two would otherwise register
+#: identical rules and the plain-file blueprint would silently win every match
+MEDIA_FILE_ROUTES: Mapping[str, str] = {
+    "list": "/media-files",
+    "item": "/media-files/<path:key>",
+    "item-content": "/media-files/<path:key>/content",
+    "item-multipart-content": "/media-files/<path:key>/content/<int:part>",
+    "item-commit": "/media-files/<path:key>/commit",
+    "list-archive": "/media-files-archive",
+}
 
 
 class MediaFileResourceConfigPreset(Preset):
     """Preset for file resource config class."""
 
-    provides = ("MediaFileResourceConfig",)
+    provides = ("MediaFileResourceConfig", "media_file_response_handlers")
 
     @override
     def apply(
@@ -49,6 +56,7 @@ class MediaFileResourceConfigPreset(Preset):
         class MediaFileResourceConfigMixin:
             blueprint_name = f"{model.base_name}_media_files"
             url_prefix = f"/{model.slug}/<pid_value>"
+            routes: Mapping[str, str] = MEDIA_FILE_ROUTES
             # Response handling
             response_handlers = Dependency("media_file_response_handlers")
 

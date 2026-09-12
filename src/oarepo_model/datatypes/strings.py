@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """String data types for OARepo models.
 
@@ -53,7 +47,7 @@ class KeywordDataType(FacetMixin, DataType):
                     max=element.get("max_length"),
                 ),
             )
-        if "required" in element and "min_length" not in element:
+        if element.get("required") and "min_length" not in element:
             # required strings must have min_length set to 1 if it is not already set
             ret.setdefault("validate", []).append(marshmallow.validate.Length(min=1))
 
@@ -104,14 +98,16 @@ class FullTextDataType(KeywordDataType):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Do not create facets for the fulltext data type."""
-        _, _, _, _, _ = (
+        _, _, _, _, _, _ = (
             path,
             element,
             nested_facets,
             facets,
             path_suffix,
+            ignored_keys,
         )  # to avoid unused variable warning
         return facets
 
@@ -143,8 +139,10 @@ class FulltextWithKeywordDataType(KeywordDataType):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Create facets for the .keyword part of the fulltext+keyword type."""
+        _ = ignored_keys
         return super().get_facet(
             path,
             element,
