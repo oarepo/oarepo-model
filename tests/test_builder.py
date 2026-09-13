@@ -19,11 +19,13 @@ from oarepo_model.builder import (
     BuilderModule,
     BuilderSymbolicLink,
     InvenioModelBuilder,
+    Partial,
 )
 from oarepo_model.errors import (
     AlreadyRegisteredError,
     ClassBuildError,
     ClassListBuildError,
+    PartialNotFoundError,
 )
 
 
@@ -332,3 +334,41 @@ def test_add_class_exists_ok_on_file_partial():
         builder.add_class("record-mapping", exists_ok=True)
 
     assert builder.get_file("record-mapping") is mapping
+
+
+def _all_partial_classes() -> list[type[Partial]]:
+    classes: list[type[Partial]] = []
+    stack = list(Partial.__subclasses__())
+    while stack:
+        clazz = stack.pop()
+        classes.append(clazz)
+        stack.extend(clazz.__subclasses__())
+    return classes
+
+
+@pytest.mark.parametrize("kind", _all_partial_classes(), ids=lambda clazz: clazz.__name__)
+def test_get_missing_partial_raises_partial_not_found(kind):
+    builder = InvenioModelBuilder(MagicMock(), MagicMock())
+    with pytest.raises(PartialNotFoundError, match="missing not found"):
+        builder._get("missing", kind)
+
+
+def test_get_constant_missing_names_the_kind():
+    builder = InvenioModelBuilder(MagicMock(), MagicMock())
+    with pytest.raises(PartialNotFoundError, match="Builder constant AConst not found"):
+        builder.get_constant("AConst")
+
+
+def test_get_file_missing_names_the_kind():
+    builder = InvenioModelBuilder(MagicMock(), MagicMock())
+    with pytest.raises(PartialNotFoundError, match="Builder file AFile not found"):
+        builder.get_file("AFile")
+
+
+def test_get_missing_partial_without_message_falls_back_to_class_name():
+    class CustomPartial(Partial):
+        pass
+
+    builder = InvenioModelBuilder(MagicMock(), MagicMock())
+    with pytest.raises(PartialNotFoundError, match="CustomPartial missing not found"):
+        builder._get("missing", CustomPartial)

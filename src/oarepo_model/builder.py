@@ -476,6 +476,9 @@ class InvenioModelBuilder:
             BuilderList: "Builder list",
             BuilderDict: "Builder dictionary",
             BuilderModule: "Builder module",
+            BuilderConstant: "Builder constant",
+            BuilderFile: "Builder file",
+            BuilderSymbolicLink: "Builder symbolic link",
         },
     )
 
@@ -483,7 +486,7 @@ class InvenioModelBuilder:
         """Get a partial by name."""
         if name not in self.partials:
             raise PartialNotFoundError(
-                f"{self._not_found_messages[clz]} {name} not found.",
+                f"{self._not_found_messages.get(clz, clz.__name__)} {name} not found.",
             )
         partial = self.partials[name]
         if not isinstance(partial, clz):
