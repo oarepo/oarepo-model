@@ -12,7 +12,7 @@ value and corresponding schema type.
 
 from __future__ import annotations
 
-from typing import Any, override
+from typing import TYPE_CHECKING, Any, override
 
 import marshmallow as ma
 from invenio_base.utils import obj_or_import_string
@@ -24,6 +24,9 @@ from marshmallow.utils import (
 from oarepo_model.utils import readonly_dict_merger
 
 from .base import DataType
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class PolymorphicDataType(DataType):
@@ -239,6 +242,8 @@ class PolymorphicDataType(DataType):
 class PolymorphicField(ma.fields.Field):
     """Custom marshmallow field class that supports handling polymorphic fields."""
 
+    default_error_messages: Mapping[str, str] = {"unknown_type": "Unknown type '{type}'."}
+
     def __init__(
         self,
         discriminator: str,
@@ -309,7 +314,7 @@ class PolymorphicField(ma.fields.Field):
         discriminator_value = self.get_discriminator_value(value)
 
         if discriminator_value not in self.alternatives:
-            self.fail("unknown_type", type=discriminator_value)
+            raise self.make_error("unknown_type", type=discriminator_value)
 
         schema_field = self.alternatives[discriminator_value]
         return schema_field._deserialize(  # noqa SLF001 continuing with the schema field

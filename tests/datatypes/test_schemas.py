@@ -514,6 +514,43 @@ def test_polymorphic_field(test_schema):
         schema.load(val)
 
 
+def test_polymorphic_field_unknown_discriminator(test_schema):
+    """An unknown discriminator value must produce a field validation error.
+
+    Regression test: the field had no error message defined for an unknown
+    discriminator value, so marshmallow raised AssertionError instead of
+    ValidationError, turning a user typo into an internal error.
+    """
+    person_schema = {
+        "type": "object",
+        "properties": {"first_name": {"type": "fulltext"}, "type": {"type": "keyword"}},
+    }
+    organization_schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "fulltext+keyword"},
+            "type": {"type": "keyword"},
+        },
+    }
+
+    schema = test_schema(
+        {
+            "type": "polymorphic",
+            "discriminator": "type",
+            "oneof": [
+                {"discriminator": "person", "type": "Person"},
+                {"discriminator": "organization", "type": "Organization"},
+            ],
+        },
+        extra_types={"Person": person_schema, "Organization": organization_schema},
+    )
+
+    with pytest.raises(ma.ValidationError) as exc_info:
+        schema.load({"a": {"type": "robot", "first_name": "bob"}})
+
+    assert exc_info.value.messages == {"a": ["Unknown type 'robot'."]}
+
+
 def test_polymorphic_field_required(test_schema):
     person_schema = {
         "type": "object",
