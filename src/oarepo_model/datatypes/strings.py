@@ -47,7 +47,7 @@ class KeywordDataType(FacetMixin, DataType):
                     max=element.get("max_length"),
                 ),
             )
-        if "required" in element and "min_length" not in element:
+        if element.get("required") and "min_length" not in element:
             # required strings must have min_length set to 1 if it is not already set
             ret.setdefault("validate", []).append(marshmallow.validate.Length(min=1))
 
