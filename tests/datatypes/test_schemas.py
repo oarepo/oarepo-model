@@ -420,6 +420,14 @@ def test_edtf_interval_field(test_schema):
     val = "2005/2006-02"
     assert schema.load({"a": val}) == {"a": val}
 
+    # a bare date is not an interval
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2023-01-01"})
+
+    # a non-chronological interval is not either
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2008/1964"})
+
 
 def test_edtf_date_or_interval_field(test_schema):
     schema = test_schema(

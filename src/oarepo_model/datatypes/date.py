@@ -10,8 +10,8 @@ for use in OARepo models.
 
 from __future__ import annotations
 
-import functools
-from datetime import datetime
+import re
+from datetime import date
 from typing import TYPE_CHECKING, Any, override
 
 import edtf
@@ -32,6 +32,9 @@ from oarepo_runtime.services.schema.ui import (
     LocalizedEDTFTime,
     LocalizedEDTFTimeInterval,
 )
+
+_STRICT_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_STRICT_INTERVAL_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}$")
 
 
 class KeepOriginalStringMixin(marshmallow.fields.Field):
@@ -259,27 +262,60 @@ class TimeDataType(FacetMixin, DataType):
         return ret
 
 
-class CachedMultilayerEDTFValidator(EDTFValidator):
-    """A cached EDTF validator."""
+def _strict_date(value: str) -> date | None:
+    """Return the day ``value`` denotes as ``YYYY-MM-DD``, or None if it is not one."""
+    if not _STRICT_DATE_PATTERN.match(value):
+        return None
+    try:
+        return date(int(value[:4]), int(value[5:7]), int(value[8:10]))
+    except ValueError:
+        return None
+
+
+class MultilayerEDTFValidator(EDTFValidator):
+    """EDTF validator that decides strict level-0 input without running the grammar.
+
+    ``parse_edtf`` is a pyparsing grammar and it dominates the cost of validating user
+    input. A strict ``YYYY-MM-DD`` string, and an interval of two of them, always parse
+    to the same EDTF object, so both can be decided by looking at the string - as long
+    as the allowed ``types`` say what that object is accepted as.
+    """
 
     @override
     def __call__(self, value: str) -> str:
         """Validate the EDTF value and return it."""
-        return self._cached_validation(value)
+        if self._accepts_strict_value(value):
+            return value
+        return super().__call__(value)
 
-    @functools.lru_cache(maxsize=1024)  # noqa B019 - memory consumption is ok here
-    def _cached_validation(self, value: str) -> str:
-        """Validate EDTF string.
+    def _accepts_strict_value(self, value: Any) -> bool:
+        """Whether ``value`` is a strict date/interval the configured types accept.
 
-        If a value is valid, do not revalidate again, take it from cache.
+        The fast path has to reach the same verdict the full validation would: only the
+        strict level-0 forms are matched, everything else (uncertainty, qualifyers,
+        seasons, partial intervals, unspecified digits, ...) is left to the grammar.
         """
-        # at first try to parse the value as a date because it is much faster
-        # and most of the time it is a date
-        try:
-            datetime.strptime(value, "%Y-%m-%d")  # noqa DTZ007 naive datetime ok here
-        except ValueError, TypeError:
-            value = super().__call__(value)
-        return value
+        if not isinstance(value, str):
+            return False
+
+        if "/" in value:
+            if not _STRICT_INTERVAL_PATTERN.match(value):
+                return False
+            start = _strict_date(value[:10])
+            end = _strict_date(value[11:])
+            if start is None or end is None:
+                return False
+            # ISO dates of the same width compare chronologically, and an interval of
+            # two dates fails the chronological check exactly when start > end.
+            return start <= end and self._accepts(edtf.Interval)
+
+        # a strict date parses to an edtf Date whose lower and upper bound are
+        # identical, so it always passes the chronological check.
+        return _strict_date(value) is not None and self._accepts(edtf.Date)
+
+    def _accepts(self, parsed_type: type) -> bool:
+        """Whether the configured ``types`` accept an object of ``parsed_type``."""
+        return not self._types or any(issubclass(parsed_type, allowed) for allowed in self._types)
 
 
 class EDTFTimeDataType(FacetMixin, DataType):
@@ -337,7 +373,7 @@ class EDTFTimeDataType(FacetMixin, DataType):
         ret = super()._get_marshmallow_field_args(field_name, element)
 
         ret.setdefault("validate", []).append(
-            CachedMultilayerEDTFValidator(types=[edtf.DateAndTime, edtf.Date]),
+            MultilayerEDTFValidator(types=[edtf.DateAndTime, edtf.Date]),
         )
 
         return ret
@@ -398,7 +434,7 @@ class EDTFDataType(FacetMixin, DataType):
         ret = super()._get_marshmallow_field_args(field_name, element)
 
         ret.setdefault("validate", []).append(
-            CachedMultilayerEDTFValidator(types=[edtf.Date]),
+            MultilayerEDTFValidator(types=[edtf.Date]),
         )
 
         return ret
@@ -454,7 +490,7 @@ class EDTFIntervalType(DataType):
         ret = super()._get_marshmallow_field_args(field_name, element)
 
         ret.setdefault("validate", []).append(
-            CachedMultilayerEDTFValidator(types=[edtf.Interval]),
+            MultilayerEDTFValidator(types=[edtf.Interval]),
         )
 
         return ret
@@ -501,7 +537,7 @@ class EDTFDateOrIntervalDataType(DataType):
     def _get_marshmallow_field_args(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
         ret = super()._get_marshmallow_field_args(field_name, element)
         ret.setdefault("validate", []).append(
-            CachedMultilayerEDTFValidator(types=[edtf.Date, edtf.Interval]),
+            MultilayerEDTFValidator(types=[edtf.Date, edtf.Interval]),
         )
         return ret
 
