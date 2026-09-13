@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from importlib.metadata import EntryPoint
 from types import MappingProxyType, SimpleNamespace
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, override
 
 from werkzeug.local import LocalProxy
 
@@ -24,7 +24,7 @@ from oarepo_model.errors import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
 
     from .datatypes.registry import DataTypeRegistry
 
@@ -291,6 +291,22 @@ class InvenioModelBuilder:
         self.runtime_dependencies = RuntimeDependencies()
         self.type_registry = type_registry
 
+    def _add[T: Partial](
+        self,
+        name: str,
+        clz: type[T],
+        exists_ok: bool,
+        label: str,
+        create: Callable[[], T],
+    ) -> T:
+        """Add a partial, checking its kind with `_get` when `exists_ok` is set."""
+        if name in self.partials:
+            if exists_ok:
+                return self._get(name, clz)
+            raise AlreadyRegisteredError(f"{label} {name} already exists.")
+        self.partials[name] = ret = create()
+        return ret
+
     def add_class(
         self,
         name: str,
@@ -298,15 +314,16 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderClass:
         """Add a class to the builder."""
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderClass", self.partials[name])
-            raise AlreadyRegisteredError(f"Class {name} already exists.")
-        self.partials[name] = clz = BuilderClass(
-            self.model.title_name + title_case(name).replace("_", ""),
-            base_classes=[clazz] if clazz else [],
+        return self._add(
+            name,
+            BuilderClass,
+            exists_ok,
+            "Class",
+            lambda: BuilderClass(
+                self.model.title_name + title_case(name).replace("_", ""),
+                base_classes=[clazz] if clazz else [],
+            ),
         )
-        return clz
 
     def get_class(self, name: str) -> BuilderClass:
         """Get a class by name."""
@@ -322,13 +339,13 @@ class InvenioModelBuilder:
 
         A class list is a list of classes that will be used to build a mro consistent class list.
         """
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderClassList", self.partials[name])
-            raise AlreadyRegisteredError(f"Class list {name} already exists.")
-        self.partials[name] = cll = BuilderClassList(name)
-        cll.extend(classes)
-        return cll
+
+        def create() -> BuilderClassList:
+            cll = BuilderClassList(name)
+            cll.extend(classes)
+            return cll
+
+        return self._add(name, BuilderClassList, exists_ok, "Class list", create)
 
     def get_class_list(self, name: str) -> BuilderClassList:
         """Get a class list by name."""
@@ -341,13 +358,13 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderList:
         """Add a list to the builder."""
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderList", self.partials[name])
-            raise AlreadyRegisteredError(f"List {name} already exists.")
-        self.partials[name] = cll = BuilderList(name)
-        cll.extend(classes)
-        return cll
+
+        def create() -> BuilderList:
+            lst = BuilderList(name)
+            lst.extend(classes)
+            return lst
+
+        return self._add(name, BuilderList, exists_ok, "List", create)
 
     def get_list(self, name: str) -> BuilderList:
         """Get a list by name."""
@@ -360,13 +377,13 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderDict:
         """Add a dictionary to the builder."""
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderDict", self.partials[name])
-            raise AlreadyRegisteredError(f"Dictionary {name} already exists.")
-        self.partials[name] = ret = BuilderDict(name)
-        ret.update(default or {})
-        return ret
+
+        def create() -> BuilderDict:
+            ret = BuilderDict(name)
+            ret.update(default or {})
+            return ret
+
+        return self._add(name, BuilderDict, exists_ok, "Dictionary", create)
 
     def get_dictionary(self, name: str) -> dict[str, Any]:
         """Get a dictionary by name."""
@@ -379,12 +396,7 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderConstant:
         """Add a constant to the builder."""
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderConstant", self.partials[name])
-            raise AlreadyRegisteredError(f"Constant {name} already exists.")
-        self.partials[name] = ret = BuilderConstant(name, value)
-        return ret
+        return self._add(name, BuilderConstant, exists_ok, "Constant", lambda: BuilderConstant(name, value))
 
     def get_constant(self, name: str) -> BuilderConstant:
         """Get a constant by name."""
@@ -396,12 +408,7 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderModule:
         """Add a module to the builder."""
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderModule", self.partials[name])
-            raise AlreadyRegisteredError(f"Module {name} already exists.")
-        self.partials[name] = _module = BuilderModule(name)
-        return _module
+        return self._add(name, BuilderModule, exists_ok, "Module", lambda: BuilderModule(name))
 
     def add_file(
         self,
@@ -412,14 +419,13 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderFile:
         """Add a file to the builder."""
-        if symbolic_name in self.partials:
-            if exists_ok:
-                return cast("BuilderFile", self.partials[symbolic_name])
-            raise AlreadyRegisteredError(f"Module {symbolic_name} already exists.")
-
-        ret = BuilderFile(symbolic_name, module_name, file_path, content)
-        self.partials[symbolic_name] = ret
-        return ret
+        return self._add(
+            symbolic_name,
+            BuilderFile,
+            exists_ok,
+            "Module",
+            lambda: BuilderFile(symbolic_name, module_name, file_path, content),
+        )
 
     def add_symlink(
         self,
@@ -429,14 +435,13 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderSymbolicLink:
         """Add a symlink to the builder."""
-        if symbolic_name in self.partials:
-            if exists_ok:
-                return cast("BuilderSymbolicLink", self.partials[symbolic_name])
-            raise AlreadyRegisteredError(f"Module {symbolic_name} already exists.")
-
-        ret = BuilderSymbolicLink(symbolic_name, module_name, file_path)
-        self.partials[symbolic_name] = ret
-        return ret
+        return self._add(
+            symbolic_name,
+            BuilderSymbolicLink,
+            exists_ok,
+            "Module",
+            lambda: BuilderSymbolicLink(symbolic_name, module_name, file_path),
+        )
 
     def get_file(self, symbolic_name: str) -> BuilderFile:
         """Get a file by symbolic name."""

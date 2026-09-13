@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import itertools
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -16,6 +17,7 @@ from oarepo_model.builder import (
     BuilderFile,
     BuilderList,
     BuilderModule,
+    BuilderSymbolicLink,
     InvenioModelBuilder,
 )
 from oarepo_model.errors import (
@@ -291,3 +293,42 @@ def test_add_file_multiple_times():
         builder.add_file("AFile", "AModule", "blah.txt", "content")
     file1 = builder.add_file("AFile", "AModule", "blah.txt", "content", exists_ok=True)
     assert file is file1
+
+
+ADDERS = {
+    BuilderClass: lambda b, name, **kw: b.add_class(name, **kw),
+    BuilderClassList: lambda b, name, **kw: b.add_class_list(name, **kw),
+    BuilderList: lambda b, name, **kw: b.add_list(name, **kw),
+    BuilderDict: lambda b, name, **kw: b.add_dictionary(name, **kw),
+    BuilderConstant: lambda b, name, **kw: b.add_constant(name, 42, **kw),
+    BuilderModule: lambda b, name, **kw: b.add_module(name, **kw),
+    BuilderFile: lambda b, name, **kw: b.add_file(name, "AModule", "blah.txt", "content", **kw),
+    BuilderSymbolicLink: lambda b, name, **kw: b.add_symlink(name, "AModule", "blah.txt", **kw),
+}
+
+
+@pytest.mark.parametrize("kind", list(ADDERS))
+def test_add_existing_same_kind_returns_the_partial(kind):
+    builder = InvenioModelBuilder(MagicMock(), MagicMock())
+    partial = ADDERS[kind](builder, "A")
+    assert ADDERS[kind](builder, "A", exists_ok=True) is partial
+    with pytest.raises(AlreadyRegisteredError):
+        ADDERS[kind](builder, "A")
+
+
+@pytest.mark.parametrize(("first", "second"), list(itertools.permutations(ADDERS, 2)))
+def test_add_existing_other_kind_raises(first, second):
+    builder = InvenioModelBuilder(MagicMock(), MagicMock())
+    ADDERS[first](builder, "A")
+    with pytest.raises(TypeError, match=f"Partial A is not a {second.__name__}."):
+        ADDERS[second](builder, "A", exists_ok=True)
+
+
+def test_add_class_exists_ok_on_file_partial():
+    builder = InvenioModelBuilder(MagicMock(), MagicMock())
+    mapping = builder.add_file("record-mapping", "mappings", "record-v1.0.0.json", '{"mappings": {}}')
+
+    with pytest.raises(TypeError, match="Partial record-mapping is not a BuilderClass"):
+        builder.add_class("record-mapping", exists_ok=True)
+
+    assert builder.get_file("record-mapping") is mapping
