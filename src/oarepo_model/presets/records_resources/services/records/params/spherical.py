@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import re
 from functools import lru_cache
@@ -32,6 +33,8 @@ if TYPE_CHECKING:
 
 #: Mean earth radius in kilometers, used to convert angular distances to km.
 _EARTH_RADIUS_KM = 6371.0088
+
+log = logging.getLogger("oarepo_model")
 
 
 # NOTE: this talks to the public OpenStreetMap Nominatim instance by default.
@@ -172,29 +175,40 @@ class _PrefixedGeoParam(ParamInterpreter):
         raise NotImplementedError
 
     def _geocode_point(self, field: str, location_name: str) -> tuple[float, float]:
-        try:
-            return _nominatim_geocode_point(location_name)
-        except (ValueError, GeopyError) as error:
-            raise QuerystringValidationError(
-                _(
-                    "Could not resolve location name %(location)r for parameter '%(param)s%(field)s'.",
-                    location=location_name,
-                    param=self.prefix,
-                    field=field,
-                )
-            ) from error
+        return self._geocode(field, location_name, _nominatim_geocode_point)
 
     def _geocode_shape(self, field: str, location_name: str) -> dict[str, Any]:
+        return self._geocode(field, location_name, _nominatim_geocode_shape)
+
+    def _geocode[T](self, field: str, location_name: str, resolve: Callable[[str], T]) -> T:
+        """Resolve a place name, telling "no result" apart from a geocoder failure.
+
+        Only "no result" is the client's fault; a failure of the geocoder itself is
+        an upstream condition, so it is logged and re-raised to surface as a 5xx
+        instead of blaming the user's location name with a 400.
+        """
         try:
-            return _nominatim_geocode_shape(location_name)
-        except (ValueError, GeopyError) as error:
+            return resolve(location_name)
+        except GeopyError as error:
+            # several geopy errors subclass ValueError too, so this must come first
+            log.warning(
+                "Geocoding of %r for parameter '%s%s' failed: %s: %s",
+                location_name,
+                self.prefix,
+                field,
+                type(error).__name__,
+                error,
+                exc_info=True,
+            )
+            raise
+        except ValueError as error:
             raise QuerystringValidationError(
                 _(
                     "Could not resolve location name %(location)r for parameter '%(param)s%(field)s'.",
                     location=location_name,
                     param=self.prefix,
                     field=field,
-                )
+                ),
             ) from error
 
 
