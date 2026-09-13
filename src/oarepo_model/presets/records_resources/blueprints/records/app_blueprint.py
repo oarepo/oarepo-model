@@ -54,7 +54,7 @@ class AppBlueprintPreset(Preset):
                 blueprint = Blueprint(
                     f"{model.base_name}_app",
                     __name__,
-                    url_prefix="/{model.slug}/",
+                    url_prefix=f"/{model.slug}/",
                 )
 
                 for initializer_func in cast(
