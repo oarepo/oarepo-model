@@ -46,7 +46,7 @@ class DraftSearchOptionsPreset(Preset):
     ) -> Generator[Customization]:
         yield AddDictionary("DraftFacetGroups", {}, exists_ok=True)
 
-        class DraftSearchOptionsMixin(ModelMixin):
+        class DraftSearchOptionsMixin(ModelMixin, SearchDraftsOptions):
             facets = Dependency("RecordFacets")
             facet_groups = Dependency("DraftFacetGroups")
 

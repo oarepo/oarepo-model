@@ -141,10 +141,10 @@ def dump_mapping(ns: SimpleNamespace) -> str:
     return json.dumps(files, indent=2)
 
 
-def dump_field(field: Field) -> tuple[str, list[type]]:
+def dump_field(field: Field) -> tuple[str, list[type[Schema]]]:
     """Dump marshmallow field as string."""
     dumped_field_args: list[str] = []
-    nested_types: list[type] = []
+    nested_types: list[type[Schema]] = []
     if isinstance(field, Nested):
         subschema: type[Schema] | Schema = field.schema
         if isinstance(subschema, Schema):
@@ -205,7 +205,7 @@ def dump_schema(schema: type[Schema] | Schema, dumped_schemas: set[type], dumped
     dumped_names.add(name)
     lines = [f"class {name}(\n{base_classes}\n):"]
 
-    subschemas: set[type] = set()
+    subschemas: set[type[Schema]] = set()
     # we do not want to instantiate the schema here so need to use the declared fields directly
     declared_fields = schema._declared_fields  # noqa SLF001
     for field_name, field_obj in declared_fields.items():

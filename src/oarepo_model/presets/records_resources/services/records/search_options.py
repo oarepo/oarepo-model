@@ -45,7 +45,7 @@ class RecordSearchOptionsPreset(Preset):
     ) -> Generator[Customization]:
         yield AddDictionary("FacetGroups", {}, exists_ok=True)
 
-        class RecordSearchOptionsMixin(ModelMixin):
+        class RecordSearchOptionsMixin(ModelMixin, SearchOptions):
             facets = Dependency("RecordFacets")
             facet_groups = Dependency("FacetGroups")
             extra_param_interpreter_classes = Dependency("extra_param_interpreter_classes")

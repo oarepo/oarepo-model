@@ -28,22 +28,22 @@ class PathDumperExtBase(SearchDumperExt):
         super().__init__()
         self.paths = paths
 
-    def dump(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def dump(
         self,
         record: Any,
         data: dict[str, Any],
-    ) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]
+    ) -> dict[str, Any]:
         """Convert fields into their search representation."""
         _ = record
         for path in self.paths:
             self._apply(data, path, self._data_to_opensearch)
         return data
 
-    def load(  # pyright: ignore[reportIncompatibleMethodOverride]
+    def load(
         self,
         data: dict[str, Any],
         record_cls: type,
-    ) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]
+    ) -> dict[str, Any]:
         """Convert fields back from their search representation."""
         _ = record_cls
         for path in self.paths:

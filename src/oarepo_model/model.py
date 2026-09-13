@@ -10,7 +10,6 @@ OARepo models, including model metadata, configuration, and runtime dependencies
 from __future__ import annotations
 
 import dataclasses
-from contextlib import suppress
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast, override
 
@@ -80,8 +79,6 @@ class CachedDescriptor:
 
     def __set_name__(self, owner: type, name: str) -> None:
         """Set the name of the attribute and initialize the cache."""
-        with suppress(AttributeError):
-            super().__set_name__(owner, name)
         self.attr = name
 
     def __get__(self, instance: ModelMixin | None, owner: type[ModelMixin]) -> Any:

@@ -18,6 +18,7 @@ import importlib.machinery
 import importlib.metadata
 import importlib.resources.abc
 import importlib.util
+import os
 import sys
 from importlib.metadata import Distribution, DistributionFinder
 from types import ModuleType, SimpleNamespace
@@ -27,7 +28,6 @@ from .utils import resolve_file_content
 
 if TYPE_CHECKING:
     import io
-    import os
     from collections.abc import Iterator, Sequence
     from importlib.metadata._meta import SimplePath
 
@@ -163,14 +163,13 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
             raise FileNotFoundError(f"{self._name} does not exist")
         return resolve_file_content(self._files[self._name])
 
-    # The real signature is (child: StrPath) -> InMemoryTraversable but StrPath is not exported
-    # in importlib.resources.abc
     @override
-    def __truediv__(self, child: str) -> InMemoryTraversable:
+    def __truediv__(self, child: str | os.PathLike[str]) -> InMemoryTraversable:
         """Navigate to a child path using the / operator."""
         if self.is_file():
             raise NotADirectoryError(f"{self._name} is not a directory")
 
+        child = os.fspath(child)
         child_path = f"{self._name}/{child}" if self._name else child
         is_child_dir = any(path.startswith(f"{child_path}/") for path in self._files)
 
@@ -205,10 +204,8 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
 
         return InMemoryTraversable(parent_name, self._files, is_parent_dir)
 
-    # The real signature is (*descendants: StrPath) -> InMemoryTraversable but StrPath is not exported
-    # in importlib.resources.abc
     @override
-    def joinpath(self, *descendants: str) -> importlib.resources.abc.Traversable:
+    def joinpath(self, *descendants: str | os.PathLike[str]) -> importlib.resources.abc.Traversable:
         """Join the descendants into a single path, beginning with this traversable."""
         pth = self
         for descendant in descendants:
@@ -368,7 +365,7 @@ class InMemoryLoader(importlib.abc.Loader):
     def get_resource_reader(
         self,
         name: str,
-    ) -> importlib.resources.abc.ResourceReader:
+    ) -> importlib.resources.abc.TraversableResources:
         """Get a resource reader for the specified name."""
         files_dict: dict[str, FileContent] = self.namespace.get_resources()
         package_path = "/".join(name.split("."))

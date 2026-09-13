@@ -131,7 +131,7 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search_item(self) -> Mapping[str, Link]:
+            def links_search_item(self) -> Mapping[str, Callable[..., Link | EndpointLink] | Link | EndpointLink]:
                 if self.search_items_use_full_links:
                     return self.links_item
 

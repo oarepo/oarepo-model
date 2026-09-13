@@ -28,7 +28,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from invenio_search import RecordsSearchV2
-    from opensearch_dsl.search import Search
     from shapely.geometry.base import BaseGeometry
 
 #: Mean earth radius in kilometers, used to convert angular distances to km.
@@ -169,7 +168,7 @@ class _PrefixedGeoParam(ParamInterpreter):
 
         return search
 
-    def _apply_value(self, search: Search, field: str, value: str) -> Search:
+    def _apply_value(self, search: RecordsSearchV2, field: str, value: str) -> RecordsSearchV2:
         raise NotImplementedError
 
     def _geocode_point(self, field: str, location_name: str) -> tuple[float, float]:
@@ -242,7 +241,7 @@ class GeoDistanceParam(_PrefixedGeoParam):
     #: Fraction of the requested distance used as the ``distance_feature`` pivot.
     pivot_divisor: ClassVar[int] = 10
 
-    def _apply_value(self, search: Search, field: str, value: str) -> Search:
+    def _apply_value(self, search: RecordsSearchV2, field: str, value: str) -> RecordsSearchV2:
         lat, lon, distance = self._parse_value(field, value)
 
         search = search.filter(
@@ -322,7 +321,7 @@ class GeoBoundingBoxParam(_PrefixedGeoParam):
 
     prefix: ClassVar[str] = "geo_bounding_box:"
 
-    def _apply_value(self, search: Search, field: str, value: str) -> Search:
+    def _apply_value(self, search: RecordsSearchV2, field: str, value: str) -> RecordsSearchV2:
         lat1, lon1, lat2, lon2 = self._parse_value(field, value)
 
         top_left = {"lat": max(lat1, lat2), "lon": min(lon1, lon2)}
@@ -412,7 +411,7 @@ class GeoShapeParam(_PrefixedGeoParam):
     #: turns this off and only ever accepts WKT.
     allow_location_name: ClassVar[bool] = True
 
-    def _apply_value(self, search: Search, field: str, value: str) -> Search:
+    def _apply_value(self, search: RecordsSearchV2, field: str, value: str) -> RecordsSearchV2:
         operation, shape = self._parse_value(field, value)
 
         return search.filter(

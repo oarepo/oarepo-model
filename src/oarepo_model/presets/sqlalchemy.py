@@ -5,29 +5,30 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Protocol, cast
 
 from invenio_db import db
 from invenio_files_rest.models import Bucket
 
 if TYPE_CHECKING:
+    import uuid
+
     import sqlalchemy.orm as sa_orm
     from sqlalchemy import Column
     from sqlalchemy.orm.decl_api import _DeclaredAttrDecorated
-    from sqlalchemy_utils.types import UUIDType
 
 
 class ModelWithBucket(Protocol):
     """Protocol defining interface for models that contain a bucket relationship."""
 
-    bucket_id: Column[UUIDType]
+    bucket_id: ClassVar[Column[uuid.UUID]]
     """Column containing the bucket ID reference"""
 
 
 class ModelWithMediaBucket(Protocol):
     """Protocol defining interface for models that contain a media bucket relationship."""
 
-    media_bucket_id: Column[UUIDType]
+    media_bucket_id: ClassVar[Column[uuid.UUID]]
     """Column containing the media bucket ID reference"""
 
 

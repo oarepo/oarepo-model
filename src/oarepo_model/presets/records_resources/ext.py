@@ -72,9 +72,9 @@ class RecordExtensionProtocol(Protocol):
         """Return parameters for the records service."""
         return super().records_service_params  # pragma: no cover
 
-    def init_config(self, _app: Flask) -> None:
+    def init_config(self, app: Flask) -> None:
         """Initialize configuration."""
-        return super().init_config(_app)  # pragma: no cover
+        return super().init_config(app)
 
 
 class ExtPreset(Preset):

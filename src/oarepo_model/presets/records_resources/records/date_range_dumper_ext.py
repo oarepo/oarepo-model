@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from invenio_rdm_records.records.dumpers.edtf import (  # pyright: ignore[reportAttributeAccessIssue]
-    _format_date,  # pyright: ignore[reportAttributeAccessIssue]
-    parse_edtf,  # pyright: ignore[reportAttributeAccessIssue]
+from invenio_rdm_records.records.dumpers.edtf import (
+    _format_date,
+    parse_edtf,
 )
 
 from oarepo_model.customizations import AddToList, Customization
