@@ -24,13 +24,16 @@ class AddEntryPoint(Customization):
     """Customization to add an entry point to the model.
 
     An entry point is a specific location in the code where a certain functionality can be accessed.
+
+    Passing ``value=None`` removes the entry point instead of adding it, which is how a preset
+    can take back an entry point registered by another one.
     """
 
     def __init__(
         self,
         group: str,
         name: str,
-        value: str,
+        value: str | None,
         separator: str = ":",
         overwrite: bool = False,
     ) -> None:
@@ -39,7 +42,7 @@ class AddEntryPoint(Customization):
         :param group: The group to which the entry point belongs.
         :param name: The name of the entry point.
         :param separator: The separator to use in the entry point.
-        :param value: The value of the entry point.
+        :param value: The value of the entry point, or None to remove it.
         """
         super().__init__(f"{group}::{name}::{value}")
         self.group = group

@@ -459,13 +459,13 @@ class InvenioModelBuilder:
         overwrite: bool = False,
         separator: str = ":",
     ) -> None:
-        """Add an entry point to the builder."""
+        """Add an entry point to the builder, or remove it when `value` is None."""
+        if value is None:
+            self.entry_points.pop((group, name), None)
+            return
+
         if (group, name) in self.entry_points and not overwrite:
             raise AlreadyRegisteredError(f"Entry point {group}:{name} already exists.")
-
-        if value is None and (group, name) in self.entry_points:
-            del self.entry_points[(group, name)]
-            return
 
         self.entry_points[(group, name)] = f"runtime_models_{self.model.base_name}{separator}{value}"
 

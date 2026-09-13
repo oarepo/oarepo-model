@@ -372,3 +372,59 @@ def test_get_missing_partial_without_message_falls_back_to_class_name():
     builder = InvenioModelBuilder(MagicMock(), MagicMock())
     with pytest.raises(PartialNotFoundError, match="CustomPartial missing not found"):
         builder._get("missing", CustomPartial)
+
+
+def _entry_point_builder() -> InvenioModelBuilder:
+    return InvenioModelBuilder(MagicMock(base_name="record"), MagicMock())
+
+
+def test_add_entry_point():
+    builder = _entry_point_builder()
+    builder.add_entry_point("invenio_base.api_blueprints", "records", "records_blueprint")
+    builder.add_entry_point("invenio_cms.modules", "widgets", "widgets", separator=".")
+
+    assert builder.entry_points == {
+        ("invenio_base.api_blueprints", "records"): "runtime_models_record:records_blueprint",
+        ("invenio_cms.modules", "widgets"): "runtime_models_record.widgets",
+    }
+
+
+def test_add_entry_point_twice_raises():
+    builder = _entry_point_builder()
+    builder.add_entry_point("g", "n", "v")
+
+    with pytest.raises(AlreadyRegisteredError):
+        builder.add_entry_point("g", "n", "other")
+
+    assert builder.entry_points == {("g", "n"): "runtime_models_record:v"}
+
+
+def test_add_entry_point_overwrite():
+    builder = _entry_point_builder()
+    builder.add_entry_point("g", "n", "v")
+    builder.add_entry_point("g", "n", "other", overwrite=True)
+
+    assert builder.entry_points == {("g", "n"): "runtime_models_record:other"}
+
+
+def test_removing_entry_point_with_none_value():
+    builder = _entry_point_builder()
+    builder.add_entry_point("g", "n", "v")
+    builder.add_entry_point("g", "n", None)
+
+    assert builder.entry_points == {}
+
+
+def test_removing_absent_entry_point_with_none_value_registers_nothing():
+    builder = _entry_point_builder()
+    builder.add_entry_point("g", "n", None)
+
+    assert builder.entry_points == {}
+
+
+def test_removed_entry_point_is_not_built():
+    builder = _entry_point_builder()
+    builder.add_entry_point("invenio_base.api_blueprints", "records", "records_blueprint")
+    builder.add_entry_point("invenio_base.api_blueprints", "records", None)
+
+    assert builder.build().entry_points == []
