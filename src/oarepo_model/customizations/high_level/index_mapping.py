@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import copy
 from typing import Any, cast
 
 from oarepo_model.utils import readonly_dict_merger
@@ -25,8 +26,11 @@ class PatchIndexMapping(PatchJSONFile):
     def _add_to_mapping(self, previous_data: dict[str, Any]) -> dict[str, Any]:
         """Merge the provided mapping snippet into the mapping file."""
         mapping = previous_data.setdefault("mappings", {})
-        # deep merge of mappings
-        readonly_dict_merger.merge(mapping, self._mapping)
+        # deep merge of mappings, into a deep copy of the snippet
+        # deepmerge assigns values without a counterpart in `mapping` by reference,
+        # which would let the subsequent modifications change the original data
+        # so we need to make a deep copy first
+        readonly_dict_merger.merge(mapping, copy.deepcopy(self._mapping))
         # remove None values
         recursively_remove_none(mapping)
         return previous_data

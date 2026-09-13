@@ -11,6 +11,7 @@ the current file content as input.
 
 from __future__ import annotations
 
+import copy
 import json
 from typing import TYPE_CHECKING, Any, cast, override
 
@@ -55,5 +56,8 @@ class PatchJSONFile(Customization):
         if callable(self.payload):
             new_data = self.payload(previous_data)
         else:
-            new_data = readonly_dict_merger.merge(previous_data, self.payload)
+            # deepmerge assigns values without a counterpart in `previous_data` by reference,
+            # which would let subsequent modifications change the caller's payload,
+            # so we need to make a deep copy first
+            new_data = readonly_dict_merger.merge(previous_data, copy.deepcopy(self.payload))
         ret.content = JSONContent(new_data)
