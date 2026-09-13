@@ -28,7 +28,7 @@ from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Callable, Generator
 
     from flask import Flask
     from flask.blueprints import BlueprintSetupState
@@ -38,6 +38,25 @@ if TYPE_CHECKING:
     from invenio_records_resources.services.records import RecordService
 
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import RuntimeDependencies
+
+
+def _register_entries(
+    registry: ServiceRegistry | IndexerRegistry,
+    entries: list[tuple[Callable[[Any], Any], Callable[[Any], str]]],
+    ext: Any,
+    register: Callable[[Any, Any, str], None],
+) -> None:
+    """Register getter/id-getter pairs into a registry, skipping already-registered ids."""
+    for item_getter, id_getter in entries:
+        item = item_getter(ext)
+        if item is None:
+            continue
+        item_id = id_getter(ext)
+        try:
+            registry.get(item_id)
+        except KeyError:
+            register(registry, item, item_id)
 
 
 class RecordExtensionProtocol(Protocol):
@@ -68,14 +87,13 @@ class ExtPreset(Preset):
         "api_application_blueprint_initializers",
     )
 
-    @override
-    def apply(  # complexity is high
+    def _build_ext_base(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        runtime_dependencies = builder.get_runtime_dependencies()
+        runtime_dependencies: RuntimeDependencies,
+    ) -> type:
+        """Build the base extension class for the given model/builder."""
 
         class ExtBase:
             """Base class for extension."""
@@ -116,6 +134,11 @@ class ExtPreset(Preset):
             @cached_property
             def model(self) -> Model:
                 return Model(**self.model_arguments)
+
+        return ExtBase
+
+    def _build_services_mixin(self, runtime_dependencies: RuntimeDependencies) -> type:
+        """Build the mixin adding records service/resource support to the extension."""
 
         class ServicesResourcesExtMixin(ModelMixin, RecordExtensionProtocol):
             """Mixin for extension class."""
@@ -179,8 +202,55 @@ class ExtPreset(Preset):
             def init_config(self, app: Flask) -> None:
                 super().init_config(app)
 
-        yield AddClass("Ext", clazz=ExtBase)
-        yield PrependMixin("Ext", ServicesResourcesExtMixin)
+        return ServicesResourcesExtMixin
+
+    def _build_registry_initializer(
+        self,
+        model: InvenioModel,
+        runtime_dependencies: RuntimeDependencies,
+    ) -> Callable[[BlueprintSetupState], None]:
+        """Build the blueprint-setup callback registering services/indexers on first use."""
+
+        def add_to_service_and_indexer_registry(state: BlueprintSetupState) -> None:
+            """Init app."""
+            app = state.app
+            ext = app.extensions[model.base_name]
+
+            # neither registry exposes a listing/contains check, but get() raises KeyError
+            # for an id that has not been registered yet
+            sregistry = cast("ServiceRegistry", app.extensions["invenio-records-resources"].registry)
+            _register_entries(
+                sregistry,
+                runtime_dependencies.get("services_registry_list"),
+                ext,
+                lambda registry, item, item_id: registry.register(item, service_id=item_id),
+            )
+
+            iregistry = cast("IndexerRegistry", app.extensions["invenio-indexer"].registry)
+            _register_entries(
+                iregistry,
+                runtime_dependencies.get("indexers_registry_list"),
+                ext,
+                lambda registry, item, item_id: registry.register(item, indexer_id=item_id),
+            )
+
+        add_to_service_and_indexer_registry.__name__ = f"{model.base_name}_add_to_service_and_indexer_registry"
+        return add_to_service_and_indexer_registry
+
+    @override
+    def apply(
+        self,
+        builder: InvenioModelBuilder,
+        model: InvenioModel,
+        dependencies: dict[str, Any],
+    ) -> Generator[Customization]:
+        runtime_dependencies = builder.get_runtime_dependencies()
+
+        ext_base = self._build_ext_base(builder, model, runtime_dependencies)
+        services_mixin = self._build_services_mixin(runtime_dependencies)
+
+        yield AddClass("Ext", clazz=ext_base)
+        yield PrependMixin("Ext", services_mixin)
 
         yield AddEntryPoint("invenio_base.apps", model.base_name, "Ext")
         yield AddEntryPoint("invenio_base.api_apps", model.base_name, "Ext")
@@ -201,40 +271,7 @@ class ExtPreset(Preset):
             ),
         )
 
-        def add_to_service_and_indexer_registry(state: BlueprintSetupState) -> None:
-            """Init app."""
-            app = state.app
-            ext = app.extensions[model.base_name]
-
-            # register service
-            # neither registry exposes a listing/contains check, but get() raises KeyError
-            # for an id that has not been registered yet
-            sregistry = cast("ServiceRegistry", app.extensions["invenio-records-resources"].registry)
-            for service_getter, service_id_getter in runtime_dependencies.get(
-                "services_registry_list",
-            ):
-                service = service_getter(ext)
-                service_id = service_id_getter(ext)
-                try:
-                    sregistry.get(service_id)
-                except KeyError:
-                    sregistry.register(service, service_id=service_id)
-
-            # Register indexer
-            iregistry = cast("IndexerRegistry", app.extensions["invenio-indexer"].registry)
-            for indexer_getter, service_id_getter in runtime_dependencies.get(
-                "indexers_registry_list",
-            ):
-                indexer = indexer_getter(ext)
-                service_id = service_id_getter(ext)
-                if indexer is None:
-                    continue
-                try:
-                    iregistry.get(service_id)
-                except KeyError:
-                    iregistry.register(indexer, indexer_id=service_id)
-
-        add_to_service_and_indexer_registry.__name__ = f"{model.base_name}_add_to_service_and_indexer_registry"
+        add_to_service_and_indexer_registry = self._build_registry_initializer(model, runtime_dependencies)
 
         yield AddToDictionary(
             "app_application_blueprint_initializers",
