@@ -24,7 +24,7 @@ class RecordMappingPreset(Preset):
     """Preset for record service class."""
 
     modifies = ("mappings",)
-    provides = ("record-mapping",)
+    provides = ("record-mapping", "record-mapping-link")
 
     @override
     def apply(

@@ -24,7 +24,7 @@ class RecordJSONSchemaPreset(Preset):
     """Preset for record service class."""
 
     modifies = ("jsonschemas",)
-    provides = ("record-jsonschema",)
+    provides = ("record-jsonschema", "record-jsonschema-link")
 
     @override
     def apply(

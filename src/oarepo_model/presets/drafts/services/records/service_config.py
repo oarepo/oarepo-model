@@ -79,6 +79,7 @@ class DraftServiceConfigPreset(Preset):
         "RecordServiceConfig",
         "record_links_item",
         "record_search_item_links",
+        "primary_record_service",
     )
 
     provides = (

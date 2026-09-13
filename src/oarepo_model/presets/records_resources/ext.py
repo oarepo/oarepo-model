@@ -105,7 +105,11 @@ else:
 class ExtPreset(Preset):
     """Preset for extension class."""
 
-    provides = ("Ext",)
+    provides = (
+        "Ext",
+        "services_registry_list",
+        "indexers_registry_list",
+    )
 
     modifies = (
         "app_application_blueprint_initializers",

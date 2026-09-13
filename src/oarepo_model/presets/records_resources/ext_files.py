@@ -58,7 +58,7 @@ else:
 class ExtFilesPreset(Preset):
     """Preset for extension class."""
 
-    modifies = ("Ext",)
+    modifies = ("Ext", "services_registry_list")
 
     @override
     def apply(

@@ -35,7 +35,7 @@ from oarepo_model.presets.records_resources.services.records.search_options impo
 class DraftSearchOptionsPreset(Preset):
     """Preset for record search options class."""
 
-    provides = ("DraftSearchOptions",)
+    provides = ("DraftSearchOptions", "DraftFacetGroups")
 
     @override
     def apply(

@@ -62,7 +62,7 @@ def resolve_params_interpreters(
 class RecordSearchOptionsPreset(Preset):
     """Preset for record search options class."""
 
-    provides = ("RecordSearchOptions", "extra_param_interpreter_classes")
+    provides = ("RecordSearchOptions", "extra_param_interpreter_classes", "FacetGroups")
 
     @override
     def apply(

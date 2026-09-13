@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 class ExtDraftFilesPreset(Preset):
     """Preset for extension class."""
 
-    modifies = ("Ext",)
+    modifies = ("Ext", "services_registry_list")
 
     @override
     def apply(

@@ -56,6 +56,7 @@ class SignpostingPreset(Preset):
     """Preset for record signposting exports (linkset and JSON linkset)."""
 
     provides = ("signposting",)
+    modifies = ("exports",)
 
     @override
     def apply(

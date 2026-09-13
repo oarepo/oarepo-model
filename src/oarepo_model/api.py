@@ -29,7 +29,7 @@ from .datatypes.registry import DataTypeRegistry
 from .errors import ApplyCustomizationError
 from .model import InvenioModel
 from .register import register_model, unregister_model
-from .sorter import sort_presets
+from .sorter import check_preset_declarations, sort_presets
 
 #: The `InvenioModel` currently being built on this thread, if any (`.value`,
 #: absent/None outside of a `_internal_model` call). Lets code that runs
@@ -282,13 +282,19 @@ def _internal_model(  # noqa PLR0913 arguments needed in callback
                     idx += 1
 
             build_dependencies = {dep: builder.build_partial(dep) for dep in preset.depends_on}
-            for customization in preset.apply(builder, model, build_dependencies):
-                try:
-                    customization.apply(builder, model)
-                except Exception as e:
-                    raise ApplyCustomizationError(
-                        f"Error evaluating user customization {customization} while applying preset {preset}: {e}",
-                    ) from e
+            builder.start_preset(preset)
+            try:
+                for customization in preset.apply(builder, model, build_dependencies):
+                    try:
+                        customization.apply(builder, model)
+                    except Exception as e:
+                        raise ApplyCustomizationError(
+                            f"Error evaluating user customization {customization} while applying preset {preset}: {e}",
+                        ) from e
+            finally:
+                builder.finish_preset()
+
+        check_preset_declarations(sorted_presets, builder.created_by, builder.touched_by)
 
         for customization in user_customizations:
             # apply user customizations that were not handled by presets

@@ -35,6 +35,8 @@ class FileServiceConfigPreset(Preset):
         "file_search_item",
     )
 
+    modifies = ("primary_record_service",)
+
     @override
     def apply(
         self,

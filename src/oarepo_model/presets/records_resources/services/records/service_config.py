@@ -72,6 +72,7 @@ class RecordServiceConfigPreset(Preset):
         "record_links_item",
         "record_search_item_links",
         "record_search_links",
+        "primary_record_service",
     )
 
     @override

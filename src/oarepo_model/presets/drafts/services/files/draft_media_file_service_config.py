@@ -30,6 +30,7 @@ class DraftMediaFileServiceConfigPreset(Preset):
     """Preset for file service config class."""
 
     provides = ("DraftMediaFileServiceConfig",)
+    modifies = ("primary_record_service",)
 
     @override
     def apply(

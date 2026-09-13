@@ -30,7 +30,7 @@ class MetadataFacetsPreset(Preset):
     """Preset for record service class."""
 
     provides = ("MetadataFacets",)
-    modifies = ("RecordFacets",)
+    modifies = ("RecordFacets", "facets")
 
     @override
     def apply(

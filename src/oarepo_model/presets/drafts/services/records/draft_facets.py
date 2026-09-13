@@ -28,7 +28,7 @@ class DraftFacetsPreset(Preset):
     """Preset for draft-specific facets (is_published)."""
 
     provides = ("DraftFacets",)
-    modifies = ("RecordFacets",)
+    modifies = ("RecordFacets", "facets")
 
     @override
     def apply(

@@ -32,7 +32,7 @@ class FinalizationPreset(Preset):
     called during the finalization phase of the model.
     """
 
-    provides = ("api_finalizers", "app_finalizers")
+    provides = ("api_finalizers", "app_finalizers", "finalizers")
 
     @override
     def apply(

@@ -15,6 +15,15 @@ class ModelBuildError(Exception):
     """Exception raised for errors in the model building process."""
 
 
+class PresetDeclarationWarning(FutureWarning):
+    """Warning raised when a preset declares provides/modifies that do not match what it does.
+
+    Subclasses FutureWarning, not DeprecationWarning, because it is shown by default: the
+    misdeclared preset is usually in a package the person running the application did not write,
+    and DeprecationWarning is hidden unless the code runs in __main__.
+    """
+
+
 class AlreadyRegisteredError(ModelBuildError):
     """Exception raised when a class is already registered."""
 

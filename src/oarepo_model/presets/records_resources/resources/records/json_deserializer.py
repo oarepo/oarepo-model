@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 class JSONDeserializerPreset(Preset):
     """Preset for JSON Deserializer."""
 
-    provides = ("JSONDeserializerPreset",)
+    provides = ("JSONDeserializer",)
 
     @override
     def apply(

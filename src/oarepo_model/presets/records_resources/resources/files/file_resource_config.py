@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 class FileResourceConfigPreset(Preset):
     """Preset for file resource config class."""
 
-    provides = ("FileResourceConfig",)
+    provides = ("FileResourceConfig", "file_response_handlers")
 
     @override
     def apply(

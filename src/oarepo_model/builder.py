@@ -10,6 +10,7 @@ dependency resolution, and dynamic component creation for OARepo models.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from importlib.metadata import EntryPoint
 from types import MappingProxyType, SimpleNamespace
 from typing import TYPE_CHECKING, Any, override
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
     from .datatypes.registry import DataTypeRegistry
+    from .presets.base import Preset
 
 from .model import FileContent, InvenioModel, RuntimeDependencies
 from .utils import (
@@ -290,6 +292,28 @@ class InvenioModelBuilder:
         self.entry_points: dict[tuple[str, str], str] = {}
         self.runtime_dependencies = RuntimeDependencies()
         self.type_registry = type_registry
+        self.current_preset: Preset | None = None
+        #: which preset created which partial, and which presets touched which partial
+        self.created_by: dict[str, Preset] = {}
+        self.touched_by: dict[str, set[Preset]] = defaultdict(set)
+
+    def start_preset(self, preset: Preset) -> None:
+        """Attribute the partials created and used from now on to `preset`."""
+        self.current_preset = preset
+
+    def finish_preset(self) -> None:
+        """Stop attributing partials to the preset being applied."""
+        self.current_preset = None
+
+    def _record(self, name: str, *, created: bool) -> None:
+        """Remember what the preset being applied does with partials."""
+        preset = self.current_preset
+        if preset is None:
+            return
+        if created:
+            self.created_by[name] = preset
+        else:
+            self.touched_by[name].add(preset)
 
     def _add[T: Partial](
         self,
@@ -305,6 +329,7 @@ class InvenioModelBuilder:
                 return self._get(name, clz)
             raise AlreadyRegisteredError(f"{label} {name} already exists.")
         self.partials[name] = ret = create()
+        self._record(name, created=True)
         return ret
 
     def add_class(
@@ -491,6 +516,7 @@ class InvenioModelBuilder:
         partial = self.partials[name]
         if not isinstance(partial, clz):
             raise TypeError(f"Partial {name} is not a {clz.__name__}.")
+        self._record(name, created=False)
         return partial
 
     def get_runtime_dependencies(self) -> RuntimeDependencies:

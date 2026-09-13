@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 class MediaFileResourceConfigPreset(Preset):
     """Preset for file resource config class."""
 
-    provides = ("MediaFileResourceConfig",)
+    provides = ("MediaFileResourceConfig", "media_file_response_handlers")
 
     @override
     def apply(

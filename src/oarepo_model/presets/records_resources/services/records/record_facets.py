@@ -29,7 +29,7 @@ from oarepo_runtime.services.facets.utils import build_facet
 class RecordFacetsPreset(Preset):
     """Preset for record service class."""
 
-    provides = ("RecordFacets",)
+    provides = ("RecordFacets", "facets")
 
     @override
     def apply(
