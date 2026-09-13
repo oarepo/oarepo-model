@@ -219,7 +219,7 @@ class MultiFormatField(marshmallow.fields.Field):
         :param kwargs: Additional keyword arguments.
         """
         super().__init__(*args, **kwargs)
-        if len(subfields) < 2:  # magic constant
+        if len(subfields) < 2:  # noqa PLR2004 no need to create a constant here
             raise ValueError("MultiFormatField requires at least two subfields.")
 
         self.subfields = subfields

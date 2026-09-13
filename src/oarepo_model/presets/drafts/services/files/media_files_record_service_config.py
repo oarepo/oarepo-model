@@ -62,10 +62,7 @@ class MediaFilesRecordServiceConfigPreset(Preset):
 
             @property
             def components(self) -> list[type[ServiceComponent]]:
-                # TODO: needs to be fixed as we have multiple mixins and the sources
-                # in oarepo-runtime do not support this yet
-                # return process_service_configs(
-                #     self, self.get_model_dependency("record_service_components")
+                # the ComponentsOrderingMixin will take care of ordering as it is prepended to this class
                 return [
                     *super().components,
                     *cast(

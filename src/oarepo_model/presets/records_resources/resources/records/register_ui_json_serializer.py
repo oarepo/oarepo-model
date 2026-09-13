@@ -49,12 +49,20 @@ class RegisterJSONUISerializerPreset(Preset):
     ) -> Generator[Customization]:
         runtime_deps = builder.get_runtime_dependencies()
 
+        def _get_ui_serializer() -> BaseSerializer:
+            """Get the JSON ui serializer from the runtime dependencies.
+
+            The .get needs to be called during runtime so a LazyProxy calling
+            this function is used.
+            """
+            return runtime_deps.get("JSONUISerializer")()
+
         yield AddMetadataExport(
             code="ui_json",
             name=_("UI JSON"),
             mimetype="application/vnd.inveniordm.v1+json",
             serializer=cast(
                 "BaseSerializer",
-                LocalProxy(lambda: runtime_deps.get("JSONUISerializer")()),
+                LocalProxy(_get_ui_serializer),
             ),
         )

@@ -36,7 +36,7 @@ class ErrorHandlersPreset(Preset):
             "record_error_handlers",
             {
                 AuthExceptionGroup: create_error_handler(
-                    lambda exc: HTTPJSONException(
+                    lambda _exc: HTTPJSONException(
                         code=401,
                         description="Authentication failed.",
                     )

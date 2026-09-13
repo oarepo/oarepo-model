@@ -12,12 +12,15 @@ fully built and registered model.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import marshmallow
 import pytest
 
 from oarepo_model.lazy import LazyJSONNamespaceFilePart, LazyMarshmallowSchema, LazyPythonMapping
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class CountingLazyMapping(LazyPythonMapping):
@@ -66,7 +69,7 @@ class DictJSONNamespaceFilePart(LazyJSONNamespaceFilePart):
 class DictJSONNamespaceFilePartWithExtraFields(DictJSONNamespaceFilePart):
     """A DictJSONNamespaceFilePart that always contributes an 'id' extra field."""
 
-    extra_fields = {"id": 42}
+    extra_fields: Mapping[str, Any] = {"id": 42}
 
 
 class DefaultLazyMarshmallowSchema(LazyMarshmallowSchema):

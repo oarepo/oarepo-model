@@ -38,13 +38,22 @@ class ImportsPreset(Preset):
         yield AddList(
             "imports",
         )
+
+        def _get_deserializer() -> JSONDeserializer:
+            """Get the JSON deserializer from the runtime dependencies.
+
+            The .get needs to be called during runtime so a LazyProxy calling
+            this function is used.
+            """
+            return runtime_dependencies.get("JSONDeserializer")()
+
         yield AddMetadataImport(
             code="json",
             name=_("JSON"),
             mimetype="application/json",
             deserializer=cast(
                 "JSONDeserializer",
-                LazyProxy(lambda: runtime_dependencies.get("JSONDeserializer")()),
+                LazyProxy(_get_deserializer),
             ),
             description=_("json import"),
         )

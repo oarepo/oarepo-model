@@ -88,7 +88,9 @@ class DraftPreset(Preset):
             dumper = Dependency(
                 "RecordDumper",
                 "record_dumper_extensions",
-                transform=lambda RecordDumper, record_dumper_extensions: RecordDumper(record_dumper_extensions),
+                transform=lambda record_dumper_class, record_dumper_extensions: record_dumper_class(
+                    record_dumper_extensions
+                ),
             )
 
             # note: we need to use the has_draft field from rdm records

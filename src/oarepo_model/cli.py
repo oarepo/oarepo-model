@@ -59,7 +59,7 @@ def list_models() -> None:
     def get_api_url(model: Model) -> str:
         try:
             return str(model.api_url("search"))
-        except Exception:  # in case the url needs some arguments
+        except Exception:  # noqa BLE001 just for display, not for error handling
             return "N/A"
 
     for model in current_runtime.models.values():
@@ -211,7 +211,7 @@ def dump_schema(schema: type[Schema] | Schema, dumped_schemas: set[type], dumped
     for field_name, field_obj in declared_fields.items():
         try:
             dumped_field, other_schemas = dump_field(field_obj)
-        except Exception as e:  # we want to catch all exceptions here
+        except Exception as e:  # noqa BLE001 just for display, not for error handling
             dumped_field = f"# Error dumping field: {e}"
             other_schemas = []
         lines.append(f"    {field_name} = {dumped_field}")

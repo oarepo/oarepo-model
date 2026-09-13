@@ -59,9 +59,16 @@ if [[ ! -d "${TOOLS_DIR}" ]] || [[ ! -f "${OAREPO_CLI}" ]]; then
     echo "   Creating virtual environment in ${VENV_DIR}..." >&2
     uv venv "${VENV_DIR}" --python 3.14
 
-    # Install oarepo-cli
+    # Install oarepo-cli. docker-services-cli is additionally pinned to the
+    # CESNET rustfs fork: oarepo-cli declares that pin only in its own
+    # [tool.uv.sources], which uv ignores when installing the published wheel
+    # from an index -- a plain "pip install oarepo-cli" would otherwise pull
+    # upstream docker-services-cli (minio only) from PyPI. Remove this direct
+    # URL once RustFS support is released upstream/on the CESNET index.
     echo "   Installing oarepo-cli..." >&2
-    uv pip install --python "${VENV_DIR}/bin/python" oarepo-cli
+    uv pip install --python "${VENV_DIR}/bin/python" \
+        oarepo-cli \
+        "docker-services-cli[s3] @ git+https://github.com/mesemus/docker-services-cli@rustfs"
 
     echo "✅ oarepo-cli setup complete!" >&2
 fi

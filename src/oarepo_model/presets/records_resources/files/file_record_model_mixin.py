@@ -5,11 +5,18 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 from invenio_db import db
 from invenio_files_rest.models import ObjectVersion
 from sqlalchemy.dialects import mysql
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import relationship
 from sqlalchemy_utils.types import UUIDType
+
+if TYPE_CHECKING:
+    from sqlalchemy import Column
+    from sqlalchemy.orm import Mapped
 
 
 class FileRecordModelMixin:
@@ -25,7 +32,7 @@ class FileRecordModelMixin:
     """Filename key (can be path-like also)."""
 
     @declared_attr
-    def record_id(cls):  # first argument name must be 'self'
+    def record_id(cls) -> Column[UUIDType]:
         """Record ID foreign key."""
         if cls.__record_model_cls__ is None:
             raise NotImplementedError(
@@ -39,12 +46,12 @@ class FileRecordModelMixin:
         )
 
     @declared_attr
-    def record(cls):  # first argument name must be 'self'
+    def record(cls) -> Mapped[Any]:
         """Record the file belongs to."""
-        return db.relationship(cls.__record_model_cls__)
+        return relationship(cls.__record_model_cls__)
 
     @declared_attr
-    def object_version_id(cls):  # first argument name must be 'self'
+    def object_version_id(cls) -> Column[UUIDType]:
         """Object version ID foreign key."""
         return db.Column(
             UUIDType,
@@ -54,6 +61,6 @@ class FileRecordModelMixin:
         )
 
     @declared_attr
-    def object_version(cls):  # first argument name must be 'self'
+    def object_version(cls) -> Mapped[ObjectVersion]:
         """Object version connected to the record file."""
-        return db.relationship(ObjectVersion)
+        return relationship(ObjectVersion)

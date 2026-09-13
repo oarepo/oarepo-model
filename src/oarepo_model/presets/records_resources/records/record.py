@@ -74,7 +74,9 @@ class RecordPreset(Preset):
             dumper = Dependency(
                 "RecordDumper",
                 "record_dumper_extensions",
-                transform=lambda RecordDumper, record_dumper_extensions: RecordDumper(record_dumper_extensions),
+                transform=lambda record_dumper_class, record_dumper_extensions: record_dumper_class(
+                    record_dumper_extensions
+                ),
             )
 
             if dependencies.get("synthetic_metadata"):

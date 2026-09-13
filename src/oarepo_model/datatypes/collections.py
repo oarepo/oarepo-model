@@ -195,10 +195,12 @@ class ObjectDataType(DataType):
         field_name: str,
         element: dict[str, Any],
     ) -> dict[str, Any]:
-        return {
-            "nested": self.create_marshmallow_schema(element),
-            **super()._get_marshmallow_field_args(field_name, element),
-        }
+        ret = super()._get_marshmallow_field_args(field_name, element)
+        # 'nested' is only meaningful for Nested fields; any other field class would
+        # swallow it into its metadata and marshmallow would warn about the unknown arg.
+        if issubclass(self._get_marshmallow_field_class(field_name, element), marshmallow.fields.Nested):
+            ret["nested"] = self.create_marshmallow_schema(element)
+        return ret
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> Mapping[str, Any]:
@@ -474,38 +476,31 @@ class PermissiveSchema(marshmallow.Schema):
 
 
 class DynamicObjectDataType(ObjectDataType):
-    """A data type for multilingual dictionaries.
+    """A data type for objects whose keys are not known in advance.
 
-    Their serialization is:
+    Unlike a regular object, no properties are declared, so any content is accepted:
     {
-        "en": "English text",
-        "fi": "Finnish text",
+        "any": "key",
+        "can": {"appear": "here"},
         ...
     }
+
+    The value is passed through marshmallow unchanged (fields.Raw), described in
+    JSON schema as an object with additionalProperties, and indexed by a dynamic
+    OpenSearch mapping. As its keys are unknown, it supports neither relations
+    nor UI fields.
     """
 
     TYPE = "dynamic-object"
+
+    # passes arbitrary JSON through unchanged on both load and dump; a Nested
+    # PermissiveSchema would load it fine but dump nothing, as it declares no fields
+    marshmallow_field_class = marshmallow.fields.Raw
 
     @override
     def _get_properties(self, element: dict[str, Any]) -> dict[str, Any]:
         """Get properties for the data type."""
         return {}  # dynamic object has no explicit properties
-
-    @override
-    def create_marshmallow_field(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> marshmallow.fields.Field:
-        """Return a Raw field that passes arbitrary JSON through unchanged on both load and dump."""
-        # Use the base DataType args, not ObjectDataType's override, because
-        # ObjectDataType._get_marshmallow_field_args injects 'nested' which is
-        # only meaningful for Nested fields and causes a marshmallow warning on Raw.
-        from .base import DataType
-
-        return marshmallow.fields.Raw(
-            **DataType._get_marshmallow_field_args(self, field_name, element),
-        )
 
     @override
     def create_marshmallow_schema(

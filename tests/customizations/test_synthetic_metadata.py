@@ -29,8 +29,11 @@ def test_set_synthetic_metadata_writes_keys_into_dictionary():
     builder = InvenioModelBuilder(m, type_registry)
     builder.add_dictionary("synthetic_metadata")
 
-    fn_a = lambda _: "value-a"
-    fn_b = lambda d: d.get("title", "untitled")
+    def fn_a(_):
+        return "value-a"
+
+    def fn_b(d):
+        return d.get("title", "untitled")
 
     SetSyntheticMetadata(a=fn_a, b=fn_b).apply(builder, m)
 
@@ -45,7 +48,9 @@ def test_set_synthetic_metadata_overrides_existing_keys():
     builder = InvenioModelBuilder(m, type_registry)
     builder.add_dictionary("synthetic_metadata", default={"a": "old"})
 
-    fn_a = lambda _: "new"
+    def fn_a(_):
+        return "new"
+
     SetSyntheticMetadata(a=fn_a).apply(builder, m)
 
     assert builder.get_dictionary("synthetic_metadata")["a"] is fn_a

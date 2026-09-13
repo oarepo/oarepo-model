@@ -294,7 +294,8 @@ class GeoDistanceParam(_PrefixedGeoParam):
 
     def _pivot(self, distance: str) -> str:
         match = _DISTANCE_RE.match(distance)
-        assert match is not None  # already validated by _parse_value
+        if match is None:
+            raise QuerystringValidationError(_("Invalid distance value: %(distance)r", distance=distance))
         pivot_value = round(float(match.group("value")) / self.pivot_divisor, 6)
         if pivot_value == int(pivot_value):
             pivot_value = int(pivot_value)

@@ -304,8 +304,8 @@ def test_date_field(test_schema):
 
 
 def test_datetime_field(test_schema):
-    min_dt = datetime(2023, 1, 1, 0, 0, 0)  # no naive datetime
-    max_dt = datetime(2023, 12, 31, 23, 59, 59)  # no naive datetime
+    min_dt = datetime(2023, 1, 1, 0, 0, 0)  # noqa DTZ001 no naive datetime
+    max_dt = datetime(2023, 12, 31, 23, 59, 59)  # noqa DTZ001  no naive datetime
     schema = test_schema(
         {
             "type": "datetime",

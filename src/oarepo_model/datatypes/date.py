@@ -37,7 +37,7 @@ from oarepo_runtime.services.schema.ui import (
 class KeepOriginalStringMixin(marshmallow.fields.Field):
     """Mixin schema to keep the original string value."""
 
-    SERIALIZATION_FUNCS: dict[str, Callable] = {"iso": lambda val: val}
+    SERIALIZATION_FUNCS: Mapping[str, Callable] = {"iso": lambda val: val}
 
     @override
     def deserialize(
@@ -267,7 +267,7 @@ class CachedMultilayerEDTFValidator(EDTFValidator):
         """Validate the EDTF value and return it."""
         return self._cached_validation(value)
 
-    @functools.lru_cache(maxsize=1024)  # memory consumption ok
+    @functools.lru_cache(maxsize=1024)  # noqa B019 - memory consumption is ok here
     def _cached_validation(self, value: str) -> str:
         """Validate EDTF string.
 
@@ -276,8 +276,8 @@ class CachedMultilayerEDTFValidator(EDTFValidator):
         # at first try to parse the value as a date because it is much faster
         # and most of the time it is a date
         try:
-            datetime.strptime(value, "%Y-%m-%d")  # naive datetime ok here
-        except Exception:  # catching all exceptions is ok here
+            datetime.strptime(value, "%Y-%m-%d")  # noqa DTZ007 naive datetime ok here
+        except ValueError, TypeError:
             value = super().__call__(value)
         return value
 
