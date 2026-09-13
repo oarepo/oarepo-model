@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import itertools
+import warnings
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -26,6 +27,7 @@ from oarepo_model.errors import (
     ClassBuildError,
     ClassListBuildError,
     PartialNotFoundError,
+    PostBuildMutationWarning,
 )
 
 
@@ -428,3 +430,88 @@ def test_removed_entry_point_is_not_built():
     builder.add_entry_point("invenio_base.api_blueprints", "records", None)
 
     assert builder.build().entry_points == []
+
+
+def test_builder_class_add_field():
+    mock_model = MagicMock()
+    mock_namespace = SimpleNamespace()
+
+    b = BuilderClass("TestClass", base_classes=[])
+    b.add_field("table", "record")
+    clz = b.build(mock_model, mock_namespace)
+
+    assert vars(clz)["table"] == "record"
+
+    with pytest.raises(RuntimeError):
+        b.add_field("other", "x")
+
+
+def test_builder_class_set_mixins_and_base_classes():
+    class A:
+        pass
+
+    class B:
+        pass
+
+    mock_model = MagicMock()
+    mock_namespace = SimpleNamespace()
+
+    b = BuilderClass("TestClass", base_classes=[A])
+    b.add_base_classes(B)
+    b.set_base_classes(A)
+    b.set_mixins(B)
+    clz = b.build(mock_model, mock_namespace)
+
+    assert clz.mro() == [clz, B, A, object]
+
+    with pytest.raises(RuntimeError):
+        b.set_base_classes()
+
+    with pytest.raises(RuntimeError):
+        b.set_mixins()
+
+
+def test_builder_class_field_mutation_before_build_is_silent():
+    """The raw containers still work before the partial is built, without warnings."""
+
+    class A:
+        pass
+
+    class B(A):
+        pass
+
+    mock_model = MagicMock()
+    mock_namespace = SimpleNamespace()
+
+    b = BuilderClass("TestClass", base_classes=[A])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        b.base_classes.append(B)
+        b.fields["table"] = "record"
+        b.mixins = []
+
+    clz = b.build(mock_model, mock_namespace)
+
+    assert issubclass(clz, B)
+    assert vars(clz)["table"] == "record"
+
+
+def test_builder_class_mutation_after_build_warns():
+    """Raw container mutations used to be silently lost, which hid missing `modifies`."""
+    mock_model = MagicMock()
+    mock_namespace = SimpleNamespace()
+
+    b = BuilderClass("TestClass", base_classes=[])
+    b.build(mock_model, mock_namespace)
+
+    with pytest.warns(PostBuildMutationWarning, match="base_classes of partial 'TestClass'"):
+        b.base_classes.append(object)
+
+    with pytest.warns(PostBuildMutationWarning, match="fields of partial 'TestClass'"):
+        b.fields["table"] = "record"
+
+    with pytest.warns(PostBuildMutationWarning, match="mixins of partial 'TestClass'"):
+        b.mixins = []
+
+    with pytest.warns(PostBuildMutationWarning):
+        b.fields.update({"other": "x"})

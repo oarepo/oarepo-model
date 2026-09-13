@@ -36,4 +36,4 @@ class AddBaseClass(Customization):
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-        builder.get_class(self.name).base_classes.append(self.clazz)
+        builder.get_class(self.name).add_base_classes(self.clazz)

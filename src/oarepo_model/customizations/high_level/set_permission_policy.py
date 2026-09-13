@@ -34,6 +34,6 @@ class SetPermissionPolicy(Customization):
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         policy = builder.get_class("PermissionPolicy")
-        policy.base_classes = [self._permission_policy]
+        policy.set_base_classes(self._permission_policy)
         if not self._keep_mixins:
-            policy.mixins = []
+            policy.set_mixins()

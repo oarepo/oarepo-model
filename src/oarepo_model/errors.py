@@ -24,6 +24,16 @@ class PresetDeclarationWarning(FutureWarning):
     """
 
 
+class PostBuildMutationWarning(FutureWarning):
+    """Warning raised when an already built partial is mutated through its raw containers.
+
+    Such a mutation is silently lost, so the preset that performs it usually misses the partial in
+    its `modifies`. Subclasses FutureWarning, not DeprecationWarning, because it is shown by
+    default: the offending preset is usually in a package the person running the application did
+    not write.
+    """
+
+
 class AlreadyRegisteredError(ModelBuildError):
     """Exception raised when a class is already registered."""
 

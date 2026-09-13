@@ -10,6 +10,7 @@ dependency resolution, and dynamic component creation for OARepo models.
 
 from __future__ import annotations
 
+import warnings
 from collections import defaultdict
 from importlib.metadata import EntryPoint
 from types import MappingProxyType, SimpleNamespace
@@ -22,10 +23,11 @@ from oarepo_model.errors import (
     ClassBuildError,
     ClassListBuildError,
     PartialNotFoundError,
+    PostBuildMutationWarning,
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, SupportsIndex
 
     from .datatypes.registry import DataTypeRegistry
     from .presets.base import Preset
@@ -55,6 +57,100 @@ class Partial:
         return f"{self.__class__.__name__}(key={self.key})"
 
 
+def _warn_post_build_mutation(owner: Partial, attribute: str, stacklevel: int) -> None:
+    """Warn that a mutation performed after the partial was built is silently lost."""
+    if owner.built:
+        warnings.warn(
+            f"{attribute} of partial '{owner.key}' was modified after the partial was built, so the "
+            f"change has no effect on what is generated. Make the preset performing the modification "
+            f"declare '{owner.key}' in its modifies and use the guarded BuilderClass methods instead "
+            f"of the containers directly; this will raise RuntimeError in a future version.",
+            PostBuildMutationWarning,
+            stacklevel=stacklevel,
+        )
+
+
+class _GuardedList[T](list[T]):
+    """List of a partial that warns when it is modified after the partial was built."""
+
+    def __init__(self, owner: Partial, attribute: str, values: Iterable[T] = ()) -> None:
+        """Initialize the guarded list."""
+        super().__init__(values)
+        self._owner = owner
+        self._attribute = attribute
+
+    def _guard(self) -> None:
+        _warn_post_build_mutation(self._owner, self._attribute, stacklevel=4)
+
+    @override
+    def append(self, object: T) -> None:
+        self._guard()
+        super().append(object)
+
+    @override
+    def extend(self, iterable: Iterable[T]) -> None:
+        self._guard()
+        super().extend(iterable)
+
+    @override
+    def insert(self, index: SupportsIndex, object: T) -> None:
+        self._guard()
+        super().insert(index, object)
+
+    @override
+    def __setitem__(self, index: Any, value: Any) -> None:
+        self._guard()
+        super().__setitem__(index, value)
+
+    @override
+    def pop(self, index: SupportsIndex = -1) -> T:
+        self._guard()
+        return super().pop(index)
+
+    @override
+    def clear(self) -> None:
+        self._guard()
+        super().clear()
+
+
+class _GuardedDict(dict[str, Any]):
+    """Dictionary of a partial that warns when it is modified after the partial was built."""
+
+    def __init__(self, owner: Partial, attribute: str, values: dict[str, Any] | None = None) -> None:
+        """Initialize the guarded dictionary."""
+        super().__init__(values or {})
+        self._owner = owner
+        self._attribute = attribute
+
+    def _guard(self) -> None:
+        _warn_post_build_mutation(self._owner, self._attribute, stacklevel=4)
+
+    @override
+    def __setitem__(self, key: str, value: Any) -> None:
+        self._guard()
+        super().__setitem__(key, value)
+
+    @override
+    def update(self, *args: Any, **kwargs: Any) -> None:
+        self._guard()
+        super().update(*args, **kwargs)
+
+    @override
+    def setdefault(self, key: str, default: Any = None) -> Any:
+        self._guard()
+        return super().setdefault(key, default)
+
+    @override
+    def pop(self, *args: Any) -> Any:
+        self._guard()
+        return super().pop(*args)
+
+    @override
+    def clear(self) -> None:
+        self._guard()
+        super().clear()
+
+
 class BuilderClass(Partial):
     """Builder for classes in the model."""
 
@@ -68,22 +164,70 @@ class BuilderClass(Partial):
         """Initialize the BuilderClass customization."""
         super().__init__(key=class_name)
         self.class_name = class_name
-        self.mixins = list(mixins) if mixins else []
-        self.base_classes = list(base_classes) if base_classes else []
-        self.fields = fields or {}
+        self._mixins = _GuardedList(self, "mixins", mixins or ())
+        self._base_classes = _GuardedList(self, "base_classes", base_classes or ())
+        self._fields = _GuardedDict(self, "fields", fields)
+
+    @property
+    def mixins(self) -> _GuardedList[type]:
+        """Mixins of the class; prefer add_mixins / set_mixins over assigning to it."""
+        return self._mixins
+
+    @mixins.setter
+    def mixins(self, value: Iterable[type]) -> None:
+        _warn_post_build_mutation(self, "mixins", stacklevel=3)
+        self._mixins = _GuardedList(self, "mixins", value)
+
+    @property
+    def base_classes(self) -> _GuardedList[type]:
+        """Base classes of the class; prefer add_base_classes / set_base_classes over assigning."""
+        return self._base_classes
+
+    @base_classes.setter
+    def base_classes(self, value: Iterable[type]) -> None:
+        _warn_post_build_mutation(self, "base_classes", stacklevel=3)
+        self._base_classes = _GuardedList(self, "base_classes", value)
+
+    @property
+    def fields(self) -> _GuardedDict:
+        """Fields of the class; prefer add_field over assigning to it."""
+        return self._fields
+
+    @fields.setter
+    def fields(self, value: dict[str, Any]) -> None:
+        _warn_post_build_mutation(self, "fields", stacklevel=3)
+        self._fields = _GuardedDict(self, "fields", value)
 
     def add_base_classes(self, *classes: type) -> None:
         """Add base classes to the class."""
         if self.built:
             raise RuntimeError("Cannot add base classes after the class is built.")
-        self.base_classes.extend(classes)
+        self._base_classes.extend(classes)
+
+    def set_base_classes(self, *classes: type) -> None:
+        """Replace the base classes of the class."""
+        if self.built:
+            raise RuntimeError("Cannot set base classes after the class is built.")
+        self._base_classes = _GuardedList(self, "base_classes", classes)
 
     def add_mixins(self, *classes: type) -> None:
         """Add mixins to the class."""
         if self.built:
             raise RuntimeError("Cannot add mixins after the class is built.")
         for clazz in reversed(classes):
-            self.mixins.insert(0, clazz)  # Prepend to preserve MRO
+            self._mixins.insert(0, clazz)  # Prepend to preserve MRO
+
+    def set_mixins(self, *classes: type) -> None:
+        """Replace the mixins of the class."""
+        if self.built:
+            raise RuntimeError("Cannot set mixins after the class is built.")
+        self._mixins = _GuardedList(self, "mixins", classes)
+
+    def add_field(self, name: str, value: Any) -> None:
+        """Add a field to the class."""
+        if self.built:
+            raise RuntimeError("Cannot add fields after the class is built.")
+        self._fields[name] = value
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> type:

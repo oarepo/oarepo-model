@@ -5,11 +5,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
+
 from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol, RecordExtensionProtocolTyping
 from oarepo_model.presets.records_resources.ext_files import (
     RecordWithFilesExtensionProtocol,
     RecordWithFilesExtensionProtocolTyping,
 )
+
+if TYPE_CHECKING:
+    from flask import Flask
 
 
 def test_public_protocol_names_are_runtime_transparent():
@@ -30,15 +36,15 @@ def test_mixin_inheriting_the_public_name_does_not_cut_the_init_config_chain():
     calls: list[str] = []
 
     class ExtBase:
-        def init_config(self, app: object) -> None:
+        def init_config(self, app: Flask) -> None:
             calls.append("ext_base")
 
     class FeatureMixin(RecordExtensionProtocol):
-        def init_config(self, app: object) -> None:
+        def init_config(self, app: Flask) -> None:
             super().init_config(app)
             calls.append("mixin")
 
-    type("Ext", (FeatureMixin, ExtBase), {})().init_config(None)
+    type("Ext", (FeatureMixin, ExtBase), {})().init_config(MagicMock())
 
     assert calls == ["ext_base", "mixin"]
 

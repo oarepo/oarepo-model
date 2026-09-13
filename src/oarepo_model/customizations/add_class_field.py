@@ -40,4 +40,4 @@ class AddClassField(Customization):
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-        builder.get_class(self.name).fields[self.field_name] = self.field_value
+        builder.get_class(self.name).add_field(self.field_name, self.field_value)
