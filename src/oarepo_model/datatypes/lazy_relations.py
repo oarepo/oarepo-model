@@ -102,8 +102,6 @@ class LazyModelPIDFieldContext(PIDFieldContext):
     invenio's relation classes, which read the context's API directly - notably
     ``PIDRelation.parse_value``, which reads ``pid_field.record_cls`` both to
     recognise a record instance and to build its InvalidRelationValue message.
-    Without it, assigning any non-str/non-PID value to such a relation failed
-    with a bare AttributeError instead.
 
     Note that, like every other ``pid-relation``, this resolves *published*
     records only - see the note on ``PIDRelation``'s docstring.

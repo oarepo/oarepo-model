@@ -8,7 +8,7 @@ datatype, with plain dicts standing in for a build-time element/path - no
 mocks, and no need to actually build/register a full model.
 """
 
- from __future__ import annotations
+from __future__ import annotations
 
 import copy
 from types import SimpleNamespace
@@ -165,9 +165,9 @@ def test_lazy_context_deepcopy_does_not_copy_the_resolved_field(lazy_pid_field_c
 def test_relation_with_lazy_context_reports_an_invalid_value(lazy_pid_field_context):
     """A non-str value must fail as an invalid relation value, naming the target.
 
-    Before the lazy context delegated `record_cls`, invenio's parse_value failed
-    with a bare AttributeError here - both in its record-instance branch and in
-    the message it builds for everything else.
+    invenio's parse_value reads `record_cls` twice - to recognise a record instance
+    and to build this very message - so a context that does not expose it cannot
+    report the failure at all.
     """
     relation = InvenioPIDRelation("direct", keys=["id"], pid_field=lazy_pid_field_context)
 
