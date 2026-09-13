@@ -54,7 +54,7 @@ def register_fake_runtime_model():
 
 
 # ---------------------------------------------------------------------------
-# PIDRelation._get_properties / _lookup_property / _get_target_properties
+# PIDRelation._get_properties / _lookup_target_element / _get_target_properties
 # ---------------------------------------------------------------------------
 
 
@@ -84,10 +84,10 @@ def test_get_properties_raises_type_error_for_invalid_key_type(pid_relation):
         pid_relation._get_properties(element)
 
 
-def test_lookup_property_returns_none_for_malformed_properties_value(pid_relation):
+def test_lookup_target_element_returns_none_for_malformed_properties_value(pid_relation):
     # "parent.properties" is a string, not a dict - the path can't be descended into.
     malformed_properties = {"parent": {"properties": "not-a-dict"}}
-    assert pid_relation._lookup_property(malformed_properties, "parent.child") is None
+    assert pid_relation._lookup_target_element(malformed_properties, "parent.child") is None
 
 
 def test_get_target_properties_returns_empty_when_no_model_metadata(pid_relation, register_fake_runtime_model):

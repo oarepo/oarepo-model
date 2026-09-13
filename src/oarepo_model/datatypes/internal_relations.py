@@ -16,7 +16,7 @@ introspected eagerly, since the model that owns `target_path` is still under
 construction while this data type's create_* methods run. InternalRelationDataType
 therefore extends LazyPIDRelation and reuses almost all of its lazy-resolution
 machinery unchanged, only overriding the "where do I look" methods
-(`_get_relation_model`, `_get_target_properties`) and the methods that must
+(`_get_relation_model_name`, `_get_target_properties`) and the methods that must
 build a different kind of relation field (`create_relations`) or thread an
 extra `target_path` through (`create_mapping`/`create_json_schema`/
 `create_ui_model`/`create_marshmallow_schema`/`create_ui_marshmallow_schema`).
@@ -69,7 +69,7 @@ class InternalRelationDataType(LazyPIDRelation):
 
     TYPE = "internal-relation"
 
-    def _target_path(self, element: dict[str, Any]) -> str:
+    def _get_target_path(self, element: dict[str, Any]) -> str:
         """Return the (required) 'target' path declared on the element."""
         target = element.get("target")
         if not target:
@@ -79,16 +79,16 @@ class InternalRelationDataType(LazyPIDRelation):
         return cast("str", target)
 
     @override
-    def _get_lazy_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+    def _get_lazy_kwargs(self, element: dict[str, Any]) -> dict[str, Any]:
         """Inject target_path as a kwarg to lazy customization classes."""
-        return {"target_path": self._target_path(element)}
+        return {"target_path": self._get_target_path(element)}
 
     @override
     def _get_lazy_schema_class_attributes(self, element: dict[str, Any]) -> dict[str, Any]:
         """Inject target_path as a class attribute for lazy schema subclasses."""
-        return {"target_path": self._target_path(element)}
+        return {"target_path": self._get_target_path(element)}
 
-    def _model(self) -> str:
+    def _get_current_model_name(self) -> str:
         """Return the name of the model currently being built.
 
         Always a self-reference (an internal relation resolves within the
@@ -106,7 +106,7 @@ class InternalRelationDataType(LazyPIDRelation):
         return model.name
 
     @override
-    def _get_relation_model(self, element: dict[str, Any], must_exist: bool = False) -> str:
+    def _get_relation_model_name(self, element: dict[str, Any], must_exist: bool = False) -> str:
         """Return the model currently being built - an internal relation's 'model' is always itself.
 
         Memoized onto `element` the first time it's resolved. _get_properties/
@@ -114,7 +114,7 @@ class InternalRelationDataType(LazyPIDRelation):
         this model's own build, e.g. from create_mapping) and lazily (via the
         inherited _resolve_nested_relation_fields/AddLazyRelation, on first
         real `record.relations` access at runtime) - but api.current_model
-        (which self._model() reads) is only ever set for the duration of the
+        (which self._get_current_model_name() reads) is only ever set for the duration of the
         build, long gone by the time the lazy call happens. create_relations
         below forces this to resolve (and cache the result on `element`, the
         same object the lazy resolver's closure captures) while the build is
@@ -122,7 +122,7 @@ class InternalRelationDataType(LazyPIDRelation):
         """
         model = element.get("_internal_relation_model")
         if model is None:
-            model = self._model()
+            model = self._get_current_model_name()
             element["_internal_relation_model"] = model
         return cast("str", model)
 
@@ -131,13 +131,13 @@ class InternalRelationDataType(LazyPIDRelation):
         """Resolve the (currently-being-built) model's own declared properties at target_path.
 
         PIDRelation._get_target_properties already resolves the target model
-        (via self._get_relation_model, overridden above to mean "the model
+        (via self._get_relation_model_name, overridden above to mean "the model
         currently being built") down to its merged record/metadata root -
         this only needs to further descend that root to target_path.
         """
         root = super()._get_target_properties(element)
         try:
-            return {**walk_type_tree_path(root, self._target_path(element))}
+            return {**walk_type_tree_path(root, self._get_target_path(element))}
         except (KeyError, TypeError) as e:
             log.warning("Failed to resolve target properties: %s", e)
             return {}
@@ -161,16 +161,16 @@ class InternalRelationDataType(LazyPIDRelation):
         relation_name = self._relation_name(element, path)
         key_names = self._relation_key_names(element, path)
 
-        # Force _get_relation_model to resolve (and cache onto `element`) now,
+        # Force _get_relation_model_name to resolve (and cache onto `element`) now,
         # while api.current_model is still set - see its docstring.
-        self._get_relation_model(element, must_exist=True)
+        self._get_relation_model_name(element, must_exist=True)
 
         relations: list[Customization] = [
             AddInternalRelation(
                 name=relation_name,
                 path=relation_path,
                 keys=key_names,
-                target_path=self._target_path(element),
+                target_path=self._get_target_path(element),
                 **element.get("relation_field_kwargs", {}),
             ),
         ]

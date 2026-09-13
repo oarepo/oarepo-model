@@ -13,7 +13,7 @@ customizations for the model builder.
 from __future__ import annotations
 
 import copy
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, NoReturn, cast, override
 
 import marshmallow
 from invenio_base.utils import obj_or_import_string
@@ -27,7 +27,7 @@ from oarepo_model.utils import ArrayPathMember, import_runtime_model, walk_type_
 from .collections import ObjectDataType
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Mapping
+    from collections.abc import Callable, Iterable, Iterator, Mapping
 
     from invenio_records_resources.records.systemfields.pid import (
         PIDFieldContext,
@@ -87,7 +87,7 @@ class PIDRelation(ObjectDataType):
             path, element, nested_facets, facets, path_suffix, ignored_keys={*(ignored_keys or ()), "@v"}
         )
 
-    def _get_relation_model(self, element: dict[str, Any], must_exist: bool = False) -> str:
+    def _get_relation_model_name(self, element: dict[str, Any], must_exist: bool = False) -> str:
         """Get the model for the relation.
 
         The single seam every other method routes target-model resolution
@@ -100,7 +100,7 @@ class PIDRelation(ObjectDataType):
             raise KeyError("model is required")
         return cast("str", model)
 
-    def _get_properties(  # too many branches
+    def _get_properties(
         self,
         element: dict[str, Any],
         ignore_missing: bool = False,
@@ -111,7 +111,7 @@ class PIDRelation(ObjectDataType):
         we return only the explicitly defined properties. There is no fallback
         to 'keyword'.
         """
-        model_name = self._get_relation_model(element)
+        model_name = self._get_relation_model_name(element)
         try:
             target_properties = self._get_target_properties(element)
         except ModuleNotFoundError:
@@ -123,37 +123,33 @@ class PIDRelation(ObjectDataType):
         fallbacks = self._default_key_properties(element)
 
         ret: dict[str, Any] = {}
-        for key in element.get("keys", []):
-            if isinstance(key, str):
-                prop = self._lookup_property(target_properties, key)
-                if prop is None and not ignore_missing:
-                    if key in fallbacks:
-                        prop = fallbacks[key]
-                    else:
-                        if model_name is not None:
-                            raise KeyError(f"Property not found: {key} in target properties of {model_name}")
-                        raise KeyError(
-                            f"Model name is not available, cannot determine target properties for '{key}'. "
-                            "Either provide model or define the props explicitly."
-                        )
-                if prop is not None:
-                    set_key_model(
-                        ret,
-                        key,
-                        copy.deepcopy(prop),
-                    )
-            elif isinstance(key, dict):
-                for k, v in key.items():
-                    set_key_model(ret, k, v)
-            else:
-                raise TypeError(f"Invalid key type: {type(key)}")
+        for key, explicit_prop in self._iter_key_entries(element.get("keys", [])):
+            if explicit_prop is not None:
+                set_key_model(ret, key, explicit_prop)
+                continue
+
+            prop = self._lookup_target_element(target_properties, key)
+            if prop is None and not ignore_missing:
+                prop = fallbacks.get(key)
+                if prop is None:
+                    self._raise_missing_property(key, model_name)
+            if prop is not None:
+                set_key_model(ret, key, copy.deepcopy(prop))
 
         for k, v in fallbacks.items():
-            if k not in ret:
-                ret[k] = v
+            ret.setdefault(k, v)
         return ret
 
-    def _lookup_property(self, properties: dict[str, Any], key: str) -> dict[str, Any] | None:
+    def _raise_missing_property(self, key: str, model_name: str | None) -> NoReturn:
+        """Raise a descriptive KeyError for a 'keys' entry with no resolvable property."""
+        if model_name is not None:
+            raise KeyError(f"Property not found: {key} in target properties of {model_name}")
+        raise KeyError(
+            f"Model name is not available, cannot determine target properties for '{key}'. "
+            "Either provide model or define the props explicitly."
+        )
+
+    def _lookup_target_element(self, properties: dict[str, Any], key: str) -> dict[str, Any] | None:
         """Walk a dotted key path down a properties tree, mirroring set_key_model.
 
         Returns None if any segment of the path is missing, so callers can fall
@@ -181,7 +177,7 @@ class PIDRelation(ObjectDataType):
         (e.g. it was declared only via 'pid_field', or isn't an oarepo_model
         -built model) - callers fall back to "keyword" per key in that case.
         """
-        model_name = self._get_relation_model(element)
+        model_name = self._get_relation_model_name(element)
         if not model_name:
             return {}
 
@@ -292,15 +288,25 @@ class PIDRelation(ObjectDataType):
     @staticmethod
     def _key_names(keys: Iterable[str | dict[str, Any]]) -> set[str]:
         """Extract the set of key names from a mixed list of str / single-key dict entries."""
-        names: set[str] = set()
+        return {name for name, _ in PIDRelation._iter_key_entries(keys)}
+
+    @staticmethod
+    def _iter_key_entries(
+        keys: Iterable[str | dict[str, Any]],
+    ) -> Iterator[tuple[str, dict[str, Any] | None]]:
+        """Normalize a mixed list of str / single-key dict 'keys' entries.
+
+        Yields (name, None) for a bare string entry - its property must be
+        looked up or defaulted by the caller - or (name, value) for each
+        key in a dict entry, which already carries its explicit property.
+        """
         for key in keys:
             if isinstance(key, str):
-                names.add(key)
+                yield key, None
             elif isinstance(key, dict):
-                names.update(key.keys())
+                yield from key.items()
             else:
                 raise TypeError(f"Invalid key type: {type(key)}")
-        return names
 
 
 def set_key_model(properties: dict[str, Any], key: str, value: Any, update: bool = False) -> None:

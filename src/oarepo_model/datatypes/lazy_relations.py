@@ -371,7 +371,7 @@ class LazyPIDRelation(PIDRelation):
 
     marshmallow_field_class = marshmallow.fields.Nested
 
-    def _get_lazy_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+    def _get_lazy_kwargs(self, element: dict[str, Any]) -> dict[str, Any]:
         """Return extra keyword arguments to pass to lazy customization classes.
 
         Subclasses can override this to inject additional kwargs (e.g. target_path
@@ -427,7 +427,7 @@ class LazyPIDRelation(PIDRelation):
             "- the target model %r could not be resolved (likely a "
             "self-referencing relation still being built).",
             path,
-            self._get_relation_model(element),
+            self._get_relation_model_name(element),
         )
         return super().get_facet(
             path,
@@ -441,9 +441,9 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_mapping(self, element: dict[str, Any]) -> Mapping[str, Any]:
         """Create a mapping for the data type."""
-        model = self._get_relation_model(element, must_exist=True)
+        model = self._get_relation_model_name(element, must_exist=True)
         keys = element.get("keys", [])
-        lazy_kwargs = self._get_lazy_properties(element)
+        lazy_kwargs = self._get_lazy_kwargs(element)
 
         # super().create_mapping already returns the full container for this
         # element (type/dynamic/properties) - the lazily-resolved keys are
@@ -460,9 +460,9 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_json_schema(self, element: dict[str, Any]) -> Mapping[str, Any]:
         """Create a json schema for the data type."""
-        model = self._get_relation_model(element, must_exist=True)
+        model = self._get_relation_model_name(element, must_exist=True)
         keys = element.get("keys", [])
-        lazy_kwargs = self._get_lazy_properties(element)
+        lazy_kwargs = self._get_lazy_kwargs(element)
 
         return ReferenceJSONSchemaProperties(
             model,
@@ -478,7 +478,7 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
         """Create a marshmallow schema for the data type."""
-        model = self._get_relation_model(element, must_exist=True)
+        model = self._get_relation_model_name(element, must_exist=True)
         keys = element.get("keys", [])
         schema_attrs = self._get_lazy_schema_class_attributes(element)
 
@@ -496,7 +496,7 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_ui_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
         """Create a UI marshmallow schema for the data type."""
-        model = self._get_relation_model(element, must_exist=True)
+        model = self._get_relation_model_name(element, must_exist=True)
         keys = element.get("keys", [])
         schema_attrs = self._get_lazy_schema_class_attributes(element)
 
@@ -518,9 +518,9 @@ class LazyPIDRelation(PIDRelation):
         path: list[str],
     ) -> dict[str, Any]:
         """Create a UI model for the data type."""
-        model = self._get_relation_model(element, must_exist=True)
+        model = self._get_relation_model_name(element, must_exist=True)
         keys = element.get("keys", [])
-        lazy_kwargs = self._get_lazy_properties(element)
+        lazy_kwargs = self._get_lazy_kwargs(element)
 
         # super().create_ui_model already returns the full node for this
         # element (help/label/hint/input/children) - see create_mapping above
@@ -562,7 +562,7 @@ class LazyPIDRelation(PIDRelation):
         if "pid_field" in element or "record_cls" in element:
             return super()._relation_pid_field(element, path)
 
-        return LazyModelPIDFieldContext(self._get_relation_model(element, must_exist=True))
+        return LazyModelPIDFieldContext(self._get_relation_model_name(element, must_exist=True))
 
     @override
     def create_relations(
