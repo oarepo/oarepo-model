@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from .datatypes.registry import DataTypeRegistry
     from .presets.base import Preset
 
-from .model import FileContent, InvenioModel, RuntimeDependencies
+from .model import CachedDescriptor, FileContent, InvenioModel, RuntimeDependencies
 from .utils import (
     is_mro_consistent,
     make_mro_consistent,
@@ -354,18 +354,20 @@ class BuilderModule(Partial, SimpleNamespace):
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
         """Build a module from the partial."""
         self.built = True
-        # iterate through all attributes of the simple namespace and
-        # if any of those has a __get__ method, call it. This will handle
-        # Dependency descriptors and other similar cases.
         ret = SimpleNamespace()
-        ret.__files__ = self.files
+        ret.__files__ = dict(self.files)
         for attr in self.__dict__:
             try:
                 if attr.startswith("_") and attr != "__file__":
                     continue
                 value = getattr(self, attr)
-                if callable(value) and not isinstance(value, LocalProxy) and hasattr(value, "__get__"):
-                    value = value.__get__(self, type(self))
+                if isinstance(value, LocalProxy):
+                    # must stay lazy, resolving it here would require an app context
+                    pass
+                elif isinstance(value, (staticmethod, classmethod)):
+                    value = value.__get__(None, type(self))
+                elif isinstance(value, CachedDescriptor):
+                    value = value.real_get_value(None, type(self), model, namespace)
                 setattr(ret, attr, value)
             except Exception as e:
                 raise RuntimeError(
@@ -375,6 +377,8 @@ class BuilderModule(Partial, SimpleNamespace):
 
     def add_file(self, file_path: str, content: FileContent) -> None:
         """Add a file to the module."""
+        if self.built:
+            raise RuntimeError("Cannot add files after the module is built.")
         self.files[file_path] = content
 
     def __setitem__(self, key: str, value: Any) -> None:

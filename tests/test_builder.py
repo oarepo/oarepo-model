@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from werkzeug.local import LocalProxy
 
 from oarepo_model.builder import (
     BuilderClass,
@@ -29,6 +30,7 @@ from oarepo_model.errors import (
     PartialNotFoundError,
     PostBuildMutationWarning,
 )
+from oarepo_model.model import Dependency
 
 
 def test_builder_class():
@@ -219,6 +221,47 @@ def test_builder_module_and_file():
         "file-path": "file1.txt",
         "content": "abc",
     }
+
+
+def test_builder_module_build_carries_callables_over_unchanged():
+    """Only known descriptors are resolved; plain functions must not become bound methods."""
+    mock_model = MagicMock()
+    mock_namespace = SimpleNamespace(Record=object)
+
+    def plain(value: object) -> object:
+        return value
+
+    def boom() -> str:
+        raise AssertionError("LocalProxy was resolved at build time")
+
+    mod = BuilderModule("mod1")
+    mod.plain = plain
+    mod.static = staticmethod(plain)
+    mod.dep = Dependency("Record")
+    mod.proxy = LocalProxy(boom)
+    mod.add_file("file1.txt", "content1")
+
+    built = mod.build(mock_model, mock_namespace)
+
+    assert built.plain is plain
+    assert built.static is plain
+    assert built.dep is object
+    assert isinstance(built.proxy, LocalProxy)
+    assert built.__files__ == {"file1.txt": "content1"}
+
+
+def test_builder_module_files_are_not_aliased():
+    mock_model = MagicMock()
+    mod = BuilderModule("mod1")
+    mod.add_file("file1.txt", "content1")
+
+    built = mod.build(mock_model, SimpleNamespace())
+
+    mod.files["late.txt"] = "late"
+    assert built.__files__ == {"file1.txt": "content1"}
+
+    with pytest.raises(RuntimeError):
+        mod.add_file("late.txt", "late")
 
 
 def test_add_class_multiple_times():
