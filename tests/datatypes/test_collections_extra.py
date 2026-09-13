@@ -453,7 +453,7 @@ class TestRegistryShortcuts:
         assert isinstance(dt, ArrayDataType)
 
     def test_array_bracket_shortcut_in_nested_properties(self, datatype_registry):
-        """Expand property key ending in '[]' to type=array when type is registered."""
+        """Expand a nested property key ending in '[]' into an array named without the marker."""
         datatype_registry.add_types(
             {
                 "TaggedItem": {
@@ -469,13 +469,55 @@ class TestRegistryShortcuts:
         # _merge_type_dict strips the "type" key and merges nothing else,
         # so the registered type_dict (with expanded tags[]) is used as-is.
         field = dt.create_marshmallow_field("item", {"type": "TaggedItem"})
-        # The resulting field is a Nested schema containing a List sub-field.
         assert isinstance(field, ma.fields.Nested)
         inner_schema = field.schema
-        # Field names are converted to Python identifiers; 'tags[]' → 'tags_91__93_'
-        list_fields = [f for f in inner_schema.fields.values() if isinstance(f, ma.fields.List)]
-        field_names = list(inner_schema.fields)
-        assert list_fields, f"Expected a List field in the inner schema, got fields: {field_names}"
+        # The '[]' shortcut marker must not leak into the declared property name.
+        assert list(inner_schema.fields) == ["tags"]
+        assert isinstance(inner_schema.fields["tags"], ma.fields.List)
+        # The declared property loads under the name a client would actually use.
+        assert inner_schema.load({"tags": ["a"]}) == {"tags": ["a"]}
+        # JSON Schema and OpenSearch mapping use the same unmarked name.
+        assert list(dt.create_json_schema({"type": "TaggedItem"})["properties"]) == ["tags"]
+        assert list(dt.create_mapping({"type": "TaggedItem"})["properties"]) == ["tags"]
+
+    def test_array_bracket_shortcut_at_top_level(self, datatype_registry):
+        """Expand a top-level type name ending in '[]' into an array registered under the bare name."""
+        from oarepo_model.datatypes.collections import ArrayDataType
+        from oarepo_model.datatypes.wrapped import WrappedDataType
+
+        datatype_registry.add_types({"top[]": {"type": "keyword"}})
+
+        assert "top" in datatype_registry.types
+        assert "top[]" not in datatype_registry.types
+
+        dt = datatype_registry.get_type("top")
+        assert isinstance(dt, WrappedDataType)
+        assert dt.type_dict == {"type": "array", "items": {"type": "keyword"}}
+        assert isinstance(dt.impl, ArrayDataType)
+        assert dt.create_json_schema({"type": "top"}) == {
+            "type": "array",
+            "items": {"type": "string"},
+        }
+
+    def test_array_bracket_shortcut_facet_path_has_no_marker(self, datatype_registry):
+        """Generate the facet for a '[]' shortcut property under the unmarked name.
+
+        Facet names are registered synchronously at build time, so a leaked '[]'
+        here would produce a facet whose path matches no field in the mapping.
+        """
+        datatype_registry.add_types(
+            {
+                "TaggedItem": {
+                    "type": "object",
+                    "properties": {
+                        "tags[]": {"type": "keyword"},
+                    },
+                }
+            }
+        )
+        dt = datatype_registry.get_type("TaggedItem")
+        facets = dt.get_facet("metadata", {"type": "TaggedItem"}, [], {})
+        assert list(facets) == ["metadata.tags"]
 
 
 # ===========================================================================

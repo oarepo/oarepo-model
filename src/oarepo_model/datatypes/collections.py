@@ -458,7 +458,6 @@ class ArrayDataType(FacetMixin, DataType):
     ) -> Any:
         """Create facets for the data type."""
         _ = path_suffix  # path suffix is not used for arrays
-        path = path.removesuffix("[]")
         value = element.get("items", element)
         if "label" in element and "label" not in value:
             value = {**value, "label": element["label"]}
