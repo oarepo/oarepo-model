@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_records.dumpers import SearchDumperExt
 
@@ -28,27 +28,27 @@ class PathDumperExtBase(SearchDumperExt):
         super().__init__()
         self.paths = paths
 
+    @override
     def dump(
         self,
         record: Any,
         data: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Convert fields into their search representation."""
+    ) -> None:
+        """Convert fields into their search representation, mutating data in place."""
         _ = record
         for path in self.paths:
             self._apply(data, path, self._data_to_opensearch)
-        return data
 
+    @override
     def load(
         self,
         data: dict[str, Any],
         record_cls: type,
-    ) -> dict[str, Any]:
-        """Convert fields back from their search representation."""
+    ) -> None:
+        """Convert fields back from their search representation, mutating data in place."""
         _ = record_cls
         for path in self.paths:
             self._apply(data, path, self._data_from_opensearch)
-        return data
 
     def _apply(
         self,

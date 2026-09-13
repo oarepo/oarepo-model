@@ -22,7 +22,7 @@ import os
 import sys
 from importlib.metadata import Distribution, DistributionFinder
 from types import ModuleType, SimpleNamespace
-from typing import TYPE_CHECKING, Any, Literal, cast, override
+from typing import IO, TYPE_CHECKING, Any, Literal, cast, overload, override
 
 from .utils import resolve_file_content
 
@@ -175,14 +175,24 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
 
         return InMemoryTraversable(child_path, self._files, is_child_dir)
 
+    @overload
+    def open(
+        self,
+        mode: Literal["r"] = "r",
+        *,
+        encoding: str | None = None,
+        errors: str | None = None,
+    ) -> IO[str]: ...
+    @overload
+    def open(self, mode: Literal["rb"]) -> IO[bytes]: ...
     @override
-    def open(  # note: how to correctly type the io.IOBase here?
+    def open(
         self,
         mode: Literal["r", "rb"] = "r",
         *,
         encoding: str | None = None,
         errors: str | None = None,
-    ) -> io.IOBase:
+    ) -> IO[str] | IO[bytes]:
         raise NotImplementedError("open is not implemented")
 
     # note: this is not on the Traversable API, only on posix path, so maybe reconsider

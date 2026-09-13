@@ -115,14 +115,16 @@ def test_dumps_and_loads_nested_icrs_paths():
         ],
     )
 
-    result = dumper.dump(None, deepcopy(data))
+    result = deepcopy(data)
+    dumper.dump(None, result)
 
     assert result["metadata"]["locations"][0]["position"] == {"lat": -30.0, "lon": 10.0}
     events = result["metadata"]["related_resources"][0]["events"][0]
     assert events["locations"][0]["position"] == {"lat": 45.0, "lon": -10.0}
     assert events["locations"][1]["position"] == {"lat": 0.0, "lon": -160.0}
 
-    loaded = dumper.load(deepcopy(result), None)
+    loaded = deepcopy(result)
+    dumper.load(loaded, None)
 
     assert loaded["metadata"]["locations"][0]["position"] == {"ra": 10.0, "dec": -30.0}
     loaded_events = loaded["metadata"]["related_resources"][0]["events"][0]

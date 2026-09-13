@@ -119,7 +119,8 @@ def test_dumps_and_loads_nested_date_range_paths():
         ],
     )
 
-    result = dumper.dump(None, deepcopy(data))
+    result = deepcopy(data)
+    dumper.dump(None, result)
 
     assert result["metadata"]["dates"][0]["date"] == "2020-05-10"
     assert result["metadata"]["dates"][0]["date_range"] == {
@@ -140,7 +141,8 @@ def test_dumps_and_loads_nested_date_range_paths():
         "lte": "2000-12-31",
     }
 
-    loaded = dumper.load(deepcopy(result), None)
+    loaded = deepcopy(result)
+    dumper.load(loaded, None)
     assert loaded["metadata"]["dates"][0]["date"] == "2020-05-10"
     assert "date_range" not in loaded["metadata"]["dates"][0]
     assert loaded["metadata"]["related_resources"][0]["dates"][0]["date"] == "2020/2021"
