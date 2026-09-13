@@ -27,7 +27,7 @@ from oarepo_model.utils import ArrayPathMember, import_runtime_model, walk_type_
 from .collections import ObjectDataType
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterable, Mapping
 
     from invenio_records_resources.records.systemfields.pid import (
         PIDFieldContext,
@@ -56,6 +56,22 @@ class PIDRelation(ObjectDataType):
     TYPE = "pid-relation"
 
     marshmallow_field_class = marshmallow.fields.Nested
+
+    def _default_key_properties(self, element: dict[str, Any]) -> Mapping[str, dict[str, Any]]:
+        """Properties always available for a relation, even when not declared in 'keys'.
+
+        'id' is non-searchable here because the target may not be introspectable yet
+        (e.g. a still-building self-reference) - see test_recursive_relations_facets
+        and LazyPIDRelation.get_facet, which relies on this to suppress the facet.
+        Subclasses with an always-resolvable target (e.g. VocabularyDataType) may
+        override this to make 'id' searchable/facetable, or add further defaults.
+        """
+        del element  # unused in base class, but subclasses may use it
+        # TODO: revisit whether 'id' really needs to be non-searchable by default.
+        return {
+            "id": {"type": "keyword", "searchable": False},
+            "@v": {"type": "keyword", "skip_marshmallow": True, "searchable": False},
+        }
 
     @override
     def get_facet(
@@ -104,13 +120,10 @@ class PIDRelation(ObjectDataType):
             else:
                 raise
 
-        fallbacks = {
-            "id": {"type": "keyword", "searchable": False},
-            "@v": {"type": "keyword", "skip_marshmallow": True, "searchable": False},
-        }
+        fallbacks = self._default_key_properties(element)
 
         ret: dict[str, Any] = {}
-        for key in element["keys"]:
+        for key in element.get("keys", []):
             if isinstance(key, str):
                 prop = self._lookup_property(target_properties, key)
                 if prop is None and not ignore_missing:
@@ -274,15 +287,20 @@ class PIDRelation(ObjectDataType):
         element: dict[str, Any],
         path: list[ArrayPathMember],  # noqa ARG002 for extensibility
     ) -> list[str]:
-        keys = set()
-        for key in element.get("keys", []):
+        return list(self._key_names(element.get("keys", [])))
+
+    @staticmethod
+    def _key_names(keys: Iterable[str | dict[str, Any]]) -> set[str]:
+        """Extract the set of key names from a mixed list of str / single-key dict entries."""
+        names: set[str] = set()
+        for key in keys:
             if isinstance(key, str):
-                keys.add(key)
+                names.add(key)
             elif isinstance(key, dict):
-                keys.update(key.keys())
+                names.update(key.keys())
             else:
                 raise TypeError(f"Invalid key type: {type(key)}")
-        return list(keys)
+        return names
 
 
 def set_key_model(properties: dict[str, Any], key: str, value: Any, update: bool = False) -> None:
