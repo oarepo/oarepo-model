@@ -264,6 +264,15 @@ def test_builder_module_files_are_not_aliased():
         mod.add_file("late.txt", "late")
 
 
+def test_add_class_generated_name_keeps_acronyms():
+    model = MagicMock()
+    model.title_name = "Test"
+    builder = InvenioModelBuilder(model, MagicMock())
+
+    assert builder.add_class("ParentPIDProvider").class_name == "TestParentPIDProvider"
+    assert builder.add_class("ParentProvider").class_name == "TestParentProvider"
+
+
 def test_add_class_multiple_times():
     model = MagicMock()
     type_registry = MagicMock()

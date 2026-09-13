@@ -493,7 +493,7 @@ class InvenioModelBuilder:
             exists_ok,
             "Class",
             lambda: BuilderClass(
-                self.model.title_name + title_case(name).replace("_", ""),
+                self.model.title_name + title_case(name),
                 base_classes=[clazz] if clazz else [],
             ),
         )

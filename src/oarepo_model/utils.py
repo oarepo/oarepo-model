@@ -163,14 +163,23 @@ def make_mro_consistent(class_list: list[type]) -> list[type]:
 
 
 def camel_case_split(s: str) -> list[str]:
-    """Split a camel case string into a list of words."""
-    return re.findall(r"([A-Z]?[a-z]+)", s)
+    """Split a camel case string into a list of words, keeping acronym runs together."""
+    return re.findall(r"[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z0-9]+", s)
 
 
 def title_case(s: str) -> str:
-    """Convert a string to title case."""
-    parts = camel_case_split(s)
-    return "".join(part.capitalize() for part in parts)
+    """Convert a string to title case, preserving acronym runs like "PID".
+
+    :param s: The string to convert.
+    :return: A title-cased string usable as a Python identifier.
+    :raises ValueError: If the string contains no characters to title case.
+    """
+    ret = "".join(part if part.isupper() else part[0].upper() + part[1:] for part in camel_case_split(s))
+    if not ret:
+        raise ValueError(f"Cannot convert {s!r} to a title case name, it contains no letters or digits.")
+    if ret[0].isdigit():
+        ret = f"_{ret}"
+    return ret
 
 
 def convert_to_python_identifier(s: str) -> str:
@@ -192,6 +201,9 @@ def convert_to_python_identifier(s: str) -> str:
             else:
                 ret.append(c)
         s = "".join(ret)
+        if not s.isidentifier():
+            # the transliteration above only replaces characters, it cannot fix a leading digit
+            s = f"_{s}"
 
     if keyword.iskeyword(s):
         s = f"{s}_"

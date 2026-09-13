@@ -14,6 +14,7 @@ from oarepo_model.utils import (
     convert_to_python_identifier,
     dump_to_json,
     readonly_dict_merger,
+    title_case,
     walk_type_tree_path,
     walk_type_tree_path_leaf,
 )
@@ -43,11 +44,62 @@ def test_merge_read_only_dict():
     assert readonly_dict_merger.merge(d, {"a": {"c": 3}}) == {"a": {"a": 1, "b": 2, "c": 3}}
 
 
+NAMES = [
+    "",
+    "a",
+    "a-b",
+    "for",
+    "2nd",
+    "2 nd",
+    "9",
+    "-",
+    "ID",
+    "UIModel",
+    "HTTPResponse",
+    "ParentPIDProvider",
+    "v1_0_0",
+    "a.b/c",
+    "日本語x",
+]
+
+
 def test_convert_to_python_identifier():
     assert convert_to_python_identifier("") == "_empty_"
     assert convert_to_python_identifier("a") == "a"
     assert convert_to_python_identifier("a-b") == "a_45_b"
     assert convert_to_python_identifier("for") == "for_"
+    assert convert_to_python_identifier("2nd") == "_2nd"
+    assert convert_to_python_identifier("2 nd") == "_2_32_nd"
+
+
+def test_convert_to_python_identifier_always_returns_an_identifier():
+    assert [x for x in NAMES if not convert_to_python_identifier(x).isidentifier()] == []
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("draft_test", "DraftTest"),
+        ("DraftTest", "DraftTest"),
+        ("Model", "Model"),
+        ("UIModel", "UIModel"),
+        ("ID", "ID"),
+        ("HTTPResponse", "HTTPResponse"),
+        ("ParentPIDProvider", "ParentPIDProvider"),
+        ("parent_pid_provider", "ParentPidProvider"),
+        ("v1_0_0", "V100"),
+        ("2nd", "_2nd"),
+        ("a.b/c", "ABC"),
+    ],
+)
+def test_title_case(name, expected):
+    assert title_case(name) == expected
+    assert title_case(expected) == expected
+
+
+def test_title_case_needs_something_to_case():
+    with pytest.raises(ValueError, match="no letters or digits"):
+        title_case("---")
 
 
 def test_dump_to_json():
