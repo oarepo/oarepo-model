@@ -51,6 +51,16 @@ class PIDRelation(ObjectDataType):
         pid_field: "my_module:pid_field_getter" or PIDField instance (not required if record_cls is provided)
         cache_key: "my_cache_key" (optional, used for caching the resolved record)
     ```
+
+    Note: the target must be a **published** record. A relation value is
+    validated as soon as it is assigned (`RelationBase.set_value` resolves it
+    right away), and resolution goes through `PIDFieldContext.resolve` with
+    `registered_only=True` against the target's published Record class - a target
+    that only exists as a draft therefore resolves to nothing and is rejected
+    with an InvalidRelationValue. Record instances are not supported as values
+    either (upstream `PIDRelation.parse_value` reads `pid_field.attr_name`, which
+    a `PIDFieldContext` does not have); pass the PID value or a
+    `PersistentIdentifier`.
     """
 
     TYPE = "pid-relation"

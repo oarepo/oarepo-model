@@ -90,7 +90,30 @@ def _descend_marshmallow_schema(schema: marshmallow.Schema, path: str) -> marshm
 
 
 class LazyModelPIDFieldContext(PIDFieldContext):
-    """Lazily resolves a PID field context by model name."""
+    """Lazily resolves a PID field context by model name.
+
+    Acts as a transparent stand-in for the target model's real
+    ``PIDFieldContext``: super().__init__ is deliberately not called (the real
+    field, and therefore its ``field``/``record_cls`` pair, cannot be known until
+    the target model has finished building), so everything this wrapper does not
+    implement itself is delegated on first use via __getattr__.
+
+    That delegation is what makes the wrapper a usable ``pid_field=`` argument for
+    invenio's relation classes, which read the context's API directly - notably
+    ``PIDRelation.parse_value``, which reads ``pid_field.record_cls`` both to
+    recognise a record instance and to build its InvalidRelationValue message.
+    Without it, assigning any non-str/non-PID value to such a relation failed
+    with a bare AttributeError instead.
+
+    Note that, like every other ``pid-relation``, this resolves *published*
+    records only - see the note on ``PIDRelation``'s docstring.
+    """
+
+    #: Attributes owned by the lazy wrapper itself. They must never be delegated:
+    #: ``_real_field`` needs ``model_name`` to exist, so delegating either one
+    #: would recurse back into __getattr__ (e.g. during copy/pickle, before the
+    #: instance dict has been restored).
+    _SELF_ATTRS = frozenset({"model_name", "_real_field"})
 
     def __init__(self, model_name: str) -> None:
         """Initialize with the model name to resolve."""
@@ -101,8 +124,30 @@ class LazyModelPIDFieldContext(PIDFieldContext):
         """Return the model PID field."""
         return import_runtime_model(self.model_name).Record.pid
 
+    def __deepcopy__(self, memo: dict | None = None) -> Any:
+        """Deep copy the lazy reference, without resolving it first.
+
+        Same reasoning as `ReferenceMappingProperties.__deepcopy__` below: copying
+        an already-resolved context would also deep-copy the target model's real
+        PIDField, a system field instance that must stay shared by that model.
+        """
+        return type(self)(model_name=self.model_name)
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate anything the wrapper does not implement to the real field."""
+        if name in self._SELF_ATTRS or name.startswith("__"):
+            # Dunders are resolved on the type, never proxied to the target.
+            raise AttributeError(name)
+        return getattr(self._real_field, name)
+
     def resolve(self, *args: Any, **kwargs: Any) -> Any:
-        """Resolve the model PID field by name."""
+        """Resolve the model PID field by name.
+
+        Explicit override rather than __getattr__ delegation: ``resolve`` is
+        defined on ``PIDFieldContext`` itself, so normal lookup finds the base
+        implementation (which would use the unset ``_field``/``_record_cls``)
+        and never reaches __getattr__.
+        """
         return self._real_field.resolve(*args, **kwargs)
 
 
