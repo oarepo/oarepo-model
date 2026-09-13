@@ -50,6 +50,14 @@ if TYPE_CHECKING:
 
     from oarepo_model.builder import InvenioModelBuilder
 
+    #: A service config ``links_*`` mapping.
+    #:
+    #: A config class in the mixin chain is free *not* to define one - at runtime
+    #: the base of these mixins is plain ``object`` until the builder injects the
+    #: real base class - so they are read with ``getattr(super(), name, {})``
+    #: instead of ``try``/``except AttributeError``.
+    type LinksMapping = Mapping[str, Link | EndpointLink | Callable[..., Link | EndpointLink]]
+
 
 else:
     BaseRecordServiceConfig = object
@@ -116,13 +124,8 @@ class RecordServiceConfigPreset(Preset):
             model = builder.model.name
 
             @property
-            def links_item(
-                self,
-            ) -> Mapping[str, Callable[..., Link | EndpointLink] | Link | EndpointLink]:
-                try:
-                    supercls_links = super().links_item
-                except AttributeError:  # if they aren't defined in the superclass
-                    supercls_links = {}
+            def links_item(self) -> LinksMapping:
+                supercls_links: LinksMapping = getattr(super(), "links_item", {})
 
                 links = {
                     **supercls_links,
@@ -131,16 +134,13 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search_item(self) -> Mapping[str, Callable[..., Link | EndpointLink] | Link | EndpointLink]:
+            def links_search_item(self) -> LinksMapping:
                 if self.search_items_use_full_links:
                     return self.links_item
 
-                try:
-                    # this is oarepo extension - do not put all links on search result
-                    # item
-                    supercls_links = super().links_search_item
-                except AttributeError:  # if they aren't defined in the superclass
-                    supercls_links = {}
+                # this is oarepo extension - do not put all links on search result
+                # item
+                supercls_links: LinksMapping = getattr(super(), "links_search_item", {})
                 links = {
                     **supercls_links,
                     **self.get_model_dependency("record_search_item_links"),
@@ -148,13 +148,8 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search(
-                self,
-            ) -> Mapping[str, Callable[..., Link | EndpointLink] | Link | EndpointLink]:
-                try:
-                    supercls_links = super().links_search
-                except AttributeError:  # if they aren't defined in the superclass
-                    supercls_links = {}
+            def links_search(self) -> LinksMapping:
+                supercls_links: LinksMapping = getattr(super(), "links_search", {})
                 links = {
                     **supercls_links,
                     **self.get_model_dependency("record_search_links"),
