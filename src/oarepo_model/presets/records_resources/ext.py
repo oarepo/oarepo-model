@@ -59,22 +59,47 @@ def _register_entries(
             register(registry, item, item_id)
 
 
-class RecordExtensionProtocol(Protocol):
-    """Protocol for flask extension with model arguments."""
+class RecordExtensionProtocolTyping(Protocol):
+    """Structural shape shared by every 'Ext' feature mixin.
 
-    @property
-    def model_arguments(self) -> dict[str, Any]:
-        """Return model arguments for the extension."""
-        return super().model_arguments  # pragma: no cover
+    The actual class combining all these mixins is built dynamically per model
+    by ExtPreset, so there is no single static type its concrete implementation
+    could name. Declared here purely so that a mixin's own
+    `super().model_arguments` (etc.) type-checks against *some* known shape.
 
-    @property
-    def records_service_params(self) -> dict[str, Any]:
-        """Return parameters for the records service."""
-        return super().records_service_params  # pragma: no cover
+    Mixins inherit the ``RecordExtensionProtocol`` alias below, never this
+    class: a runtime base here would land in the composed Ext class's MRO,
+    shadow the real implementation in ``ExtBase`` and silently cut off its
+    cooperative ``super()`` chain. Its members exist only under
+    ``TYPE_CHECKING`` as well, so even a mixin inheriting this class directly
+    cannot do that.
+    """
 
-    def init_config(self, app: Flask) -> None:
-        """Initialize configuration."""
-        return super().init_config(app)
+    if TYPE_CHECKING:
+
+        @property
+        def model_arguments(self) -> dict[str, Any]:
+            """Return model arguments for the extension."""
+            ...
+
+        @property
+        def records_service_params(self) -> dict[str, Any]:
+            """Return parameters for the records service."""
+            ...
+
+        def init_config(self, app: Flask) -> None:
+            """Initialize configuration."""
+            ...
+
+
+#: Base class of the Ext feature mixins: the structural shape above for type
+#: checkers, plain 'object' at runtime, so that the MRO of the composed Ext
+#: class holds nothing but the mixins themselves and ExtBase. Safe to use as a
+#: real base by presets outside this package.
+if TYPE_CHECKING:
+    RecordExtensionProtocol = RecordExtensionProtocolTyping
+else:
+    RecordExtensionProtocol = object
 
 
 class ExtPreset(Preset):

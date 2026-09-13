@@ -10,7 +10,7 @@ the Flask extension for handling files in published record repositories.
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, Protocol, override
 
 from oarepo_runtime.config import build_config
 
@@ -22,7 +22,7 @@ from oarepo_model.customizations import (
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
-from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol
+from oarepo_model.presets.records_resources.ext import RecordExtensionProtocol, RecordExtensionProtocolTyping
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -34,13 +34,25 @@ if TYPE_CHECKING:
     from oarepo_model.builder import InvenioModelBuilder
 
 
-class RecordWithFilesExtensionProtocol(RecordExtensionProtocol):
-    """Protocol for record extensions with files support."""
+class RecordWithFilesExtensionProtocolTyping(RecordExtensionProtocolTyping, Protocol):
+    """Structural shape adding 'files_service' on top of RecordExtensionProtocolTyping.
 
-    @property
-    def files_service(self) -> FileService:
-        """File service instance."""
-        return super().files_service  # pragma: no cover
+    Inherit RecordWithFilesExtensionProtocol below instead of this class, for
+    the reason given in RecordExtensionProtocolTyping's docstring.
+    """
+
+    if TYPE_CHECKING:
+
+        @property
+        def files_service(self) -> FileService:
+            """File service instance."""
+            ...
+
+
+if TYPE_CHECKING:
+    RecordWithFilesExtensionProtocol = RecordWithFilesExtensionProtocolTyping
+else:
+    RecordWithFilesExtensionProtocol = object
 
 
 class ExtFilesPreset(Preset):
