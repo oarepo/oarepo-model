@@ -68,13 +68,7 @@ DATA_TYPES: dict[str, type[DataType] | dict[str, Any]] = {
     ICRSDataType.TYPE: ICRSDataType,
     LazyPIDRelation.TYPE: LazyPIDRelation,
     InternalRelationDataType.TYPE: InternalRelationDataType,
-    "multilingual-type": MultilingualDataType,
-    "multilingual": {
-        "type": "multilingual-type",
-        "items": {
-            "type": "i18n",
-        },
-    },
+    MultilingualDataType.TYPE: MultilingualDataType,
     "i18n": {
         "type": "object",
         "properties": {

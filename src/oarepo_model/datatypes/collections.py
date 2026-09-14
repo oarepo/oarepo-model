@@ -31,6 +31,10 @@ class NoPropertiesError(Exception):
     """Raised when no properties are found for a data type."""
 
 
+class NoItemsError(Exception):
+    """Raised when no item definition is found for an array data type."""
+
+
 def _facet_child_path(path: str, key: str) -> str:
     """Build the facet path for a child property named ``key`` under ``path``.
 
@@ -344,18 +348,30 @@ class ArrayDataType(FacetMixin, DataType):
     jsonschema_type = "array"
     marshmallow_field_class = marshmallow.fields.List
 
+    def _get_items(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Get the items for the array data type.
+
+        This method can be overridden by subclasses to provide specific item logic.
+        """
+        if "items" not in element:
+            raise NoItemsError(f"Element must contain 'items' key. Got {element}")
+        if not isinstance(element["items"], dict):
+            raise TypeError(
+                "Element 'items' must be a dictionary.",
+            )
+        return element["items"]
+
     @override
     def _get_marshmallow_field_args(
         self,
         field_name: str,
         element: dict[str, Any],
     ) -> dict[str, Any]:
-        if "items" not in element:
-            raise ValueError("Element must contain 'items' key.")
+        items = self._get_items(element)
         ret = super()._get_marshmallow_field_args(field_name, element)
         ret["cls_or_instance"] = self._registry.get_type(
-            element["items"],
-        ).create_marshmallow_field(ARRAY_ITEM_PATH, element["items"])
+            items,
+        ).create_marshmallow_field(ARRAY_ITEM_PATH, items)
         if "min_items" in element or "max_items" in element:
             ret.setdefault("validate", []).append(
                 marshmallow.validate.Length(
@@ -390,8 +406,8 @@ class ArrayDataType(FacetMixin, DataType):
 
         # retrieve formatting options (e.g. for the date items type -> long, short etc.)
         items_fields = self._registry.get_type(
-            element["items"],
-        ).create_ui_marshmallow_fields("item", element["items"])
+            self._get_items(element),
+        ).create_ui_marshmallow_fields("item", self._get_items(element))
         # no transformations
         if not items_fields:
             return {}
@@ -405,25 +421,28 @@ class ArrayDataType(FacetMixin, DataType):
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
+        items = self._get_items(element)
         return {
             **super().create_json_schema(element),
-            "items": self._registry.get_type(element["items"]).create_json_schema(
-                element["items"],
+            "items": self._registry.get_type(items).create_json_schema(
+                items,
             ),
         }
 
     @override
     def create_mapping(self, element: dict[str, Any]) -> Mapping[str, Any]:
         # skip the array in mapping
-        return self._registry.get_type(element["items"]).create_mapping(
-            element["items"],
+        items = self._get_items(element)
+        return self._registry.get_type(items).create_mapping(
+            items,
         )
 
     @override
     def visit(self, element: dict[str, Any], path: list[str], visitor: Any) -> None:
         """Visit array data type and its item data type."""
         super().visit(element, path, visitor)
-        self._registry.get_type(element["items"]).visit(element["items"], [*path, ARRAY_ITEM_PATH], visitor)
+        items = self._get_items(element)
+        self._registry.get_type(items).visit(items, [*path, ARRAY_ITEM_PATH], visitor)
 
     @override
     def create_ui_model(
@@ -436,8 +455,9 @@ class ArrayDataType(FacetMixin, DataType):
         This method should be overridden by subclasses to provide specific UI model creation logic.
         """
         ret = super().create_ui_model(element, path)
-        ret["child"] = self._registry.get_type(element["items"]).create_ui_model(
-            element["items"],
+        items = self._get_items(element)
+        ret["child"] = self._registry.get_type(items).create_ui_model(
+            items,
             [*path, ARRAY_ITEM_PATH],
         )
         if "min_items" in element or "max_items" in element:
@@ -453,8 +473,9 @@ class ArrayDataType(FacetMixin, DataType):
         element: dict[str, Any],
         path: list[ArrayPathMember],
     ) -> list[Customization]:
-        return self._registry.get_type(element["items"]).create_relations(
-            element["items"],
+        items = self._get_items(element)
+        return self._registry.get_type(items).create_relations(
+            items,
             [*path, ARRAY_PATH_ITEM],
         )
 
@@ -470,10 +491,11 @@ class ArrayDataType(FacetMixin, DataType):
     ) -> Any:
         """Create facets for the data type."""
         _ = path_suffix, ignored_keys  # not used for arrays
-        value = element.get("items", element)
-        if "label" in element and "label" not in value:
-            value = {**value, "label": element["label"]}
-        facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
+        with contextlib.suppress(NoItemsError):
+            value = self._get_items(element)
+            if "label" in element and "label" not in value:
+                value = {**value, "label": element["label"]}
+            facets.update(self._registry.get_type(value).get_facet(path, value, nested_facets, facets))
         return facets
 
 
