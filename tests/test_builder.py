@@ -107,11 +107,11 @@ def test_builder_class_list():
 
     assert lst == [B]
 
-    with pytest.raises(RuntimeError):
-        b.append(object)
+    with pytest.warns(PostBuildMutationWarning, match="items of partial 'TestClassList'"):
+        b.append(A)
 
-    with pytest.raises(RuntimeError):
-        b.extend([object])
+    with pytest.warns(PostBuildMutationWarning, match="items of partial 'TestClassList'"):
+        b.extend([A])
 
     b = BuilderClassList("TestClassList")
     b.append(B)
@@ -157,11 +157,11 @@ def test_builder_list():
 
     assert lst == [1, 2]
 
-    with pytest.raises(RuntimeError):
-        b.append(object)
+    with pytest.warns(PostBuildMutationWarning, match="items of partial 'TestList'"):
+        b.append(3)
 
-    with pytest.raises(RuntimeError):
-        b.extend([object])
+    with pytest.warns(PostBuildMutationWarning, match="items of partial 'TestList'"):
+        b.extend([4])
 
 
 def test_builder_dict():
@@ -177,10 +177,10 @@ def test_builder_dict():
     dct = b.build(mock_model, mock_namespace)
     assert dct == {"a": 1, "b": 2, "d": 3}
 
-    with pytest.raises(RuntimeError):
+    with pytest.warns(PostBuildMutationWarning, match="items of partial 'TestDict'"):
         b["d"] = 3
 
-    with pytest.raises(RuntimeError):
+    with pytest.warns(PostBuildMutationWarning, match="items of partial 'TestDict'"):
         b.update({"e": 4})
 
 
@@ -345,10 +345,43 @@ def test_add_file_multiple_times():
     builder = InvenioModelBuilder(model, type_registry)
     builder.add_module("AModule")
     file = builder.add_file("AFile", "AModule", "blah.txt", "content")
-    with pytest.raises(AlreadyRegisteredError):
+    with pytest.raises(AlreadyRegisteredError, match="File AFile already exists"):
         builder.add_file("AFile", "AModule", "blah.txt", "content")
     file1 = builder.add_file("AFile", "AModule", "blah.txt", "content", exists_ok=True)
     assert file is file1
+
+
+def test_add_symlink_multiple_times():
+    model = MagicMock()
+    type_registry = MagicMock()
+    builder = InvenioModelBuilder(model, type_registry)
+    link = builder.add_symlink("ALink", "AModule", "blah.txt")
+    with pytest.raises(AlreadyRegisteredError, match="Symlink ALink already exists"):
+        builder.add_symlink("ALink", "AModule", "blah.txt")
+    link1 = builder.add_symlink("ALink", "AModule", "blah.txt", exists_ok=True)
+    assert link is link1
+
+
+def test_builder_symbolic_link_payload_shape():
+    mock_model = MagicMock()
+    mock_namespace = SimpleNamespace()
+
+    link = BuilderSymbolicLink("link1", "mod1", "file1.txt")
+    assert link.build(mock_model, mock_namespace) == {
+        "module-name": "mod1",
+        "file-path": "file1.txt",
+        "content": None,
+    }
+
+
+def test_symlinks_are_not_collected_as_files():
+    builder = InvenioModelBuilder(MagicMock(), MagicMock())
+    builder.add_symlink("record-mapping-link", "mappings", "record.json")
+
+    builder.collect_files()
+
+    assert builder.ns.__files__ == {}
+    assert builder.ns.__symlinks__ == {"record-mapping-link": "mappings/record.json"}
 
 
 ADDERS = {

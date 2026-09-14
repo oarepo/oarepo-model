@@ -262,8 +262,13 @@ class BuilderClass(Partial):
         )
 
 
-class BuilderClassList(Partial, list[type]):
+class BuilderClassList(Partial, _GuardedList[type]):
     """Builder for class lists in the model."""
+
+    def __init__(self, key: str, values: Iterable[type] = ()) -> None:
+        """Initialize the class list partial."""
+        Partial.__init__(self, key)
+        _GuardedList.__init__(self, self, "items", values)
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> list[type]:
@@ -276,60 +281,35 @@ class BuilderClassList(Partial, list[type]):
                 f"Error while building class list {self}: {e}",
             ) from e
 
-    @override
-    def append(self, object: type) -> None:
-        if self.built:
-            raise RuntimeError("Cannot append to class list after it is built.")
-        return super().append(object)
 
-    @override
-    def extend(self, iterable: Iterable[type]) -> None:
-        if self.built:
-            raise RuntimeError("Cannot append to class list after it is built.")
-        return super().extend(iterable)
-
-
-class BuilderList(Partial, list[Any]):
+class BuilderList(Partial, _GuardedList[Any]):
     """Builder for lists in the model."""
+
+    def __init__(self, key: str, values: Iterable[Any] = ()) -> None:
+        """Initialize the list partial."""
+        Partial.__init__(self, key)
+        _GuardedList.__init__(self, self, "items", values)
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> list[Any]:
+        """Build a list from the partial."""
         self.built = True
         return list(self)
 
-    @override
-    def append(self, object: Any) -> None:
-        if self.built:
-            raise RuntimeError("Cannot append to class list after it is built.")
-        return super().append(object)
 
-    @override
-    def extend(self, iterable: Iterable[Any]) -> None:
-        if self.built:
-            raise RuntimeError("Cannot append to class list after it is built.")
-        return super().extend(iterable)
-
-
-class BuilderDict(Partial, dict[str, Any]):
+class BuilderDict(Partial, _GuardedDict):
     """Builder for dictionaries in the model."""
+
+    def __init__(self, key: str, values: dict[str, Any] | None = None) -> None:
+        """Initialize the dictionary partial."""
+        Partial.__init__(self, key)
+        _GuardedDict.__init__(self, self, "items", values)
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> dict[str, Any]:
         """Build a dictionary from the partial."""
         self.built = True
         return {k: v for k, v in self.items() if v is not None}
-
-    @override
-    def update(self, *args: Any, **kwargs: Any) -> None:
-        if self.built:
-            raise RuntimeError("Cannot update class list after it is built.")
-        return super().update(*args, **kwargs)
-
-    @override
-    def __setitem__(self, key: str, value: Any) -> None:
-        if self.built:
-            raise RuntimeError("Cannot set item after the dictionary is built.")
-        return super().__setitem__(key, value)
 
 
 class BuilderConstant(Partial):
@@ -392,18 +372,25 @@ class BuilderModule(Partial, SimpleNamespace):
         setattr(self, key, value)
 
 
-class BuilderFile(Partial):
-    """Builder for files in the model."""
+class _FileLike(Partial):
+    """Shared base of file and symlink partials: one payload shape for both."""
 
-    def __init__(self, name: str, module_name: str, file_path: str, content: FileContent):
-        """Initialize the BuilderFile customization."""
+    def __init__(
+        self,
+        name: str,
+        module_name: str,
+        file_path: str,
+        content: FileContent | None,
+    ) -> None:
+        """Initialize the file-like partial."""
         super().__init__(name)
         self.module_name = module_name
         self.file_path = file_path
         self.content = content
 
     @override
-    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
+    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> dict[str, Any]:
+        """Build the payload describing where the file lives."""
         self.built = True
 
         return {
@@ -413,24 +400,20 @@ class BuilderFile(Partial):
         }
 
 
-class BuilderSymbolicLink(Partial):
-    """Builder for symbolic links in the model."""
+class BuilderFile(_FileLike):
+    """Builder for files in the model."""
 
-    def __init__(self, name: str, module_name: str, file_path: str):
-        """Initialize the BuilderSymbolicLink customization."""
-        super().__init__(name)
-        self.module_name = module_name
-        self.file_path = file_path
+    content: FileContent
 
-    @override
-    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
-        self.built = True
 
-        return {
-            "name": self.key,
-            "module-name": self.module_name,
-            "file-path": self.file_path,
-        }
+class BuilderSymbolicLink(_FileLike):
+    """Builder for symbolic links in the model; its content is the link target's."""
+
+    content: None
+
+    def __init__(self, name: str, module_name: str, file_path: str) -> None:
+        """Initialize the symlink partial."""
+        super().__init__(name, module_name, file_path, None)
 
 
 class InvenioModelBuilder:
@@ -600,7 +583,7 @@ class InvenioModelBuilder:
             symbolic_name,
             BuilderFile,
             exists_ok,
-            "Module",
+            "File",
             lambda: BuilderFile(symbolic_name, module_name, file_path, content),
         )
 
@@ -616,7 +599,7 @@ class InvenioModelBuilder:
             symbolic_name,
             BuilderSymbolicLink,
             exists_ok,
-            "Module",
+            "Symlink",
             lambda: BuilderSymbolicLink(symbolic_name, module_name, file_path),
         )
 
