@@ -48,6 +48,19 @@ class AddToDictionary(Customization):
         self.exists_ok = exists_ok
         self.patch = patch
         self.override_values = override_values
+        if patch:
+            if key is None:
+                raise ValueError(
+                    f"AddToDictionary({dictionary_name!r}, ...) with patch=True has no key: patch only "
+                    "applies to the key/value form, in the *values form the dictionaries are merged "
+                    "by override_values."
+                )
+            if exists_ok:
+                raise ValueError(
+                    f"AddToDictionary({dictionary_name!r}, ...) with patch=True cannot be combined "
+                    "with exists_ok=True: exists_ok overwrites the existing key instead of merging "
+                    "the patch into it."
+                )
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:

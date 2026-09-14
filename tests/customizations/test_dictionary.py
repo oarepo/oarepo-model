@@ -67,3 +67,13 @@ def test_add_to_dictionary_override_values():
         "b": "3",
         "nested": {"x": "original"},
     }
+
+
+def test_add_to_dictionary_patch_without_key_raises():
+    with pytest.raises(ValueError, match="patch=True has no key"):
+        AddToDictionary("ADict", {"a": 1}, patch=True)
+
+
+def test_add_to_dictionary_patch_with_exists_ok_raises():
+    with pytest.raises(ValueError, match="patch=True cannot be combined"):
+        AddToDictionary("ADict", key="a", value=1, patch=True, exists_ok=True)

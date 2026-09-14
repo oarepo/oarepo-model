@@ -38,5 +38,4 @@ class UIMetadataPreset(Preset):
             yield AddToDictionary(
                 "ui_model",
                 {"children": {"metadata": metadata_ui_model}},
-                patch=True,
             )
