@@ -13,7 +13,7 @@ from typing import Any, override
 
 import marshmallow
 
-from oarepo_model.utils import deeply_copy_to_mutable, import_runtime_json
+from oarepo_model.utils import deepcopy_to_plain, import_runtime_json
 
 
 class LazyPythonMapping(Mapping, abc.ABC):
@@ -94,7 +94,7 @@ class LazyJSONNamespaceFilePart(LazyPythonMapping, abc.ABC):
     def _load_data(self) -> dict[str, Any]:
         """Load the data from the namespace file, resolving the keys if specified."""
         loaded = self._load_original_json()
-        generated = deeply_copy_to_mutable(self._initial_content) if self._initial_content else {}
+        generated = deepcopy_to_plain(self._initial_content) if self._initial_content else {}
         for key in self._keys or []:
             value = self._get_path(loaded, key)
             self._set_path(generated, key, value)

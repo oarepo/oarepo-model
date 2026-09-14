@@ -12,6 +12,7 @@ import pytest
 from oarepo_model.utils import (
     ReadOnlyDict,
     convert_to_python_identifier,
+    deepcopy_to_plain,
     dump_to_json,
     readonly_dict_merger,
     title_case,
@@ -42,6 +43,52 @@ def test_merge_read_only_dict():
         "a": ReadOnlyDict({"a": 1, "b": 2}),
     }
     assert readonly_dict_merger.merge(d, {"a": {"c": 3}}) == {"a": {"a": 1, "b": 2, "c": 3}}
+
+
+def test_merge_read_only_dict_nested():
+    assert readonly_dict_merger.merge(ReadOnlyDict({"a": {"a": 1}}), {"a": {"c": 3}}) == {"a": {"a": 1, "c": 3}}
+
+
+def test_merge_read_only_dict_list_tuple_is_appended():
+    assert readonly_dict_merger.merge(ReadOnlyDict({"enum": ["a", "b"]}), {"enum": ["c"]}) == {"enum": ["a", "b", "c"]}
+    assert readonly_dict_merger.merge(ReadOnlyDict({"enum": ("a", "b")}), {"enum": ["c"]}) == {"enum": ["a", "b", "c"]}
+
+
+def test_deeply_copy_to_mutable_converts_mappings_and_sequences():
+    leaf = "blah"
+    source = ReadOnlyDict({"a": (1, 2), "b": ReadOnlyDict({"c": [leaf]}), "s": {"t": (leaf,)}})
+
+    result = deepcopy_to_plain(source)
+
+    assert result == {"a": [1, 2], "b": {"c": [leaf]}, "s": {"t": [leaf]}}
+    assert type(result) is dict
+    assert type(result["a"]) is list
+    assert type(result["b"]) is dict
+    assert type(result["s"]["t"]) is list
+
+
+def test_deeply_copy_to_mutable_shares_leaves_and_leaves_source_intact():
+    leaf = "blah"
+    source = ReadOnlyDict({"a": ReadOnlyDict({"c": [leaf]})})
+
+    result = deepcopy_to_plain(source)
+
+    assert result["a"]["c"][0] is leaf
+    assert isinstance(source, ReadOnlyDict)
+    assert isinstance(source["a"], ReadOnlyDict)
+    assert type(source["a"]["c"]) is list
+
+
+def test_deeply_copy_to_mutable_passes_through_other_values():
+    assert deepcopy_to_plain(5) == 5
+    assert deepcopy_to_plain("x") == "x"
+    assert deepcopy_to_plain(None) is None
+
+    a_tuple = (1, 2)
+    assert type(deepcopy_to_plain(a_tuple)) is list
+
+    a_set = {1, 2}
+    assert deepcopy_to_plain({"s": a_set})["s"] == a_set
 
 
 NAMES = [

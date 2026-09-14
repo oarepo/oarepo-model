@@ -88,19 +88,12 @@ class ReadOnlyDict(Mapping):
         return ReadOnlyDict(copy.deepcopy(self._data, memo))
 
 
-def _to_plain(value: Any) -> Any:
-    """Recursively convert Mapping/list containers into plain dict/list."""
-    if isinstance(value, Mapping):
-        return {k: _to_plain(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_to_plain(v) for v in value]
-    return value
-
-
 def _resolve_readonly_dict_conflict(merger: Merger, path: list, base: Any, nxt: Any) -> Any:
     """Deep-clone a non-dict Mapping ``base`` to a plain dict, then merge."""
     if isinstance(base, Mapping) and not isinstance(base, dict) and isinstance(nxt, dict):
-        return merger.value_strategy(path, _to_plain(base), nxt)
+        # Tuples must stay tuples here: deepmerge appends two lists, so converting
+        # a tuple base would turn deepmerge's override into a concatenation.
+        return merger.value_strategy(path, deepcopy_to_plain(base), nxt)
     return STRATEGY_END
 
 
@@ -300,13 +293,16 @@ def import_runtime_json(model_name: str, filename: str) -> dict[str, Any]:
     return cast("dict[str, Any]", json.loads(file_content))
 
 
-def deeply_copy_to_mutable(obj: Any) -> Any:
-    """Convert an object to a dictionary. Any mappings or sequences are converted recursively."""
+def deepcopy_to_plain(obj: Any) -> Any:
+    """Convert an object to a dictionary.
+
+    Unlike the "deepcopy" it also converts lazy mappings to plain dicts.
+    """
     if isinstance(obj, Mapping):
-        return {k: deeply_copy_to_mutable(v) for k, v in obj.items()}
+        return {k: deepcopy_to_plain(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
-        return [deeply_copy_to_mutable(v) for v in obj]
-    return obj
+        return [deepcopy_to_plain(v) for v in obj]
+    return copy.deepcopy(obj)
 
 
 def _merged_one_of_properties(node: dict[str, Any]) -> dict[str, Any] | None:
