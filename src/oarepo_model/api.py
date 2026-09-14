@@ -270,7 +270,7 @@ def _internal_model(  # noqa PLR0913 arguments needed in callback
             idx = 0
             while idx < len(user_customizations):
                 customization = user_customizations[idx]
-                if customization.name in preset.depends_on:
+                if any(dep in customization.modifies for dep in preset.depends_on):
                     try:
                         customization.apply(builder, model)
                     except Exception as e:

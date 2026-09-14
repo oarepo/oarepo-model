@@ -28,6 +28,16 @@ class Customization:
         # name of the variable that this customization creates/uses/modifies
         self.name = name
 
+    @property
+    def modifies(self) -> tuple[str, ...]:
+        """Partials this customization modifies.
+
+        Used to order the customization against presets: it is applied before the first
+        preset that declares any of these partials in its depends_on. Subclasses that
+        target a different partial than their name must declare it as a class attribute.
+        """
+        return (self.name,)
+
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         """Apply the customization to the given model."""
         raise NotImplementedError(  # pragma: no cover
