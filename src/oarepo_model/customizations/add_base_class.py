@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Customization for adding base classes to OARepo model components.
 
@@ -42,4 +36,4 @@ class AddBaseClass(Customization):
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
-        builder.get_class(self.name).base_classes.append(self.clazz)
+        builder.get_class(self.name).add_base_classes(self.clazz)

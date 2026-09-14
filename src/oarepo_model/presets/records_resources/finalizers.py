@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for adding finalization tasks."""
 
 from __future__ import annotations
@@ -37,7 +32,7 @@ class FinalizationPreset(Preset):
     called during the finalization phase of the model.
     """
 
-    provides = ("api_finalizers", "app_finalizers")
+    provides = ("api_finalizers", "app_finalizers", "finalizers")
 
     @override
     def apply(

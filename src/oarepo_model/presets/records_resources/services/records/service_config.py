@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Module to generate config for the record service."""
 
 from __future__ import annotations
@@ -55,6 +50,14 @@ if TYPE_CHECKING:
 
     from oarepo_model.builder import InvenioModelBuilder
 
+    #: A service config ``links_*`` mapping.
+    #:
+    #: A config class in the mixin chain is free *not* to define one - at runtime
+    #: the base of these mixins is plain ``object`` until the builder injects the
+    #: real base class - so they are read with ``getattr(super(), name, {})``
+    #: instead of ``try``/``except AttributeError``.
+    type LinksMapping = Mapping[str, Link | EndpointLink | Callable[..., Link | EndpointLink]]
+
 
 else:
     BaseRecordServiceConfig = object
@@ -69,6 +72,7 @@ class RecordServiceConfigPreset(Preset):
         "record_links_item",
         "record_search_item_links",
         "record_search_links",
+        "primary_record_service",
     )
 
     @override
@@ -108,12 +112,8 @@ class RecordServiceConfigPreset(Preset):
             search_items_use_full_links: bool = False
 
             @property
-            def components(self) -> tuple[type[ServiceComponent], ...]:  # type: ignore[reportIncompatibleVariableOverride]
-                # TODO: needs to be fixed as we have multiple mixins and the sources
-                # in oarepo-runtime do not support this yet
-                # return process_service_configs(
-                #     self, self.get_model_dependency("record_service_components") # noqa: ERA001
-                #
+            def components(self) -> tuple[type[ServiceComponent], ...]:
+                # the ComponentsOrderingMixin will take care of ordering as it is prepended to this class
                 return (
                     *super().components,
                     *cast(
@@ -125,13 +125,8 @@ class RecordServiceConfigPreset(Preset):
             model = builder.model.name
 
             @property
-            def links_item(  # type: ignore[reportIncompatibleVariableOverride]
-                self,
-            ) -> Mapping[str, Callable[..., Link | EndpointLink] | Link | EndpointLink]:
-                try:
-                    supercls_links = super().links_item
-                except AttributeError:  # if they aren't defined in the superclass
-                    supercls_links = {}
+            def links_item(self) -> LinksMapping:
+                supercls_links: LinksMapping = getattr(super(), "links_item", {})
 
                 links = {
                     **supercls_links,
@@ -140,16 +135,13 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search_item(self) -> Mapping[str, Link]:  # type: ignore[reportIncompatibleVariableOverride]
+            def links_search_item(self) -> LinksMapping:
                 if self.search_items_use_full_links:
-                    return self.links_item  # type: ignore[return-value]
+                    return self.links_item
 
-                try:
-                    # this is oarepo extension - do not put all links on search result
-                    # item
-                    supercls_links = super().links_search_item  # type: ignore[misc]
-                except AttributeError:  # if they aren't defined in the superclass
-                    supercls_links = {}
+                # this is oarepo extension - do not put all links on search result
+                # item
+                supercls_links: LinksMapping = getattr(super(), "links_search_item", {})
                 links = {
                     **supercls_links,
                     **self.get_model_dependency("record_search_item_links"),
@@ -157,13 +149,8 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search(  # type: ignore[reportIncompatibleVariableOverride]
-                self,
-            ) -> Mapping[str, Callable[..., Link | EndpointLink] | Link | EndpointLink]:
-                try:
-                    supercls_links = super().links_search
-                except AttributeError:  # if they aren't defined in the superclass
-                    supercls_links = {}
+            def links_search(self) -> LinksMapping:
+                supercls_links: LinksMapping = getattr(super(), "links_search", {})
                 links = {
                     **supercls_links,
                     **self.get_model_dependency("record_search_links"),

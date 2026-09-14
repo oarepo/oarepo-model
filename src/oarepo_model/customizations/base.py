@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Base class for all model customizations.
 
 This module provides the abstract Customization base class that defines the
@@ -32,6 +27,16 @@ class Customization:
         """Initialize the customization."""
         # name of the variable that this customization creates/uses/modifies
         self.name = name
+
+    @property
+    def modifies(self) -> tuple[str, ...]:
+        """Partials this customization modifies.
+
+        Used to order the customization against presets: it is applied before the first
+        preset that declares any of these partials in its depends_on. Subclasses that
+        target a different partial than their name must declare it as a class attribute.
+        """
+        return (self.name,)
 
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         """Apply the customization to the given model."""

@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Core model classes and data structures for OARepo models.
 
@@ -16,7 +10,6 @@ OARepo models, including model metadata, configuration, and runtime dependencies
 from __future__ import annotations
 
 import dataclasses
-from contextlib import suppress
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast, override
 
@@ -71,7 +64,9 @@ class InvenioModel:
     @property
     def in_memory_package_name(self) -> str:
         """Return the in-memory package name for the model."""
-        return f"runtime_models_{self.base_name}"
+        from .utils import in_memory_package_name
+
+        return in_memory_package_name(self.base_name)
 
     @property
     def blueprint_base(self) -> str:
@@ -86,8 +81,6 @@ class CachedDescriptor:
 
     def __set_name__(self, owner: type, name: str) -> None:
         """Set the name of the attribute and initialize the cache."""
-        with suppress(AttributeError):
-            super().__set_name__(owner, name)  # type: ignore[misc]
         self.attr = name
 
     def __get__(self, instance: ModelMixin | None, owner: type[ModelMixin]) -> Any:

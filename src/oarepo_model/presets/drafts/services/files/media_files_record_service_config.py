@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for configuring media files record service.
 
 This module provides a preset that creates a specialized record service configuration
@@ -23,7 +18,7 @@ from invenio_drafts_resources.services.records.config import (
 
 from oarepo_model.customizations import (
     AddClass,
-    AddClassList,
+    AddList,
     Customization,
     PrependMixin,
 )
@@ -66,11 +61,8 @@ class MediaFilesRecordServiceConfigPreset(Preset):
             service_id = f"{builder.model.base_name}_media_files"
 
             @property
-            def components(self) -> list[type[ServiceComponent]]:  # type: ignore[]
-                # TODO: needs to be fixed as we have multiple mixins and the sources
-                # in oarepo-runtime do not support this yet
-                # return process_service_configs(
-                #     self, self.get_model_dependency("record_service_components")  # noqa
+            def components(self) -> list[type[ServiceComponent]]:
+                # the ComponentsOrderingMixin will take care of ordering as it is prepended to this class
                 return [
                     *super().components,
                     *cast(
@@ -81,7 +73,7 @@ class MediaFilesRecordServiceConfigPreset(Preset):
 
             model = builder.model.name
 
-        yield AddClassList("media_files_record_service_components", exists_ok=True)
+        yield AddList("media_files_record_service_components", exists_ok=True)
 
         yield AddClass("MediaFilesRecordServiceConfig", clazz=RecordServiceConfig)
         yield PrependMixin(

@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for configuring media file service.
 
 This module provides a preset that creates and configures a MediaFileServiceConfig
@@ -20,13 +15,15 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_records_resources.services import (
     FileServiceConfig,
 )
+from invenio_records_resources.services.files.links import FileEndpointLink
+from invenio_records_resources.services.records.links import RecordEndpointLink
 
 from oarepo_model.customizations import AddClass, AddToList, Customization, PrependMixin
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from oarepo_model.builder import InvenioModelBuilder
 
@@ -35,6 +32,7 @@ class MediaFileServiceConfigPreset(Preset):
     """Preset for file service config class."""
 
     provides = ("MediaFileServiceConfig",)
+    modifies = ("primary_record_service",)
 
     @override
     def apply(
@@ -48,7 +46,31 @@ class MediaFileServiceConfigPreset(Preset):
             record_cls = Dependency("RecordMediaFiles")
             permission_policy_cls = Dependency("PermissionPolicy")
             permission_action_prefix = "media_"
+            # published media files are read-only: uploads/changes only ever happen on the draft
+            # (see DraftMediaFileServiceConfig), then get published as-is.
             allow_upload = False
+
+            file_links_list: Mapping[str, RecordEndpointLink] = {
+                "self": RecordEndpointLink(
+                    f"{model.base_name}_media_files.search",
+                    params=["pid_value"],
+                ),
+                "files-archive": RecordEndpointLink(
+                    f"{model.base_name}_media_files.read_archive",
+                    params=["pid_value"],
+                ),
+            }
+
+            file_links_item: Mapping[str, FileEndpointLink] = {
+                "self": FileEndpointLink(
+                    f"{model.base_name}_media_files.read",
+                    params=["pid_value", "key"],
+                ),
+                "content": FileEndpointLink(
+                    f"{model.base_name}_media_files.read_content",
+                    params=["pid_value", "key"],
+                ),
+            }
 
         yield AddClass("MediaFileServiceConfig", clazz=FileServiceConfig)
         yield PrependMixin("MediaFileServiceConfig", MediaFileServiceConfigMixin)

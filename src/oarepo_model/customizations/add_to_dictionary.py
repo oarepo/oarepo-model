@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Customization for adding key-value pairs to dictionaries in the model.
 
 This module provides the AddToDictionary customization that allows adding or
@@ -30,7 +25,7 @@ if TYPE_CHECKING:
 class AddToDictionary(Customization):
     """Customization to add a value to a dictionary to the model."""
 
-    def __init__(  # noqa PLR0913
+    def __init__(  # noqa PLR0913 arguments needed in callback
         self,
         dictionary_name: str,
         *values: dict[Any, Any],
@@ -53,6 +48,19 @@ class AddToDictionary(Customization):
         self.exists_ok = exists_ok
         self.patch = patch
         self.override_values = override_values
+        if patch:
+            if key is None:
+                raise ValueError(
+                    f"AddToDictionary({dictionary_name!r}, ...) with patch=True has no key: patch only "
+                    "applies to the key/value form, in the *values form the dictionaries are merged "
+                    "by override_values."
+                )
+            if exists_ok:
+                raise ValueError(
+                    f"AddToDictionary({dictionary_name!r}, ...) with patch=True cannot be combined "
+                    "with exists_ok=True: exists_ok overwrites the existing key instead of merging "
+                    "the patch into it."
+                )
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:

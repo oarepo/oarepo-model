@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """A module for registering and unregistering OAREPO models into the Python import system."""
 
 #
@@ -15,16 +18,16 @@ import importlib.machinery
 import importlib.metadata
 import importlib.resources.abc
 import importlib.util
+import os
 import sys
 from importlib.metadata import Distribution, DistributionFinder
 from types import ModuleType, SimpleNamespace
-from typing import TYPE_CHECKING, Any, Literal, cast, override
+from typing import IO, TYPE_CHECKING, Any, Literal, cast, overload, override
 
 from .utils import resolve_file_content
 
 if TYPE_CHECKING:
     import io
-    import os
     from collections.abc import Iterator, Sequence
     from importlib.metadata._meta import SimplePath
 
@@ -160,27 +163,36 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
             raise FileNotFoundError(f"{self._name} does not exist")
         return resolve_file_content(self._files[self._name])
 
-    # The real signature is (child: StrPath) -> InMemoryTraversable but StrPath is not exported
-    # in importlib.resources.abc
     @override
-    def __truediv__(self, child: str) -> InMemoryTraversable:  # type: ignore[override,reportIncompatibleMethodOverride]
+    def __truediv__(self, child: str | os.PathLike[str]) -> InMemoryTraversable:
         """Navigate to a child path using the / operator."""
         if self.is_file():
             raise NotADirectoryError(f"{self._name} is not a directory")
 
+        child = os.fspath(child)
         child_path = f"{self._name}/{child}" if self._name else child
         is_child_dir = any(path.startswith(f"{child_path}/") for path in self._files)
 
         return InMemoryTraversable(child_path, self._files, is_child_dir)
 
+    @overload
+    def open(
+        self,
+        mode: Literal["r"] = "r",
+        *,
+        encoding: str | None = None,
+        errors: str | None = None,
+    ) -> IO[str]: ...
+    @overload
+    def open(self, mode: Literal["rb"]) -> IO[bytes]: ...
     @override
-    def open(  # type: ignore[override]  # note: how to correctly type the io.IOBase here?
+    def open(
         self,
         mode: Literal["r", "rb"] = "r",
         *,
         encoding: str | None = None,
         errors: str | None = None,
-    ) -> io.IOBase:
+    ) -> IO[str] | IO[bytes]:
         raise NotImplementedError("open is not implemented")
 
     # note: this is not on the Traversable API, only on posix path, so maybe reconsider
@@ -202,10 +214,8 @@ class InMemoryTraversable(importlib.resources.abc.Traversable):
 
         return InMemoryTraversable(parent_name, self._files, is_parent_dir)
 
-    # The real signature is (*descendants: StrPath) -> InMemoryTraversable but StrPath is not exported
-    # in importlib.resources.abc
     @override
-    def joinpath(self, *descendants: str) -> importlib.resources.abc.Traversable:  # type: ignore[override, reportIncompatibleMethodOverride]
+    def joinpath(self, *descendants: str | os.PathLike[str]) -> importlib.resources.abc.Traversable:
         """Join the descendants into a single path, beginning with this traversable."""
         pth = self
         for descendant in descendants:
@@ -243,19 +253,25 @@ class InMemoryResourceReader(importlib.resources.abc.TraversableResources):
         return InMemoryTraversable(self._package_name, self._files, is_dir=True)
 
 
-class ModelImporter(importlib.abc.MetaPathFinder):
-    """A MetaPathFinder for dynamically loading OAREPO models."""
+class ModelImporter(DistributionFinder):
+    """A meta path finder that also provides metadata for dynamically loaded OAREPO models.
+
+    It inherits from ``importlib.metadata.DistributionFinder`` (a ``MetaPathFinder`` subclass)
+    because besides ``find_spec`` it also implements ``find_distributions``, which is not part
+    of ``importlib.abc.MetaPathFinder``.
+    """
 
     def __init__(self, model: InvenioModel, namespace: SimpleNamespace):
         """Initialize the ModelImporter with a model and namespace."""
         self.model = model
         self.namespace = namespace
 
+    @override
     def find_spec(
         self,
         fullname: str,
-        path: Sequence[str] | None = None,  # noqa: ARG002 unused argument
-        target: ModuleType | None = None,  # noqa: ARG002 unused argument
+        path: Sequence[str] | None = None,  # unused argument
+        target: ModuleType | None = None,  # unused argument
     ) -> importlib.machinery.ModuleSpec | None:
         """Find the specification for the model based on its name."""
         namespace = self.namespace
@@ -310,9 +326,10 @@ class ModelImporter(importlib.abc.MetaPathFinder):
             is_package=True,
         )
 
+    @override
     def find_distributions(
         self,
-        context: DistributionFinder.Context,
+        context: DistributionFinder.Context | None = None,
     ) -> list[Distribution]:
         """Find distributions.
 
@@ -320,6 +337,9 @@ class ModelImporter(importlib.abc.MetaPathFinder):
         loading the metadata for packages matching the ``context``,
         a DistributionFinder.Context instance.
         """
+        if context is None:
+            context = DistributionFinder.Context()
+
         if not context.name or context.name.lower().replace(
             "-",
             "_",
@@ -355,7 +375,7 @@ class InMemoryLoader(importlib.abc.Loader):
     def get_resource_reader(
         self,
         name: str,
-    ) -> importlib.resources.abc.ResourceReader:
+    ) -> importlib.resources.abc.TraversableResources:
         """Get a resource reader for the specified name."""
         files_dict: dict[str, FileContent] = self.namespace.get_resources()
         package_path = "/".join(name.split("."))

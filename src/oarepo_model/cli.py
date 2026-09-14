@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """OAREPO Model CLI commands."""
 
 from __future__ import annotations
@@ -51,6 +46,7 @@ MODEL_TYPE = ModelParamType()
 
 
 @click.group()
+@with_appcontext
 def model() -> None:
     """OAREPO Model commands."""
 
@@ -64,7 +60,7 @@ def list_models() -> None:
     def get_api_url(model: Model) -> str:
         try:
             return str(model.api_url("search"))
-        except Exception:  # noqa: BLE001 # in case the url needs some arguments
+        except Exception:  # noqa BLE001 just for display, not for error handling
             return "N/A"
 
     for model in current_runtime.models.values():
@@ -90,7 +86,7 @@ def marshmallow(model: SimpleNamespace, generated: bool) -> None:
     schema = model.RecordSchema
 
     for schema_name, schema_str in dump_schema(schema, set(), set()).items():
-        if generated and not schema_name.__module__.startswith("oarepo_model.builder"):
+        if generated and getattr(schema_name, "oarepo_model", None) is None:
             continue
         click.echo(schema_str)
         click.echo("")
@@ -105,7 +101,7 @@ def ui_marshmallow(model: SimpleNamespace, generated: bool) -> None:
     schema = model.RecordUISchema
 
     for schema_name, schema_str in dump_schema(schema, set(), set()).items():
-        if generated and not schema_name.__module__.startswith("oarepo_model.builder"):
+        if generated and getattr(schema_name, "oarepo_model", None) is None:
             continue
         click.echo(schema_str)
         click.echo("")
@@ -146,10 +142,10 @@ def dump_mapping(ns: SimpleNamespace) -> str:
     return json.dumps(files, indent=2)
 
 
-def dump_field(field: Field) -> tuple[str, list[type]]:
+def dump_field(field: Field) -> tuple[str, list[type[Schema]]]:
     """Dump marshmallow field as string."""
     dumped_field_args: list[str] = []
-    nested_types: list[type] = []
+    nested_types: list[type[Schema]] = []
     if isinstance(field, Nested):
         subschema: type[Schema] | Schema = field.schema
         if isinstance(subschema, Schema):
@@ -210,11 +206,13 @@ def dump_schema(schema: type[Schema] | Schema, dumped_schemas: set[type], dumped
     dumped_names.add(name)
     lines = [f"class {name}(\n{base_classes}\n):"]
 
-    subschemas: set[type] = set()
-    for field_name, field_obj in schema._declared_fields.items():  # noqa SLF001
+    subschemas: set[type[Schema]] = set()
+    # we do not want to instantiate the schema here so need to use the declared fields directly
+    declared_fields = schema._declared_fields  # noqa SLF001
+    for field_name, field_obj in declared_fields.items():
         try:
             dumped_field, other_schemas = dump_field(field_obj)
-        except Exception as e:  # noqa: BLE001 # we want to catch all exceptions here
+        except Exception as e:  # noqa BLE001 just for display, not for error handling
             dumped_field = f"# Error dumping field: {e}"
             other_schemas = []
         lines.append(f"    {field_name} = {dumped_field}")

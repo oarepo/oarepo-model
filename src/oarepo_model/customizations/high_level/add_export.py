@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """High-level customization for adding metadata exports to models.
 
 This module provides the AddMetadataExport customization that registers an export
@@ -33,7 +28,7 @@ class AddMetadataExport(Customization):
 
     modifies = ("exports",)
 
-    def __init__(  # noqa PLR0913 too many arguments
+    def __init__(  # noqa PLR0913 arguments needed in callback
         self,
         code: str,
         name: LazyString,

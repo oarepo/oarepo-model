@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """High-level API for OARepo model creation and management.
 
@@ -35,7 +29,7 @@ from .datatypes.registry import DataTypeRegistry
 from .errors import ApplyCustomizationError
 from .model import InvenioModel
 from .register import register_model, unregister_model
-from .sorter import sort_presets
+from .sorter import check_preset_declarations, sort_presets
 
 #: The `InvenioModel` currently being built on this thread, if any (`.value`,
 #: absent/None outside of a `_internal_model` call). Lets code that runs
@@ -77,7 +71,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after populating the type registry."""
 
-    def after_builder_created(  # noqa PLR0913 - too many arguments
+    def after_builder_created(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -88,7 +82,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after the model builder is created."""
 
-    def after_presets_sorted(  # noqa PLR0913 - too many arguments
+    def after_presets_sorted(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -99,7 +93,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after the presets are sorted."""
 
-    def after_user_customizations_applied(  # noqa PLR0913 - too many arguments
+    def after_user_customizations_applied(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -110,7 +104,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after user customizations are applied."""
 
-    def after_model_built(  # noqa PLR0913
+    def after_model_built(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -146,7 +140,7 @@ type PresetList = (
 )
 
 
-def model(  # noqa: PLR0913 too many arguments
+def model(  # noqa PLR0913 arguments needed in callback
     name: str,
     presets: PresetList,
     *,
@@ -185,7 +179,7 @@ def model(  # noqa: PLR0913 too many arguments
     return _internal_model(**params)
 
 
-def _internal_model(  # noqa: PLR0913 too many arguments
+def _internal_model(  # noqa PLR0913 arguments needed in callback
     name: str,
     presets: PresetList,
     *,
@@ -276,7 +270,7 @@ def _internal_model(  # noqa: PLR0913 too many arguments
             idx = 0
             while idx < len(user_customizations):
                 customization = user_customizations[idx]
-                if customization.name in preset.depends_on:
+                if any(dep in customization.modifies for dep in preset.depends_on):
                     try:
                         customization.apply(builder, model)
                     except Exception as e:
@@ -288,13 +282,19 @@ def _internal_model(  # noqa: PLR0913 too many arguments
                     idx += 1
 
             build_dependencies = {dep: builder.build_partial(dep) for dep in preset.depends_on}
-            for customization in preset.apply(builder, model, build_dependencies):
-                try:
-                    customization.apply(builder, model)
-                except Exception as e:
-                    raise ApplyCustomizationError(
-                        f"Error evaluating user customization {customization} while applying preset {preset}: {e}",
-                    ) from e
+            builder.start_preset(preset)
+            try:
+                for customization in preset.apply(builder, model, build_dependencies):
+                    try:
+                        customization.apply(builder, model)
+                    except Exception as e:
+                        raise ApplyCustomizationError(
+                            f"Error evaluating user customization {customization} while applying preset {preset}: {e}",
+                        ) from e
+            finally:
+                builder.finish_preset()
+
+        check_preset_declarations(sorted_presets, builder.created_by, builder.touched_by)
 
         for customization in user_customizations:
             # apply user customizations that were not handled by presets

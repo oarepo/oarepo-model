@@ -1,16 +1,11 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Base class for dumper extensions that convert field values at model paths."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from invenio_records.dumpers import SearchDumperExt
 
@@ -33,27 +28,27 @@ class PathDumperExtBase(SearchDumperExt):
         super().__init__()
         self.paths = paths
 
-    def dump(  # pyright: ignore[reportIncompatibleMethodOverride]
+    @override
+    def dump(
         self,
         record: Any,
         data: dict[str, Any],
-    ) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Convert fields into their search representation."""
+    ) -> None:
+        """Convert fields into their search representation, mutating data in place."""
         _ = record
         for path in self.paths:
             self._apply(data, path, self._data_to_opensearch)
-        return data
 
-    def load(  # pyright: ignore[reportIncompatibleMethodOverride]
+    @override
+    def load(
         self,
         data: dict[str, Any],
         record_cls: type,
-    ) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Convert fields back from their search representation."""
+    ) -> None:
+        """Convert fields back from their search representation, mutating data in place."""
         _ = record_cls
         for path in self.paths:
             self._apply(data, path, self._data_from_opensearch)
-        return data
 
     def _apply(
         self,

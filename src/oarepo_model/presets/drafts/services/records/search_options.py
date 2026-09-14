@@ -1,22 +1,14 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Module to generate record search options class."""
 
 from __future__ import annotations
 
-import inspect
 from typing import TYPE_CHECKING, Any, override
 
 from invenio_drafts_resources.services.records.config import SearchDraftsOptions
-from invenio_records_resources.services.records.params.facets import FacetsParam
 from invenio_records_resources.services.records.queryparser import QueryParser
-from oarepo_runtime.services.facets.params import GroupedFacetsParam
 from oarepo_runtime.services.queryparsers.transformer import (
     SearchQueryValidator,
 )
@@ -35,12 +27,15 @@ from oarepo_model.customizations import (
     PrependMixin,
 )
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
+from oarepo_model.presets.records_resources.services.records.search_options import (
+    resolve_params_interpreters,
+)
 
 
 class DraftSearchOptionsPreset(Preset):
     """Preset for record search options class."""
 
-    provides = ("DraftSearchOptions",)
+    provides = ("DraftSearchOptions", "DraftFacetGroups")
 
     @override
     def apply(
@@ -51,24 +46,17 @@ class DraftSearchOptionsPreset(Preset):
     ) -> Generator[Customization]:
         yield AddDictionary("DraftFacetGroups", {}, exists_ok=True)
 
-        class DraftSearchOptionsMixin(ModelMixin):
+        class DraftSearchOptionsMixin(ModelMixin, SearchDraftsOptions):
             facets = Dependency("RecordFacets")
             facet_groups = Dependency("DraftFacetGroups")
+            extra_param_interpreter_classes = Dependency("extra_param_interpreter_classes")
 
             @property
             def params_interpreters_cls(self) -> Any:
-                interpreter_classes = super().params_interpreters_cls  # type: ignore[misc]
-                # make a copy of the list
-                interpreter_classes = list(interpreter_classes)
-                # replace FacetsParam with GroupedFacetsParam
-                for idx, clazz in enumerate(interpreter_classes):
-                    if inspect.isclass(clazz) and issubclass(clazz, FacetsParam):
-                        interpreter_classes[idx] = GroupedFacetsParam
-                        break
-                else:
-                    # could not find, insert at the start
-                    interpreter_classes.insert(0, GroupedFacetsParam)
-                return interpreter_classes
+                return resolve_params_interpreters(
+                    super().params_interpreters_cls,
+                    self.extra_param_interpreter_classes,
+                )
 
             query_parser_cls = staticmethod(
                 QueryParser.factory(

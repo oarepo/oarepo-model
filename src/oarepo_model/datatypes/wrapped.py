@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type wrapper implementation for oarepo-model.
 
 This module provides the WrappedDataType class that wraps dictionary-based
@@ -17,7 +12,7 @@ from __future__ import annotations
 
 import copy
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, override
 
 from oarepo_model.utils import readonly_dict_merger
 
@@ -31,7 +26,6 @@ if TYPE_CHECKING:
     from oarepo_model.customizations.base import Customization
     from oarepo_model.utils import ArrayPathMember
 
-    from .collections import ObjectDataType
     from .registry import DataTypeRegistry
 
 
@@ -64,10 +58,7 @@ class WrappedDataType(DataType):
             for key, value in element.items()
             if key != "type"  # remove type to avoid conflicts
         }
-        return cast(
-            "dict[str, Any]",
-            readonly_dict_merger.merge(copy.deepcopy(self.type_dict), element_without_type),
-        )
+        return readonly_dict_merger.merge(copy.deepcopy(self.type_dict), element_without_type)
 
     @override
     def create_marshmallow_field(
@@ -101,18 +92,17 @@ class WrappedDataType(DataType):
             self._merge_type_dict(element),
         )
 
+    @override
     def create_marshmallow_schema(
         self,
         element: dict[str, Any],
     ) -> type[marshmallow.Schema]:
-        """Create a Marshmallow schema for the wrapped data type.
-
-        This method should be overridden by subclasses to provide specific schema creation logic.
-        """
-        return cast("ObjectDataType", self.impl).create_marshmallow_schema(
+        """Create a Marshmallow schema for the wrapped data type."""
+        return self.impl.create_marshmallow_schema(
             self._merge_type_dict(element),
         )
 
+    @override
     def get_facet(
         self,
         path: str,
@@ -120,25 +110,25 @@ class WrappedDataType(DataType):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Create facets for the wrapped data type."""
-        return cast("ObjectDataType", self.impl).get_facet(
+        return self.impl.get_facet(
             path,
             element=self._merge_type_dict(element),
             nested_facets=nested_facets,
             facets=facets,
             path_suffix=path_suffix,
+            ignored_keys=ignored_keys,
         )
 
+    @override
     def create_ui_marshmallow_schema(
         self,
         element: dict[str, Any],
     ) -> type[marshmallow.Schema]:
-        """Create a Marshmallow schema for the wrapped data type.
-
-        This method should be overridden by subclasses to provide specific schema creation logic.
-        """
-        return cast("ObjectDataType", self.impl).create_ui_marshmallow_schema(
+        """Create a Marshmallow UI schema for the wrapped data type."""
+        return self.impl.create_ui_marshmallow_schema(
             self._merge_type_dict(element),
         )
 

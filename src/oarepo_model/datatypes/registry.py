@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Data type registry for OARepo models.
 
@@ -51,7 +45,7 @@ class DataTypeRegistry:
         :param type_dict: A dictionary where keys are type names and values are either DataType
                          subclasses or dictionaries defining the type.
         """
-        self._unwind_shortcuts_in_properties(type_dict)
+        type_dict = self._unwind_shortcuts_in_properties(type_dict)
 
         for type_name, type_cls_or_dict in type_dict.items():
             if isinstance(type_cls_or_dict, dict):
@@ -107,11 +101,13 @@ class DataTypeRegistry:
     ) -> dict[str, Any]:
         ret: dict[str, Any] = {}
         for k, v in type_dict.items():
-            vv = v
             if k.endswith("[]"):
-                vv = {"type": "array", "items": vv}
-            vv = self._unwind_shortcuts(vv)
-            ret[k] = vv
+                # "[]" is only the array shortcut marker: strip it so it does not leak into the
+                # declared name (marshmallow field, JSON Schema property, OpenSearch field)
+                name, value = k[:-2], {"type": "array", "items": v}
+            else:
+                name, value = k, v
+            ret[name] = self._unwind_shortcuts(value)
         return ret
 
     def _unwind_shortcuts(self, v: Any) -> Any:

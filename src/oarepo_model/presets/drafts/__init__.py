@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Draft-related presets for Invenio draft/publish workflows.
 
 This module provides presets for implementing draft record functionality,
@@ -85,6 +80,9 @@ from .services.files.media_files_record_service_config import (
 from .services.files.no_upload_file_service_config import (
     NoUploadFileServiceConfigPreset,
 )
+from .services.files.record_with_media_files_schema import (
+    RecordWithMediaFilesSchemaPreset,
+)
 from .services.records.draft_facets import DraftFacetsPreset
 from .services.records.parent_record_schema import ParentRecordSchemaPreset
 from .services.records.record_schema import DraftRecordSchemaPreset
@@ -155,6 +153,7 @@ drafts_files_preset: list[type[Preset]] = [
     DraftFileServicePreset,
     DraftMediaFileServicePreset,
     MediaFileServicePreset,
+    RecordWithMediaFilesSchemaPreset,
     # resource layer
     DraftFileResourceConfigPreset,
     DraftFileResourcePreset,
