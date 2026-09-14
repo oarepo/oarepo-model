@@ -737,6 +737,48 @@ def test_polymorphic_ui_schema_in_obj(test_ui_schema):
     }
 
 
+def test_polymorphic_ui_schema_variant_without_ui_fields(test_ui_schema):
+    """A variant whose datatype has no UI transform is skipped, not an error."""
+    person_schema = {
+        "type": "object",
+        "properties": {
+            "first_name": {"type": "fulltext"},
+            "type": {"type": "keyword"},
+            "age": {"type": "int"},
+        },
+    }
+
+    schema = test_ui_schema(
+        {
+            "type": "polymorphic",
+            "discriminator": "type",
+            "oneof": [
+                {"discriminator": "person", "type": "Person"},
+                {"discriminator": "plain", "type": "keyword"},
+            ],
+        },
+        extra_types={"Person": person_schema},
+    )
+    loc = str(get_locale()) if get_locale() else None
+
+    val = {"a": {"type": "person", "first_name": "bob", "age": 123}}
+    ret = schema.dump(val)
+    formatted_number = format_decimal(123, locale=loc)
+    assert ret == {"a": {"age": formatted_number}}
+
+
+def test_polymorphic_ui_schema_empty_oneof_raises(test_ui_schema):
+    """A polymorphic type without variants cannot build a UI field."""
+    with pytest.raises(ValueError, match="non-empty 'oneof'"):
+        test_ui_schema(
+            {
+                "type": "polymorphic",
+                "discriminator": "type",
+                "oneof": [],
+            },
+        )
+
+
 def test_vocabulary_ui_schema(app, test_ui_schema):
     """A generic vocabulary reference serializes { id, title_l10n } into the UI."""
     schema = test_ui_schema(

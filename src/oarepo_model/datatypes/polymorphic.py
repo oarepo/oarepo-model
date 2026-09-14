@@ -124,6 +124,8 @@ class PolymorphicDataType(DataType):
         alternative_fields = {}
         discriminator = element.get("discriminator", "type")
         oneof_schemas = element.get("oneof", [])
+        if not oneof_schemas:
+            raise ValueError("Polymorphic type requires a non-empty 'oneof' list")
 
         # iterate through each variant
         for oneof_item in oneof_schemas:
@@ -140,7 +142,11 @@ class PolymorphicDataType(DataType):
                     field_name=field_name,
                     element=oneof_item,
                 )
-                if len(ui_fields) != 1:
+                if not ui_fields:
+                    # no UI transformation for this variant - the datatype base
+                    # contract's normal answer (e.g. keyword, fulltext)
+                    continue
+                if len(ui_fields) > 1:
                     raise NotImplementedError(
                         "Current version can only handle 1 UI field in polymorphic type!",
                     )
