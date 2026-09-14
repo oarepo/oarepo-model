@@ -32,26 +32,51 @@ if TYPE_CHECKING:
     from oarepo_model.model import InvenioModel
 
 
-class FileMetadataPreset(Preset):
-    """Preset for FileMetadata class."""
+def file_metadata_preset(name: str, *, table_suffix: str, record_model_cls_name: str) -> type[Preset]:
+    """Build a Preset that creates a file metadata DB model class.
 
-    provides = ("FileMetadata",)
+    ``FileMetadataPreset``, ``FileDraftMetadataPreset``, ``MediaFileMetadataPreset`` and
+    ``MediaFileDraftMetadataPreset`` are otherwise identical: each creates a
+    ``db.Model``/``RecordMetadataBase``/``FileRecordModelMixin`` class whose only per-role
+    difference is its table name suffix and which parent record/draft metadata model
+    (``__record_model_cls__``) it belongs to.
 
-    depends_on = (
-        # need to have this dependency because of __record_model_cls__ attribute
-        "RecordMetadata",
-    )
+    :param name: the partial name to create, e.g. "FileMetadata" or "MediaFileDraftMetadata".
+    :param table_suffix: appended to the model's base name to form ``__tablename__``,
+        e.g. "_files" or "_draft_media_files".
+    :param record_model_cls_name: partial name of the parent record/draft metadata DB model
+        class, e.g. "RecordMetadata" or "DraftMetadata".
+    """
 
-    @override
-    def apply(
-        self,
-        builder: InvenioModelBuilder,
-        model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        yield AddClass("FileMetadata")
-        yield AddClassField("FileMetadata", "__tablename__", f"{builder.model.base_name}_files")
-        yield AddClassField("FileMetadata", "__record_model_cls__", dependencies.get("RecordMetadata"))
-        yield AddBaseClass("FileMetadata", db.Model)
-        yield AddBaseClass("FileMetadata", RecordMetadataBase)
-        yield AddBaseClass("FileMetadata", FileRecordModelMixin)
+    class FileMetadataPreset(Preset):
+        provides = (name,)
+
+        depends_on = (
+            # need to have this dependency because of __record_model_cls__ attribute
+            record_model_cls_name,
+        )
+
+        @override
+        def apply(
+            self,
+            builder: InvenioModelBuilder,
+            model: InvenioModel,
+            dependencies: dict[str, Any],
+        ) -> Generator[Customization]:
+            yield AddClass(name)
+            yield AddClassField(name, "__tablename__", f"{builder.model.base_name}{table_suffix}")
+            yield AddClassField(name, "__record_model_cls__", dependencies.get(record_model_cls_name))
+            yield AddBaseClass(name, db.Model)
+            yield AddBaseClass(name, RecordMetadataBase)
+            yield AddBaseClass(name, FileRecordModelMixin)
+
+    FileMetadataPreset.__name__ = FileMetadataPreset.__qualname__ = f"{name}Preset"
+    FileMetadataPreset.__doc__ = f'Preset for creating the "{name}" file metadata DB model class.'
+    return FileMetadataPreset
+
+
+FileMetadataPreset = file_metadata_preset(
+    "FileMetadata",
+    table_suffix="_files",
+    record_model_cls_name="RecordMetadata",
+)
