@@ -15,13 +15,15 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_records_resources.services import (
     FileServiceConfig,
 )
+from invenio_records_resources.services.files.links import FileEndpointLink
+from invenio_records_resources.services.records.links import RecordEndpointLink
 
 from oarepo_model.customizations import AddClass, AddToList, Customization, PrependMixin
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from oarepo_model.builder import InvenioModelBuilder
 
@@ -47,6 +49,32 @@ class DraftMediaFileServiceConfigPreset(Preset):
             # unlike the published media config, draft media files are meant to be uploadable
             # (upstream invenio_rdm_records draft media config leaves this True too) - inherits
             # True from FileServiceConfig.allow_upload.
+
+            file_links_list: Mapping[str, RecordEndpointLink] = {
+                "self": RecordEndpointLink(
+                    f"{model.base_name}_draft_media_files.search",
+                    params=["pid_value"],
+                ),
+                "files-archive": RecordEndpointLink(
+                    f"{model.base_name}_draft_media_files.read_archive",
+                    params=["pid_value"],
+                ),
+            }
+
+            file_links_item: Mapping[str, FileEndpointLink] = {
+                "self": FileEndpointLink(
+                    f"{model.base_name}_draft_media_files.read",
+                    params=["pid_value", "key"],
+                ),
+                "content": FileEndpointLink(
+                    f"{model.base_name}_draft_media_files.read_content",
+                    params=["pid_value", "key"],
+                ),
+                "commit": FileEndpointLink(
+                    f"{model.base_name}_draft_media_files.create_commit",
+                    params=["pid_value", "key"],
+                ),
+            }
 
         yield AddClass("DraftMediaFileServiceConfig", clazz=FileServiceConfig)
         yield PrependMixin("DraftMediaFileServiceConfig", DraftMediaFileServiceConfigMixin)

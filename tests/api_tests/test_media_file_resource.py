@@ -5,7 +5,8 @@
 
 Media files live at a distinct '/media-files' URL, not the plain '/files' one that draft/
 published records already use, and a draft's media files must be uploadable even though a
-published record's media files stay read-only.
+published record's media files stay read-only. Media file responses must also carry the
+same kind of links ('self'/'content'/'commit') that plain file responses do.
 """
 
 from __future__ import annotations
@@ -50,6 +51,9 @@ def test_simple_flow_media_files_resource(
 
     res = client.get(f"/draft-with-files/{id_}/draft/media-files", headers=headers.json)
     assert {entry["key"] for entry in res.json["entries"]} == {"media.bin"}
+    # media file responses carry links just like plain file responses do
+    assert res.json["links"].keys() == {"self", "files-archive"}
+    assert res.json["entries"][0]["links"].keys() == {"self", "content", "commit"}
 
     # A draft's media file content must be uploadable and committable
     res = client.put(
@@ -92,3 +96,8 @@ def test_simple_flow_media_files_resource(
     res = client.get(f"/draft-with-files/{id_}/media-files/media.bin/content")
     assert res.status_code == 200
     assert res.get_data() == b"media content"
+
+    # published media file responses carry links too, just without 'commit' (read-only)
+    res = client.get(f"/draft-with-files/{id_}/media-files", headers=headers.json)
+    assert res.json["links"].keys() == {"self", "files-archive"}
+    assert res.json["entries"][0]["links"].keys() == {"self", "content"}
