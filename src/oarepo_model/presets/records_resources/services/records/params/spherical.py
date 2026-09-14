@@ -478,7 +478,7 @@ _ICRS_DISTANCE_VALUE_RE = re.compile(
 
 
 class IcrsDistanceParam(GeoDistanceParam):
-    """Evaluate ``icsr_distance:<field>=[ra,dec,distance]`` query parameters.
+    """Evaluate ``icrs_distance:<field>=[ra,dec,distance]`` query parameters.
 
     ``ra``/``dec`` are ICRS right ascension/declination in degrees and
     ``distance`` is a great-circle angle, also in degrees (no unit suffix,
@@ -487,7 +487,7 @@ class IcrsDistanceParam(GeoDistanceParam):
     geo_distance:, reusing its filter/distance_feature logic unchanged.
     """
 
-    prefix: ClassVar[str] = "icsr_distance:"
+    prefix: ClassVar[str] = "icrs_distance:"
 
     def _parse_value(self, field: str, value: str) -> tuple[float, float, str]:
         match = _ICRS_DISTANCE_VALUE_RE.match(value.strip())
@@ -515,7 +515,7 @@ _ICRS_BOUNDING_BOX_VALUE_RE = re.compile(
 
 
 class IcrsBoundingBoxParam(GeoBoundingBoxParam):
-    """Evaluate ``icsr_bounding_box:<field>=[ra,dec,ra,dec]`` query parameters.
+    """Evaluate ``icrs_bounding_box:<field>=[ra,dec,ra,dec]`` query parameters.
 
     The two points are opposite corners of the box in ICRS right
     ascension/declination (degrees, any order). Each pair is converted to
@@ -523,7 +523,7 @@ class IcrsBoundingBoxParam(GeoBoundingBoxParam):
     normalization/filter/distance_feature logic unchanged.
     """
 
-    prefix: ClassVar[str] = "icsr_bounding_box:"
+    prefix: ClassVar[str] = "icrs_bounding_box:"
 
     def _parse_value(self, field: str, value: str) -> tuple[float, float, float, float]:
         match = _ICRS_BOUNDING_BOX_VALUE_RE.match(value.strip())
@@ -555,7 +555,7 @@ def _icrs_shape_coords_to_lat_lon(ra: float, dec: float, z: float | None = None)
 
 
 class IcrsShapeParam(GeoShapeParam):
-    """Evaluate ``icsr_shape:<field>=[OP ]<WKT>`` query parameters.
+    """Evaluate ``icrs_shape:<field>=[OP ]<WKT>`` query parameters.
 
     Like geo_shape:, but the WKT's x/y coordinates are read as ICRS right
     ascension/declination (degrees) rather than lon/lat, and remapped
@@ -563,7 +563,7 @@ class IcrsShapeParam(GeoShapeParam):
     coordinates ICRSDumperExt actually indexed.
     """
 
-    prefix: ClassVar[str] = "icsr_shape:"
+    prefix: ClassVar[str] = "icrs_shape:"
 
     #: ICRS coordinates aren't Earth place names, so never try to geocode them.
     allow_location_name: ClassVar[bool] = False
