@@ -98,14 +98,16 @@ class FullTextDataType(KeywordDataType):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Do not create facets for the fulltext data type."""
-        _, _, _, _, _ = (
+        _, _, _, _, _, _ = (
             path,
             element,
             nested_facets,
             facets,
             path_suffix,
+            ignored_keys,
         )  # to avoid unused variable warning
         return facets
 
@@ -137,8 +139,10 @@ class FulltextWithKeywordDataType(KeywordDataType):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Create facets for the .keyword part of the fulltext+keyword type."""
+        _ = ignored_keys
         return super().get_facet(
             path,
             element,

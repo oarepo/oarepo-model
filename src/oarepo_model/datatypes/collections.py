@@ -458,6 +458,7 @@ class ArrayDataType(FacetMixin, DataType):
             [*path, ARRAY_PATH_ITEM],
         )
 
+    @override
     def get_facet(
         self,
         path: str,
@@ -465,9 +466,10 @@ class ArrayDataType(FacetMixin, DataType):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Create facets for the data type."""
-        _ = path_suffix  # path suffix is not used for arrays
+        _ = path_suffix, ignored_keys  # not used for arrays
         value = element.get("items", element)
         if "label" in element and "label" not in value:
             value = {**value, "label": element["label"]}

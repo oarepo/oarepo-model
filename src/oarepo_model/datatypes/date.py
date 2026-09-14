@@ -495,18 +495,6 @@ class EDTFIntervalType(DataType):
 
         return ret
 
-    def get_facet(
-        self,
-        path: str,
-        element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-        path_suffix: str = "",
-    ) -> Any:
-        """Create facets for the data type."""
-        _, _, _, _, _ = path, element, nested_facets, facets, path_suffix
-        return facets
-
 
 class EDTFDateOrIntervalDataType(DataType):
     """An EDTF date or interval represented by keyword."""

@@ -10,13 +10,15 @@ that define how data types are implemented and used within OARepo models.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, cast, override
 
 from invenio_base.utils import obj_or_import_string
 from marshmallow.fields import Field
 from oarepo_runtime.services.facets.utils import get_basic_facet
 
 if TYPE_CHECKING:
+    import marshmallow
+
     from oarepo_model.customizations.base import Customization
     from oarepo_model.utils import ArrayPathMember
 
@@ -90,16 +92,45 @@ class DataType:
             return cast("type", obj_or_import_string(element["ui_marshmallow_field_class"]))
         return None
 
-    def get_facet(
+    def create_marshmallow_schema(
+        self,
+        element: dict[str, Any],
+    ) -> type[marshmallow.Schema]:
+        """Create a Marshmallow schema for the data type.
+
+        This method should be overridden by subclasses to provide specific schema creation logic.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} (type '{self.name}') does not implement create_marshmallow_schema",
+        )
+
+    def create_ui_marshmallow_schema(
+        self,
+        element: dict[str, Any],
+    ) -> type[marshmallow.Schema]:
+        """Create a Marshmallow UI schema for the data type.
+
+        This method should be overridden by subclasses to provide specific schema creation logic.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} (type '{self.name}') does not implement create_ui_marshmallow_schema",
+        )
+
+    def get_facet(  # noqa PLR0913 signature is part of the datatype contract
         self,
         path: str,
         element: dict[str, Any],
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
-        """Create facets for the data type."""
-        _, _, _, _, _ = path, element, nested_facets, facets, path_suffix
+        """Create facets for the data type.
+
+        ``ignored_keys`` is meaningful only for data types that walk their
+        properties (e.g. objects/relations); leaf types accept and ignore it.
+        """
+        _, _, _, _, _, _ = path, element, nested_facets, facets, path_suffix, ignored_keys
 
         return facets
 
@@ -291,6 +322,7 @@ else:
 class FacetMixin(FacetMixinBase):
     """Mixin for basic facet generation."""
 
+    @override
     def get_facet(
         self,
         path: str,
@@ -298,8 +330,10 @@ class FacetMixin(FacetMixinBase):
         nested_facets: list[Any],
         facets: dict[str, list],
         path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
     ) -> Any:
         """Create facets for the data type."""
+        _ = ignored_keys  # a leaf facet has no properties to skip
         if element.get("searchable", True):
             return get_basic_facet(
                 facets=facets,
