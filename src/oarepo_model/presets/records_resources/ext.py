@@ -26,6 +26,7 @@ from oarepo_model.customizations import (
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
+from oarepo_model.utils import title_case
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
@@ -100,6 +101,65 @@ if TYPE_CHECKING:
     RecordExtensionProtocol = RecordExtensionProtocolTyping
 else:
     RecordExtensionProtocol = object
+
+
+def feature_preset(
+    feature_key: str,
+    version: str,
+    *,
+    base: type = RecordExtensionProtocol,
+) -> type[Preset]:
+    """Build a Preset that records one entry under the Ext class's ``features`` metadata.
+
+    Every '<Something>FeaturePreset' in this project (records, files, drafts-records,
+    drafts-files, custom-fields, relations, ui, internal-relations, ...) is otherwise an
+    identical copy: a ``modifies = ("Ext",)`` preset that prepends a mixin merging
+    ``{feature_key: {"version": version}}`` into ``model_arguments["features"]``. This
+    factory is the single place that merge logic, the "version" key shape and the
+    ``PrependMixin("Ext", ...)`` wiring exist.
+
+    :param feature_key: the key under which this feature is recorded in ``features``,
+        e.g. "files" or "drafts-records".
+    :param version: the version string to record for this feature. Per-feature, since
+        different features come from different distributions (invenio-records-resources,
+        invenio-drafts-resources, oarepo-runtime, ...) - callers resolve it from whichever
+        package actually implements the feature.
+    :param base: the mixin's base class - ``RecordExtensionProtocol`` for most features, or
+        ``RecordWithFilesExtensionProtocol`` for features that also need ``files_service``
+        on ``self`` (see ``records_resources.ext_files``).
+    """
+
+    class FeatureMixin(base):  # ty: ignore[unsupported-base]
+        @property
+        def model_arguments(self) -> dict[str, Any]:
+            """Model arguments for the extension."""
+            parent_model_args = super().model_arguments
+            return {
+                **parent_model_args,
+                "features": {
+                    **parent_model_args["features"],
+                    feature_key: {"version": version},
+                },
+            }
+
+    name = title_case(feature_key)
+    FeatureMixin.__name__ = FeatureMixin.__qualname__ = f"{name}FeatureMixin"
+
+    class FeaturePreset(Preset):
+        modifies = ("Ext",)
+
+        @override
+        def apply(
+            self,
+            builder: InvenioModelBuilder,
+            model: InvenioModel,
+            dependencies: dict[str, Any],
+        ) -> Generator[Customization]:
+            yield PrependMixin("Ext", FeatureMixin)
+
+    FeaturePreset.__name__ = FeaturePreset.__qualname__ = f"{name}FeaturePreset"
+    FeaturePreset.__doc__ = f'Preset for enabling the "{feature_key}" feature.'
+    return FeaturePreset
 
 
 class ExtPreset(Preset):
@@ -314,57 +374,5 @@ class ExtPreset(Preset):
         )
 
 
-class FilesFeaturePreset(Preset):
-    """Preset for enabling files feature."""
-
-    modifies = ("Ext",)
-
-    @override
-    def apply(
-        self,
-        builder: InvenioModelBuilder,
-        model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        class FilesFeatureMixin(RecordExtensionProtocol):
-            @property
-            def model_arguments(self) -> dict[str, Any]:
-                """Model arguments for the extension."""
-                parent_model_args = super().model_arguments
-                return {
-                    **parent_model_args,
-                    "features": {
-                        **parent_model_args["features"],
-                        "files": {"version": __version__},
-                    },
-                }
-
-        yield PrependMixin("Ext", FilesFeatureMixin)
-
-
-class RecordsFeaturePreset(Preset):
-    """Preset for enabling records feature."""
-
-    modifies = ("Ext",)
-
-    @override
-    def apply(
-        self,
-        builder: InvenioModelBuilder,
-        model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        class RecordsFeatureMixin(RecordExtensionProtocol):
-            @property
-            def model_arguments(self) -> dict[str, Any]:
-                """Model arguments for the extension."""
-                parent_model_args = super().model_arguments
-                return {
-                    **parent_model_args,
-                    "features": {
-                        **parent_model_args["features"],
-                        "records": {"version": __version__},
-                    },
-                }
-
-        yield PrependMixin("Ext", RecordsFeatureMixin)
+FilesFeaturePreset = feature_preset("files", __version__)
+RecordsFeaturePreset = feature_preset("records", __version__)
