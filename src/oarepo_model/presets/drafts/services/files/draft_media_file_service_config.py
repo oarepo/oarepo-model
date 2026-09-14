@@ -44,7 +44,9 @@ class DraftMediaFileServiceConfigPreset(Preset):
             record_cls = Dependency("DraftMediaFiles")
             permission_policy_cls = Dependency("PermissionPolicy")
             permission_action_prefix = "draft_media_"
-            allow_upload = False
+            # unlike the published media config, draft media files are meant to be uploadable
+            # (upstream invenio_rdm_records draft media config leaves this True too) - inherits
+            # True from FileServiceConfig.allow_upload.
 
         yield AddClass("DraftMediaFileServiceConfig", clazz=FileServiceConfig)
         yield PrependMixin("DraftMediaFileServiceConfig", DraftMediaFileServiceConfigMixin)

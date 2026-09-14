@@ -44,6 +44,8 @@ class MediaFileServiceConfigPreset(Preset):
             record_cls = Dependency("RecordMediaFiles")
             permission_policy_cls = Dependency("PermissionPolicy")
             permission_action_prefix = "media_"
+            # published media files are read-only: uploads/changes only ever happen on the draft
+            # (see DraftMediaFileServiceConfig), then get published as-is.
             allow_upload = False
 
         yield AddClass("MediaFileServiceConfig", clazz=FileServiceConfig)

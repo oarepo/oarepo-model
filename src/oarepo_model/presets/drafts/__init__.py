@@ -80,6 +80,9 @@ from .services.files.media_files_record_service_config import (
 from .services.files.no_upload_file_service_config import (
     NoUploadFileServiceConfigPreset,
 )
+from .services.files.record_with_media_files_schema import (
+    RecordWithMediaFilesSchemaPreset,
+)
 from .services.records.draft_facets import DraftFacetsPreset
 from .services.records.parent_record_schema import ParentRecordSchemaPreset
 from .services.records.record_schema import DraftRecordSchemaPreset
@@ -150,6 +153,7 @@ drafts_files_preset: list[type[Preset]] = [
     DraftFileServicePreset,
     DraftMediaFileServicePreset,
     MediaFileServicePreset,
+    RecordWithMediaFilesSchemaPreset,
     # resource layer
     DraftFileResourceConfigPreset,
     DraftFileResourcePreset,

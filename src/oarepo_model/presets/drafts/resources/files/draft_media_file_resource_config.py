@@ -21,9 +21,12 @@ from oarepo_model.customizations import (
 )
 from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
+from oarepo_model.presets.drafts.resources.files.media_file_resource_config import (
+    MEDIA_FILE_ROUTES,
+)
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from oarepo_model.builder import InvenioModelBuilder
 
@@ -43,6 +46,9 @@ class DraftMediaFileResourceConfigPreset(Preset):
         class DraftMediaFileResourceConfigMixin:
             blueprint_name = f"{model.base_name}_draft_media_files"
             url_prefix = f"/{model.slug}/<pid_value>/draft"
+            # media files live under '/media-files', not the plain '/files' inherited from
+            # FileResourceConfig - see media_file_resource_config.MEDIA_FILE_ROUTES.
+            routes: Mapping[str, str] = MEDIA_FILE_ROUTES
             # Response handling
             response_handlers = Dependency("media_file_response_handlers")
 
