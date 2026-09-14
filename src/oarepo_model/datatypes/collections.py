@@ -31,6 +31,21 @@ class NoPropertiesError(Exception):
     """Raised when no properties are found for a data type."""
 
 
+def _facet_child_path(path: str, key: str) -> str:
+    """Build the facet path for a child property named ``key`` under ``path``.
+
+    Compares ``key`` against the *last dot-separated segment* of ``path`` (not
+    a substring match) so that a child whose name happens to end with the same
+    characters as its parent's path (e.g. parent path "surname", child key
+    "name") is not mistaken for the "path already includes this key" case.
+    """
+    if not path:
+        return key
+    if path.rsplit(".", 1)[-1] == key:
+        return path
+    return f"{path}.{key}"
+
+
 class ObjectDataType(DataType):
     """A data type representing an object in the Oarepo model.
 
@@ -153,12 +168,7 @@ class ObjectDataType(DataType):
             for key, value in properties.items():
                 if ignored_keys is not None and key in ignored_keys:
                     continue
-                if path == "":
-                    _path = key
-                elif path.endswith(key):
-                    _path = path
-                else:
-                    _path = path + "." + key
+                _path = _facet_child_path(path, key)
                 facets.update(self._registry.get_type(value).get_facet(_path, value, nested_facets, facets))
 
         return facets
@@ -293,7 +303,7 @@ class NestedDataType(ObjectDataType):
             for key, value in properties.items():
                 if ignored_keys is not None and key in ignored_keys:
                     continue
-                _path = path if path.endswith(key) else f"{path}.{key}"
+                _path = _facet_child_path(path, key)
 
                 facets.update(
                     self._registry.get_type(value).get_facet(

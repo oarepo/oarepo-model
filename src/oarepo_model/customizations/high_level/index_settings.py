@@ -28,7 +28,8 @@ class PatchIndexSettings(PatchJSONFile):
                 if isinstance(settings[k], int) and isinstance(v, int):
                     settings[k] = max(settings[k], v)
                 elif isinstance(settings[k], list) and isinstance(v, list):
-                    settings[k] = list(set(settings[k]) | set(v))
+                    base = settings[k]
+                    settings[k] = [*base, *(x for x in v if x not in base)]
                 elif isinstance(settings[k], dict) and isinstance(v, dict):
                     settings[k].update(v)
                     settings[k] = {kk: vv for kk, vv in settings[k].items() if vv is not None}
