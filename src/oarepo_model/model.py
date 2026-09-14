@@ -64,7 +64,9 @@ class InvenioModel:
     @property
     def in_memory_package_name(self) -> str:
         """Return the in-memory package name for the model."""
-        return f"runtime_models_{self.base_name}"
+        from .utils import in_memory_package_name
+
+        return in_memory_package_name(self.base_name)
 
     @property
     def blueprint_base(self) -> str:

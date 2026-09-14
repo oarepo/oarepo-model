@@ -10,7 +10,7 @@ from oarepo_model.customizations import AddEntryPoint
 
 
 def _builder():
-    model = MagicMock(base_name="record")
+    model = MagicMock(in_memory_package_name="runtime_models_record")
     return model, InvenioModelBuilder(model, MagicMock())
 
 

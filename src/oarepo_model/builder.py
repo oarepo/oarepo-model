@@ -249,7 +249,11 @@ class BuilderClass(Partial):
             self.class_name,
             tuple(base_list),
             {
-                "__module__": type(self).__module__,
+                # __module__ deliberately points at the model's in-memory package (not this
+                # builder module), so tracebacks, repr and dotted-path resolution (pickle,
+                # marshmallow Nested) resolve to runtime_models_<base_name>.<Class> instead
+                # of oarepo_model.builder.<Class> - see InvenioModel.in_memory_package_name.
+                "__module__": model.in_memory_package_name,
                 "__qualname__": self.class_name,
                 "oarepo_model": model,
                 "oarepo_model_namespace": namespace,
@@ -640,7 +644,7 @@ class InvenioModelBuilder:
         if (group, name) in self.entry_points and not overwrite:
             raise AlreadyRegisteredError(f"Entry point {group}:{name} already exists.")
 
-        self.entry_points[(group, name)] = f"runtime_models_{self.model.base_name}{separator}{value}"
+        self.entry_points[(group, name)] = f"{self.model.in_memory_package_name}{separator}{value}"
 
     _not_found_messages = MappingProxyType[type, str](
         {

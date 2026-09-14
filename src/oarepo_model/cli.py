@@ -46,6 +46,7 @@ MODEL_TYPE = ModelParamType()
 
 
 @click.group()
+@with_appcontext
 def model() -> None:
     """OAREPO Model commands."""
 
@@ -85,7 +86,7 @@ def marshmallow(model: SimpleNamespace, generated: bool) -> None:
     schema = model.RecordSchema
 
     for schema_name, schema_str in dump_schema(schema, set(), set()).items():
-        if generated and not schema_name.__module__.startswith("oarepo_model.builder"):
+        if generated and getattr(schema_name, "oarepo_model", None) is None:
             continue
         click.echo(schema_str)
         click.echo("")
@@ -100,7 +101,7 @@ def ui_marshmallow(model: SimpleNamespace, generated: bool) -> None:
     schema = model.RecordUISchema
 
     for schema_name, schema_str in dump_schema(schema, set(), set()).items():
-        if generated and not schema_name.__module__.startswith("oarepo_model.builder"):
+        if generated and getattr(schema_name, "oarepo_model", None) is None:
             continue
         click.echo(schema_str)
         click.echo("")

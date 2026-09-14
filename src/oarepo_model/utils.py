@@ -272,10 +272,20 @@ def resolve_file_content(content: FileContent) -> str:
     return content
 
 
+def in_memory_package_name(base_name: str) -> str:
+    """Return the name of the in-memory (importable) package for a model base name.
+
+    Single source of the ``runtime_models_`` prefix - InvenioModel.in_memory_package_name
+    and import_runtime_model both build on this, and generated classes carry it as
+    their ``__module__`` so that dotted paths (pickle, marshmallow Nested) resolve
+    to the model's own package.
+    """
+    return f"runtime_models_{base_name}"
+
+
 def import_runtime_model[R: Record = Record](model_name: str) -> ModelNamespace[R]:
     """Import a runtime model by name."""
-    import_package = f"runtime_models_{model_name}"
-    module = importlib.import_module(import_package)
+    module = importlib.import_module(in_memory_package_name(model_name))
     return cast("ModelNamespace", module)
 
 

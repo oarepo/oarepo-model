@@ -429,7 +429,18 @@ def test_get_missing_partial_without_message_falls_back_to_class_name():
 
 
 def _entry_point_builder() -> InvenioModelBuilder:
-    return InvenioModelBuilder(MagicMock(base_name="record"), MagicMock())
+    return InvenioModelBuilder(MagicMock(in_memory_package_name="runtime_models_record"), MagicMock())
+
+
+def test_builder_class_module_points_at_model_package():
+    """Generated classes are importable from the model's in-memory package, not the builder."""
+    mock_model = MagicMock(in_memory_package_name="runtime_models_test")
+
+    clz = BuilderClass("TestClass").build(mock_model, SimpleNamespace())
+
+    assert clz.__module__ == "runtime_models_test"
+    assert clz.__qualname__ == "TestClass"
+    assert repr(clz) == "<class 'runtime_models_test.TestClass'>"
 
 
 def test_add_entry_point():
