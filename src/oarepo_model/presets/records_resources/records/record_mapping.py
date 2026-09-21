@@ -52,7 +52,7 @@ class RecordMappingPreset(Preset):
                         "expires_at": {"type": "date"},
                         "indexed_at": {"type": "date"},
                         "uuid": {"type": "keyword"},
-                        "version_id": {"type": "integer"},
+                        "version_id": {"type": "long"},
                         "pid": {
                             "properties": {
                                 "obj_type": {"type": "keyword", "index": False},
