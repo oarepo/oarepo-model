@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 import pytest
@@ -616,7 +610,7 @@ def test_icrs_shape_field_is_indexed_as_converted_geojson(
     Record.index.refresh()
 
     docs = current_search_client.search(
-        index=Record.index._name,  # noqa: SLF001 - the index alias is only exposed privately
+        index=Record.index._name,
         body={"query": {"match_all": {}}},
     )
     indexed = {
