@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type for polymorphic schemas with discriminator fields.
 
 This module provides the PolymorphicDataType class for handling fields that can
@@ -17,7 +12,7 @@ value and corresponding schema type.
 
 from __future__ import annotations
 
-from typing import Any, override
+from typing import TYPE_CHECKING, Any, override
 
 import marshmallow as ma
 from invenio_base.utils import obj_or_import_string
@@ -29,6 +24,9 @@ from marshmallow.utils import (
 from oarepo_model.utils import readonly_dict_merger
 
 from .base import DataType
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class PolymorphicDataType(DataType):
@@ -126,6 +124,8 @@ class PolymorphicDataType(DataType):
         alternative_fields = {}
         discriminator = element.get("discriminator", "type")
         oneof_schemas = element.get("oneof", [])
+        if not oneof_schemas:
+            raise ValueError("Polymorphic type requires a non-empty 'oneof' list")
 
         # iterate through each variant
         for oneof_item in oneof_schemas:
@@ -142,7 +142,11 @@ class PolymorphicDataType(DataType):
                     field_name=field_name,
                     element=oneof_item,
                 )
-                if len(ui_fields) != 1:
+                if not ui_fields:
+                    # no UI transformation for this variant - the datatype base
+                    # contract's normal answer (e.g. keyword, fulltext)
+                    continue
+                if len(ui_fields) > 1:
                     raise NotImplementedError(
                         "Current version can only handle 1 UI field in polymorphic type!",
                     )
@@ -244,6 +248,8 @@ class PolymorphicDataType(DataType):
 class PolymorphicField(ma.fields.Field):
     """Custom marshmallow field class that supports handling polymorphic fields."""
 
+    default_error_messages: Mapping[str, str] = {"unknown_type": "Unknown type '{type}'."}
+
     def __init__(
         self,
         discriminator: str,
@@ -293,7 +299,7 @@ class PolymorphicField(ma.fields.Field):
         discriminator_value = self.get_discriminator_value(value)
         if discriminator_value in self.alternatives:
             schema_field = self.alternatives[discriminator_value]
-            return schema_field._serialize(  # noqa: SLF001
+            return schema_field._serialize(  # noqa SLF001 continuing with the schema field
                 value,
                 attr,
                 obj,
@@ -314,10 +320,10 @@ class PolymorphicField(ma.fields.Field):
         discriminator_value = self.get_discriminator_value(value)
 
         if discriminator_value not in self.alternatives:
-            self.fail("unknown_type", type=discriminator_value)
+            raise self.make_error("unknown_type", type=discriminator_value)
 
         schema_field = self.alternatives[discriminator_value]
-        return schema_field._deserialize(  # noqa: SLF001
+        return schema_field._deserialize(  # noqa SLF001 continuing with the schema field
             value,
             attr,
             data,

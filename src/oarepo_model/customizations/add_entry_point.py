@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Customization for adding entry points to the model.
 
 This module provides the AddEntryPoint customization that registers entry points
@@ -29,13 +24,21 @@ class AddEntryPoint(Customization):
     """Customization to add an entry point to the model.
 
     An entry point is a specific location in the code where a certain functionality can be accessed.
+
+    Passing ``value=None`` removes the entry point instead of adding it, which is how a preset
+    can take back an entry point registered by another one.
+
+    Entry points are collected straight on the builder and written out at the end of the
+    build, so this customization modifies no partial.
     """
+
+    modifies = ()
 
     def __init__(
         self,
         group: str,
         name: str,
-        value: str,
+        value: str | None,
         separator: str = ":",
         overwrite: bool = False,
     ) -> None:
@@ -44,11 +47,10 @@ class AddEntryPoint(Customization):
         :param group: The group to which the entry point belongs.
         :param name: The name of the entry point.
         :param separator: The separator to use in the entry point.
-        :param value: The value of the entry point.
+        :param value: The value of the entry point, or None to remove it.
         """
-        super().__init__(f"{group}::{name}::{value}")
+        super().__init__(name)
         self.group = group
-        self.name = name
         self.separator = separator
         self.value = value
         self.overwrite = overwrite

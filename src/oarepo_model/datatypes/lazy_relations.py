@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type for PID-based recursive record relations.
 
 This module provides the PIDRecursiveRelation data type for creating relationships
@@ -95,7 +90,28 @@ def _descend_marshmallow_schema(schema: marshmallow.Schema, path: str) -> marshm
 
 
 class LazyModelPIDFieldContext(PIDFieldContext):
-    """Lazily resolves a PID field context by model name."""
+    """Lazily resolves a PID field context by model name.
+
+    Acts as a transparent stand-in for the target model's real
+    ``PIDFieldContext``: super().__init__ is deliberately not called (the real
+    field, and therefore its ``field``/``record_cls`` pair, cannot be known until
+    the target model has finished building), so everything this wrapper does not
+    implement itself is delegated on first use via __getattr__.
+
+    That delegation is what makes the wrapper a usable ``pid_field=`` argument for
+    invenio's relation classes, which read the context's API directly - notably
+    ``PIDRelation.parse_value``, which reads ``pid_field.record_cls`` both to
+    recognise a record instance and to build its InvalidRelationValue message.
+
+    Note that, like every other ``pid-relation``, this resolves *published*
+    records only - see the note on ``PIDRelation``'s docstring.
+    """
+
+    #: Attributes owned by the lazy wrapper itself. They must never be delegated:
+    #: ``_real_field`` needs ``model_name`` to exist, so delegating either one
+    #: would recurse back into __getattr__ (e.g. during copy/pickle, before the
+    #: instance dict has been restored).
+    _SELF_ATTRS = frozenset({"model_name", "_real_field"})
 
     def __init__(self, model_name: str) -> None:
         """Initialize with the model name to resolve."""
@@ -106,8 +122,30 @@ class LazyModelPIDFieldContext(PIDFieldContext):
         """Return the model PID field."""
         return import_runtime_model(self.model_name).Record.pid
 
+    def __deepcopy__(self, memo: dict | None = None) -> Any:
+        """Deep copy the lazy reference, without resolving it first.
+
+        Same reasoning as `ReferenceMappingProperties.__deepcopy__` below: copying
+        an already-resolved context would also deep-copy the target model's real
+        PIDField, a system field instance that must stay shared by that model.
+        """
+        return type(self)(model_name=self.model_name)
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate anything the wrapper does not implement to the real field."""
+        if name in self._SELF_ATTRS or name.startswith("__"):
+            # Dunders are resolved on the type, never proxied to the target.
+            raise AttributeError(name)
+        return getattr(self._real_field, name)
+
     def resolve(self, *args: Any, **kwargs: Any) -> Any:
-        """Resolve the model PID field by name."""
+        """Resolve the model PID field by name.
+
+        Explicit override rather than __getattr__ delegation: ``resolve`` is
+        defined on ``PIDFieldContext`` itself, so normal lookup finds the base
+        implementation (which would use the unset ``_field``/``_record_cls``)
+        and never reaches __getattr__.
+        """
         return self._real_field.resolve(*args, **kwargs)
 
 
@@ -376,7 +414,7 @@ class LazyPIDRelation(PIDRelation):
 
     marshmallow_field_class = marshmallow.fields.Nested
 
-    def _get_lazy_properties(self, element: dict[str, Any]) -> dict[str, Any]:
+    def _get_lazy_kwargs(self, element: dict[str, Any]) -> dict[str, Any]:
         """Return extra keyword arguments to pass to lazy customization classes.
 
         Subclasses can override this to inject additional kwargs (e.g. target_path
@@ -432,7 +470,7 @@ class LazyPIDRelation(PIDRelation):
             "- the target model %r could not be resolved (likely a "
             "self-referencing relation still being built).",
             path,
-            self._get_relation_model(element),
+            self._get_relation_model_name(element),
         )
         return super().get_facet(
             path,
@@ -446,9 +484,9 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_mapping(self, element: dict[str, Any]) -> Mapping[str, Any]:
         """Create a mapping for the data type."""
-        model = self._get_relation_model(element, must_exist=True)
+        model = self._get_relation_model_name(element, must_exist=True)
         keys = element.get("keys", [])
-        lazy_kwargs = self._get_lazy_properties(element)
+        lazy_kwargs = self._get_lazy_kwargs(element)
 
         # super().create_mapping already returns the full container for this
         # element (type/dynamic/properties) - the lazily-resolved keys are
@@ -465,9 +503,9 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_json_schema(self, element: dict[str, Any]) -> Mapping[str, Any]:
         """Create a json schema for the data type."""
-        model = self._get_relation_model(element, must_exist=True)
+        model = self._get_relation_model_name(element, must_exist=True)
         keys = element.get("keys", [])
-        lazy_kwargs = self._get_lazy_properties(element)
+        lazy_kwargs = self._get_lazy_kwargs(element)
 
         return ReferenceJSONSchemaProperties(
             model,
@@ -483,7 +521,7 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
         """Create a marshmallow schema for the data type."""
-        model = self._get_relation_model(element, must_exist=True)
+        model = self._get_relation_model_name(element, must_exist=True)
         keys = element.get("keys", [])
         schema_attrs = self._get_lazy_schema_class_attributes(element)
 
@@ -501,7 +539,7 @@ class LazyPIDRelation(PIDRelation):
     @override
     def create_ui_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
         """Create a UI marshmallow schema for the data type."""
-        model = self._get_relation_model(element, must_exist=True)
+        model = self._get_relation_model_name(element, must_exist=True)
         keys = element.get("keys", [])
         schema_attrs = self._get_lazy_schema_class_attributes(element)
 
@@ -523,9 +561,9 @@ class LazyPIDRelation(PIDRelation):
         path: list[str],
     ) -> dict[str, Any]:
         """Create a UI model for the data type."""
-        model = self._get_relation_model(element, must_exist=True)
+        model = self._get_relation_model_name(element, must_exist=True)
         keys = element.get("keys", [])
-        lazy_kwargs = self._get_lazy_properties(element)
+        lazy_kwargs = self._get_lazy_kwargs(element)
 
         # super().create_ui_model already returns the full node for this
         # element (help/label/hint/input/children) - see create_mapping above
@@ -567,7 +605,7 @@ class LazyPIDRelation(PIDRelation):
         if "pid_field" in element or "record_cls" in element:
             return super()._relation_pid_field(element, path)
 
-        return LazyModelPIDFieldContext(self._get_relation_model(element, must_exist=True))
+        return LazyModelPIDFieldContext(self._get_relation_model_name(element, must_exist=True))
 
     @override
     def create_relations(

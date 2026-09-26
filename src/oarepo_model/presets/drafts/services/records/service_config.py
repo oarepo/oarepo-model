@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for configuring draft-enabled record service.
 
 This module provides a preset that extends the record service configuration
@@ -55,7 +50,7 @@ from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator
+    from collections.abc import Callable, Generator, Mapping
 
     from invenio_drafts_resources.records.api import Draft
     from invenio_drafts_resources.services.records.config import (
@@ -63,6 +58,15 @@ if TYPE_CHECKING:
     )
 
     from oarepo_model.builder import InvenioModelBuilder
+
+    #: A service config ``links_*`` mapping.
+    #:
+    #: A config class in the mixin chain is free *not* to define one - at runtime
+    #: the base of these mixins is plain ``object`` until the builder injects the
+    #: real base class - so they are read with ``getattr(super(), name, {})``
+    #: instead of ``try``/``except AttributeError``.
+    type LinksMapping = Mapping[str, Link | EndpointLink | Callable[..., Link | EndpointLink]]
+
 
 else:
     DraftRecordServiceConfig = object
@@ -75,6 +79,7 @@ class DraftServiceConfigPreset(Preset):
         "RecordServiceConfig",
         "record_links_item",
         "record_search_item_links",
+        "primary_record_service",
     )
 
     provides = (
@@ -98,13 +103,10 @@ class DraftServiceConfigPreset(Preset):
             )
 
             @property
-            def links_search_drafts(  # type: ignore[reportIncompatibleVariableOverride]
+            def links_search_drafts(
                 self,
             ) -> dict[str, Link | EndpointLink | Callable[..., Link | EndpointLink]]:
-                try:
-                    supercls_links = super().links_search_drafts
-                except AttributeError:  # if they aren't defined in the superclass
-                    supercls_links = {}
+                supercls_links: LinksMapping = getattr(super(), "links_search_drafts", {})
                 links = {
                     **supercls_links,
                     **self.get_model_dependency("draft_search_links"),
@@ -112,11 +114,8 @@ class DraftServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search_versions(self) -> dict[str, Link | EndpointLink]:  # type: ignore[reportIncompatibleVariableOverride]
-                try:
-                    supercls_links = super().links_search_versions
-                except AttributeError:  # if they aren't defined in the superclass
-                    supercls_links = {}
+            def links_search_versions(self) -> dict[str, Link | EndpointLink | Callable[..., Link | EndpointLink]]:
+                supercls_links: LinksMapping = getattr(super(), "links_search_versions", {})
                 links = {
                     **supercls_links,
                     **self.get_model_dependency("record_version_search_links"),

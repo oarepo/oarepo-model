@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Date and time data types for OARepo models.
 
@@ -16,8 +10,8 @@ for use in OARepo models.
 
 from __future__ import annotations
 
-import functools
-from datetime import datetime
+import re
+from datetime import date
 from typing import TYPE_CHECKING, Any, override
 
 import edtf
@@ -39,11 +33,14 @@ from oarepo_runtime.services.schema.ui import (
     LocalizedEDTFTimeInterval,
 )
 
+_STRICT_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_STRICT_INTERVAL_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}$")
+
 
 class KeepOriginalStringMixin(marshmallow.fields.Field):
     """Mixin schema to keep the original string value."""
 
-    SERIALIZATION_FUNCS: dict[str, Callable] = {"iso": lambda val: val}  # noqa RUFF012
+    SERIALIZATION_FUNCS: Mapping[str, Callable] = {"iso": lambda val: val}
 
     @override
     def deserialize(
@@ -265,30 +262,110 @@ class TimeDataType(FacetMixin, DataType):
         return ret
 
 
-class CachedMultilayerEDTFValidator(EDTFValidator):
-    """A cached EDTF validator."""
+def _strict_date(value: str) -> date | None:
+    """Return the day ``value`` denotes as ``YYYY-MM-DD``, or None if it is not one."""
+    if not _STRICT_DATE_PATTERN.match(value):
+        return None
+    try:
+        return date(int(value[:4]), int(value[5:7]), int(value[8:10]))
+    except ValueError:
+        return None
+
+
+class MultilayerEDTFValidator(EDTFValidator):
+    """EDTF validator that decides strict level-0 input without running the grammar.
+
+    ``parse_edtf`` is a pyparsing grammar and it dominates the cost of validating user
+    input. A strict ``YYYY-MM-DD`` string, and an interval of two of them, always parse
+    to the same EDTF object, so both can be decided by looking at the string - as long
+    as the allowed ``types`` say what that object is accepted as.
+    """
 
     @override
     def __call__(self, value: str) -> str:
         """Validate the EDTF value and return it."""
-        return self._cached_validation(value)
+        if self._accepts_strict_value(value):
+            return value
+        return super().__call__(value)
 
-    @functools.lru_cache(maxsize=1024)  # noqa memory consumption ok
-    def _cached_validation(self, value: str) -> str:
-        """Validate EDTF string.
+    def _accepts_strict_value(self, value: Any) -> bool:
+        """Whether ``value`` is a strict date/interval the configured types accept.
 
-        If a value is valid, do not revalidate again, take it from cache.
+        The fast path has to reach the same verdict the full validation would: only the
+        strict level-0 forms are matched, everything else (uncertainty, qualifyers,
+        seasons, partial intervals, unspecified digits, ...) is left to the grammar.
         """
-        # at first try to parse the value as a date because it is much faster
-        # and most of the time it is a date
-        try:
-            datetime.strptime(value, "%Y-%m-%d")  # noqa naive datetime ok here
-        except Exception:  # noqa catching all exceptions is ok here
-            value = super().__call__(value)
-        return value
+        if not isinstance(value, str):
+            return False
+
+        if "/" in value:
+            if not _STRICT_INTERVAL_PATTERN.match(value):
+                return False
+            start = _strict_date(value[:10])
+            end = _strict_date(value[11:])
+            if start is None or end is None:
+                return False
+            # ISO dates of the same width compare chronologically, and an interval of
+            # two dates fails the chronological check exactly when start > end.
+            return start <= end and self._accepts(edtf.Interval)
+
+        # a strict date parses to an edtf Date whose lower and upper bound are
+        # identical, so it always passes the chronological check.
+        return _strict_date(value) is not None and self._accepts(edtf.Date)
+
+    def _accepts(self, parsed_type: type) -> bool:
+        """Whether the configured ``types`` accept an object of ``parsed_type``."""
+        return not self._types or any(issubclass(parsed_type, allowed) for allowed in self._types)
 
 
-class EDTFTimeDataType(FacetMixin, DataType):
+_EDTF_DATE_FORMATS = "strict_date||yyyy-MM||yyyy"
+
+
+class EDTFBaseDataType(DataType):
+    """Base for EDTF-based types, sharing the JSON schema, validators and l10n UI fields.
+
+    Subclasses set ``TYPE``, ``mapping_type``, the accepted EDTF object types
+    (``edtf_validator_types``) and the default UI field class
+    (``default_ui_field_class``).
+    """
+
+    marshmallow_field_class = marshmallow.fields.String
+    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date"})
+
+    edtf_validator_types: tuple[type, ...] = ()
+    default_ui_field_class: type[marshmallow.fields.Field] = LocalizedEDTF
+
+    @override
+    def create_ui_marshmallow_fields(
+        self,
+        field_name: str,
+        element: dict[str, Any],
+    ) -> dict[str, marshmallow.fields.Field]:
+        """Create a Marshmallow UI fields for the value, specifically long, medium, short, full formats."""
+        field_class = self._get_ui_marshmallow_field_class(field_name, element) or self.default_ui_field_class
+        return {
+            f"{field_name}_l10n_{fmt}": field_class(
+                attribute=field_name,
+                format=fmt,
+            )
+            for fmt in ("long", "medium", "short", "full")
+        }
+
+    @override
+    def _get_marshmallow_field_args(
+        self,
+        field_name: str,
+        element: dict[str, Any],
+    ) -> dict[str, Any]:
+        ret = super()._get_marshmallow_field_args(field_name, element)
+        if self.edtf_validator_types:
+            ret.setdefault("validate", []).append(
+                MultilayerEDTFValidator(types=list(self.edtf_validator_types)),
+            )
+        return ret
+
+
+class EDTFTimeDataType(FacetMixin, EDTFBaseDataType):
     """Data type for EDTF (Extended Date/Time Format) time values."""
 
     TYPE = "edtf-time"
@@ -301,195 +378,61 @@ class EDTFTimeDataType(FacetMixin, DataType):
             "format": "strict_date_time||strict_date_time_no_millis||strict_date||yyyy-MM||yyyy",
         },
     )
+    edtf_validator_types = (edtf.DateAndTime, edtf.Date)
+    default_ui_field_class = LocalizedEDTFTime
 
     @property
     def facet_name(self) -> str:
         """Define facet class."""
         return "oarepo_runtime.services.facets.date.EDTFFacet"
 
-    @override
-    def create_ui_marshmallow_fields(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> dict[str, marshmallow.fields.Field]:
-        """Create a Marshmallow UI fields for EDTFTime value, specifically long, medium, short, full formats."""
-        field_class = self._get_ui_marshmallow_field_class(field_name, element) or LocalizedEDTFTime
-        return {
-            f"{field_name}_l10n_long": field_class(
-                attribute=field_name,
-                format="long",
-            ),
-            f"{field_name}_l10n_medium": field_class(
-                attribute=field_name,
-                format="medium",
-            ),
-            f"{field_name}_l10n_short": field_class(
-                attribute=field_name,
-                format="short",
-            ),
-            f"{field_name}_l10n_full": field_class(
-                attribute=field_name,
-                format="full",
-            ),
-        }
 
-    @override
-    def _get_marshmallow_field_args(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> dict[str, Any]:
-        ret = super()._get_marshmallow_field_args(field_name, element)
-
-        ret.setdefault("validate", []).append(
-            CachedMultilayerEDTFValidator(types=[edtf.DateAndTime, edtf.Date]),
-        )
-
-        return ret
-
-
-class EDTFDataType(FacetMixin, DataType):
+class EDTFDataType(FacetMixin, EDTFBaseDataType):
     """Data type for EDTF (Extended Date/Time Format) values."""
 
     TYPE = "edtf"
 
-    marshmallow_field_class = marshmallow.fields.String
-    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date"})
     mapping_type = ReadOnlyDict(
         {
             "type": "date",
-            "format": "strict_date||yyyy-MM||yyyy",
+            "format": _EDTF_DATE_FORMATS,
         },
     )
+    edtf_validator_types = (edtf.Date,)
 
     @property
     def facet_name(self) -> str:
         """Define facet class."""
         return "oarepo_runtime.services.facets.date.EDTFFacet"
 
-    @override
-    def create_ui_marshmallow_fields(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> dict[str, marshmallow.fields.Field]:
-        """Create a Marshmallow UI fields for EDTF value, specifically long, medium, short, full formats."""
-        field_class = self._get_ui_marshmallow_field_class(field_name, element) or LocalizedEDTF
-        return {
-            f"{field_name}_l10n_long": field_class(
-                attribute=field_name,
-                format="long",
-            ),
-            f"{field_name}_l10n_medium": field_class(
-                attribute=field_name,
-                format="medium",
-            ),
-            f"{field_name}_l10n_short": field_class(
-                attribute=field_name,
-                format="short",
-            ),
-            f"{field_name}_l10n_full": field_class(
-                attribute=field_name,
-                format="full",
-            ),
-        }
 
-    @override
-    def _get_marshmallow_field_args(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> dict[str, Any]:
-        ret = super()._get_marshmallow_field_args(field_name, element)
-
-        ret.setdefault("validate", []).append(
-            CachedMultilayerEDTFValidator(types=[edtf.Date]),
-        )
-
-        return ret
-
-
-class EDTFIntervalType(DataType):
+class EDTFIntervalType(EDTFBaseDataType):
     """Data type for EDTF intervals."""
 
     TYPE = "edtf-interval"
 
-    marshmallow_field_class = marshmallow.fields.String
-    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date"})
     mapping_type = ReadOnlyDict(
         {
             "type": "date_range",
-            "format": "strict_date||yyyy-MM||yyyy",
+            "format": _EDTF_DATE_FORMATS,
         },
     )
-
-    @override
-    def create_ui_marshmallow_fields(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> dict[str, marshmallow.fields.Field]:
-        """Create a Marshmallow UI fields for EDTFInterval value, specifically long, medium, short, full formats."""
-        field_class = self._get_ui_marshmallow_field_class(field_name, element) or LocalizedEDTFTimeInterval
-        return {
-            f"{field_name}_l10n_long": field_class(
-                attribute=field_name,
-                format="long",
-            ),
-            f"{field_name}_l10n_medium": field_class(
-                attribute=field_name,
-                format="medium",
-            ),
-            f"{field_name}_l10n_short": field_class(
-                attribute=field_name,
-                format="short",
-            ),
-            f"{field_name}_l10n_full": field_class(
-                attribute=field_name,
-                format="full",
-            ),
-        }
-
-    @override
-    def _get_marshmallow_field_args(
-        self,
-        field_name: str,
-        element: dict[str, Any],
-    ) -> dict[str, Any]:
-        ret = super()._get_marshmallow_field_args(field_name, element)
-
-        ret.setdefault("validate", []).append(
-            CachedMultilayerEDTFValidator(types=[edtf.Interval]),
-        )
-
-        return ret
-
-    def get_facet(
-        self,
-        path: str,
-        element: dict[str, Any],
-        nested_facets: list[Any] | None = None,
-        facets: dict[str, list] | None = None,
-        path_suffix: str = "",
-    ) -> Any:
-        """Create facets for the data type."""
-        _, _, _, _, _ = path, element, nested_facets, facets, path_suffix
-        return facets
+    edtf_validator_types = (edtf.Interval,)
+    default_ui_field_class = LocalizedEDTFTimeInterval
 
 
-class EDTFDateOrIntervalDataType(DataType):
+class EDTFDateOrIntervalDataType(EDTFBaseDataType):
     """An EDTF date or interval represented by keyword."""
 
     TYPE = "edtf-date-or-interval"
 
-    marshmallow_field_class = marshmallow.fields.String
-    jsonschema_type = ReadOnlyDict({"type": "string", "format": "date"})
     mapping_type = ReadOnlyDict(
         {
             "type": "keyword",
         }
     )
+    edtf_validator_types = (edtf.Date, edtf.Interval)
+    default_ui_field_class = LocalizedEDTFTimeInterval
 
     @override
     def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> ReadOnlyDict:
@@ -502,23 +445,3 @@ class EDTFDateOrIntervalDataType(DataType):
                 },
             },
         )
-
-    @override
-    def _get_marshmallow_field_args(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
-        ret = super()._get_marshmallow_field_args(field_name, element)
-        ret.setdefault("validate", []).append(
-            CachedMultilayerEDTFValidator(types=[edtf.Date, edtf.Interval]),
-        )
-        return ret
-
-    @override
-    def create_ui_marshmallow_fields(
-        self, field_name: str, element: dict[str, Any]
-    ) -> dict[str, marshmallow.fields.Field]:
-        field_class = self._get_ui_marshmallow_field_class(field_name, element) or LocalizedEDTFTimeInterval
-        return {
-            f"{field_name}_l10n_long": field_class(attribute=field_name, format="long"),
-            f"{field_name}_l10n_medium": field_class(attribute=field_name, format="medium"),
-            f"{field_name}_l10n_short": field_class(attribute=field_name, format="short"),
-            f"{field_name}_l10n_full": field_class(attribute=field_name, format="full"),
-        }

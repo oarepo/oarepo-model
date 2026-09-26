@@ -1,16 +1,15 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
-import pytest
+from types import SimpleNamespace
 
-from oarepo_model.api import model
+import pytest
+from invenio_db import db
+
+from oarepo_model.api import model, run_checks
+from oarepo_model.model import InvenioModel
 
 
 def test_no_presets():
@@ -21,3 +20,26 @@ def test_no_presets():
             version="1.0.0",
             types=[],
         )
+
+
+def test_run_checks_accepts_valid_sqlalchemy_model():
+    class OkModel(db.Model):
+        __tablename__ = "run_checks_ok_model"
+        id = db.Column(db.Integer, primary_key=True)
+
+    invenio_model = InvenioModel(name="check_test", version="1.0.0", description="", configuration={})
+    namespace = SimpleNamespace(OkModel=OkModel)
+    run_checks(invenio_model, namespace)
+
+
+def test_run_checks_error_path_names_the_model():
+    class NoTableNameModel(db.Model):
+        __tablename__ = "run_checks_no_tablename"
+        id = db.Column(db.Integer, primary_key=True)
+
+    NoTableNameModel.__tablename__ = None
+    invenio_model = InvenioModel(name="check_test", version="1.0.0", description="", configuration={})
+    namespace = SimpleNamespace(NoTableNameModel=NoTableNameModel)
+
+    with pytest.raises(ValueError, match="Model check_test has a SQLAlchemy model NoTableNameModel"):
+        run_checks(invenio_model, namespace)

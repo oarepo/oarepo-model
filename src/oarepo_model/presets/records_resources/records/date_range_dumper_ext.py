@@ -1,33 +1,22 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Date-range dumper extensions generated from model data types."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import Any
 
-from invenio_rdm_records.records.dumpers.edtf import (  # pyright: ignore[reportAttributeAccessIssue]
-    _format_date,  # pyright: ignore[reportAttributeAccessIssue]
-    parse_edtf,  # pyright: ignore[reportAttributeAccessIssue]
+from invenio_rdm_records.records.dumpers.edtf import (
+    _format_date,
+    parse_edtf,
 )
 
-from oarepo_model.customizations import AddToList, Customization
 from oarepo_model.datatypes.date import EDTFDateOrIntervalDataType
-from oarepo_model.datatypes.tree import get_model_nodes
-from oarepo_model.presets import Preset
-from oarepo_model.presets.records_resources.records.path_dumper_ext import PathDumperExtBase
-
-if TYPE_CHECKING:
-    from collections.abc import Generator
-
-    from oarepo_model.builder import InvenioModelBuilder
-    from oarepo_model.model import InvenioModel
+from oarepo_model.presets.records_resources.records.path_dumper_ext import (
+    PathDumperExtBase,
+    PathDumperExtPreset,
+)
 
 
 def _edtf_to_range(value: str) -> dict[str, str]:
@@ -66,27 +55,8 @@ class EDTFDateRangeDumperExt(PathDumperExtBase):
             parent.pop(f"{parent_key}_range", None)
 
 
-class DateRangeDumperExtPreset(Preset):
+class DateRangeDumperExtPreset(PathDumperExtPreset):
     """Preset that adds date-range dumper extensions discovered from the model."""
 
-    modifies = ("record_dumper_extensions",)
-
-    @override
-    def apply(
-        self,
-        builder: InvenioModelBuilder,
-        model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        paths = [
-            path
-            for _datatype, path in get_model_nodes(
-                builder,
-                model,
-                lambda datatype: isinstance(datatype, EDTFDateOrIntervalDataType),
-                unique=True,
-            )
-        ]
-
-        if paths:
-            yield AddToList("record_dumper_extensions", EDTFDateRangeDumperExt(paths))
+    datatype_class = EDTFDateOrIntervalDataType
+    dumper_ext_class = EDTFDateRangeDumperExt

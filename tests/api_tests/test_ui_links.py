@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Tests for generated UI links."""
 
 from __future__ import annotations
@@ -76,6 +71,18 @@ def test_ui_links(
     assert res.status_code == 200
     assert "self_html" in res.json["links"]
 
+
+@pytest.mark.xfail(reason="self_html link for the user listing is not implemented in oarepo-ui yet", strict=True)
+def test_ui_links_user_listing_has_self_html(
+    app_with_bp,
+    identity_simple,
+    ui_links_model,
+    search,
+    search_clear,
+    location,
+    client,
+    headers,
+):
     res = client.get("/user/test-ui-links")
     assert res.status_code == 200
-    assert "self_html" not in res.json["links"]  # not ready in oarep-ui yet
+    assert "self_html" in res.json["links"]

@@ -1,22 +1,16 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Spherical coordinate dumper extensions generated from model data types."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, cast
 
 from shapely import wkt as shapely_wkt
 from shapely.geometry import mapping as shapely_mapping
 from shapely.geometry import shape as shapely_shape
 
-from oarepo_model.customizations import AddToList, Customization
 from oarepo_model.datatypes.spherical import (
     ICRSDataType,
     ICRSShapeDataType,
@@ -25,17 +19,13 @@ from oarepo_model.datatypes.spherical import (
     lon_lat_to_icrs_shape,
     ra_dec_to_lat_lon,
 )
-from oarepo_model.datatypes.tree import get_model_nodes
-from oarepo_model.presets import Preset
-from oarepo_model.presets.records_resources.records.path_dumper_ext import PathDumperExtBase
+from oarepo_model.presets.records_resources.records.path_dumper_ext import (
+    PathDumperExtBase,
+    PathDumperExtPreset,
+)
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
-
     from shapely.geometry.base import BaseGeometry
-
-    from oarepo_model.builder import InvenioModelBuilder
-    from oarepo_model.model import InvenioModel
 
 
 def _point_to_opensearch(value: dict[str, Any]) -> dict[str, Any]:
@@ -101,53 +91,15 @@ class ICRSShapeDumperExt(PathDumperExtBase):
         data[key] = _shape_from_opensearch(data[key])
 
 
-class ICRSDumperExtPreset(Preset):
+class ICRSDumperExtPreset(PathDumperExtPreset):
     """Preset that converts icrs fields to geo_point opensearch fields and vice versa."""
 
-    modifies = ("record_dumper_extensions",)
-
-    @override
-    def apply(
-        self,
-        builder: InvenioModelBuilder,
-        model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        paths = [
-            path
-            for _datatype, path in get_model_nodes(
-                builder,
-                model,
-                lambda datatype: isinstance(datatype, ICRSDataType),
-                unique=True,
-            )
-        ]
-
-        if paths:
-            yield AddToList("record_dumper_extensions", ICRSDumperExt(paths))
+    datatype_class = ICRSDataType
+    dumper_ext_class = ICRSDumperExt
 
 
-class ICRSShapeDumperExtPreset(Preset):
+class ICRSShapeDumperExtPreset(PathDumperExtPreset):
     """Preset that converts icrs_shape fields to geo_shape opensearch fields and vice versa."""
 
-    modifies = ("record_dumper_extensions",)
-
-    @override
-    def apply(
-        self,
-        builder: InvenioModelBuilder,
-        model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        paths = [
-            path
-            for _datatype, path in get_model_nodes(
-                builder,
-                model,
-                lambda datatype: isinstance(datatype, ICRSShapeDataType),
-                unique=True,
-            )
-        ]
-
-        if paths:
-            yield AddToList("record_dumper_extensions", ICRSShapeDumperExt(paths))
+    datatype_class = ICRSShapeDataType
+    dumper_ext_class = ICRSShapeDumperExt

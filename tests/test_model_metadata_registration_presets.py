@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 from oarepo_model.api import model
@@ -39,7 +34,6 @@ def test_model_metadata_registration_presets(
     assert m.oarepo_model_arguments["model_metadata"].record_type is None
     assert m.oarepo_model_arguments["model_metadata"].metadata_type == "RecordMetadata"
     assert m.oarepo_model_arguments["model_metadata"].types == {
-        "multilingual": {"type": "multilingual-type", "items": {"type": "i18n"}},
         "i18n": {
             "type": "object",
             "properties": {

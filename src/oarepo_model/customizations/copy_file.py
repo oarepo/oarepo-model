@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Customization for copying files between locations in the model.
 
 This module provides the CopyFile customization that allows copying content
@@ -47,6 +42,11 @@ class CopyFile(Customization):
         self.target_module_name = target_module_name
         self.target_file_path = target_file_path
         self.exists_ok = exists_ok
+
+    @property
+    def modifies(self) -> tuple[str, ...]:
+        """The file this customization creates."""
+        return (self.target_symbolic_name,)
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:

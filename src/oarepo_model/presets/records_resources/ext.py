@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Extension preset for records and resources functionality.
 
 This module provides the ExtPreset that configures the main Flask extension
@@ -24,6 +19,7 @@ from oarepo_runtime.config import build_config
 from oarepo_model.customizations import (
     AddClass,
     AddEntryPoint,
+    AddList,
     AddToDictionary,
     AddToList,
     Customization,
@@ -31,54 +27,160 @@ from oarepo_model.customizations import (
 )
 from oarepo_model.model import InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
+from oarepo_model.utils import title_case
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Callable, Generator
 
     from flask import Flask
     from flask.blueprints import BlueprintSetupState
+    from invenio_indexer.registry import IndexerRegistry
+    from invenio_records_resources.registry import ServiceRegistry
     from invenio_records_resources.resources.records import RecordResource
     from invenio_records_resources.services.records import RecordService
 
     from oarepo_model.builder import InvenioModelBuilder
+    from oarepo_model.model import RuntimeDependencies
 
 
-class RecordExtensionProtocol(Protocol):
-    """Protocol for flask extension with model arguments."""
+def _register_entries(
+    registry: ServiceRegistry | IndexerRegistry,
+    entries: list[tuple[Callable[[Any], Any], Callable[[Any], str]]],
+    ext: Any,
+    register: Callable[[Any, Any, str], None],
+) -> None:
+    """Register getter/id-getter pairs into a registry, skipping already-registered ids."""
+    for item_getter, id_getter in entries:
+        item = item_getter(ext)
+        if item is None:
+            continue
+        item_id = id_getter(ext)
+        try:
+            registry.get(item_id)
+        except KeyError:
+            register(registry, item, item_id)
 
-    @property
-    def model_arguments(self) -> dict[str, Any]:
-        """Return model arguments for the extension."""
-        return super().model_arguments  # type: ignore[no-any-return,misc]  # pragma: no cover
 
-    @property
-    def records_service_params(self) -> dict[str, Any]:
-        """Return parameters for the records service."""
-        return super().records_service_params  # type: ignore[no-any-return,misc]  # pragma: no cover
+class RecordExtensionProtocolTyping(Protocol):
+    """Structural shape shared by every 'Ext' feature mixin.
 
-    def init_config(self, _app: Flask) -> None:
-        """Initialize configuration."""
-        return super().init_config(_app)  # type: ignore[no-any-return,misc]  # pragma: no cover
+    The actual class combining all these mixins is built dynamically per model
+    by ExtPreset, so there is no single static type its concrete implementation
+    could name. Declared here purely so that a mixin's own
+    `super().model_arguments` (etc.) type-checks against *some* known shape.
+
+    Mixins inherit the ``RecordExtensionProtocol`` alias below, never this
+    class: a runtime base here would land in the composed Ext class's MRO,
+    shadow the real implementation in ``ExtBase`` and silently cut off its
+    cooperative ``super()`` chain. Its members exist only under
+    ``TYPE_CHECKING`` as well, so even a mixin inheriting this class directly
+    cannot do that.
+    """
+
+    if TYPE_CHECKING:
+
+        @property
+        def model_arguments(self) -> dict[str, Any]:
+            """Return model arguments for the extension."""
+
+        @property
+        def records_service_params(self) -> dict[str, Any]:
+            """Return parameters for the records service."""
+
+        def init_config(self, app: Flask) -> None:
+            """Initialize configuration."""
+
+
+#: Base class of the Ext feature mixins: the structural shape above for type
+#: checkers, plain 'object' at runtime, so that the MRO of the composed Ext
+#: class holds nothing but the mixins themselves and ExtBase. Safe to use as a
+#: real base by presets outside this package.
+if TYPE_CHECKING:
+    RecordExtensionProtocol = RecordExtensionProtocolTyping
+else:
+    RecordExtensionProtocol = object
+
+
+def feature_preset(
+    feature_key: str,
+    version: str,
+    *,
+    base: type = RecordExtensionProtocol,
+) -> type[Preset]:
+    """Build a Preset that records one entry under the Ext class's ``features`` metadata.
+
+    Every '<Something>FeaturePreset' in this project (records, files, drafts-records,
+    drafts-files, custom-fields, relations, ui, internal-relations, ...) is otherwise an
+    identical copy: a ``modifies = ("Ext",)`` preset that prepends a mixin merging
+    ``{feature_key: {"version": version}}`` into ``model_arguments["features"]``. This
+    factory is the single place that merge logic, the "version" key shape and the
+    ``PrependMixin("Ext", ...)`` wiring exist.
+
+    :param feature_key: the key under which this feature is recorded in ``features``,
+        e.g. "files" or "drafts-records".
+    :param version: the version string to record for this feature. Per-feature, since
+        different features come from different distributions (invenio-records-resources,
+        invenio-drafts-resources, oarepo-runtime, ...) - callers resolve it from whichever
+        package actually implements the feature.
+    :param base: the mixin's base class - ``RecordExtensionProtocol`` for most features, or
+        ``RecordWithFilesExtensionProtocol`` for features that also need ``files_service``
+        on ``self`` (see ``records_resources.ext_files``).
+    """
+
+    class FeatureMixin(base):  # ty: ignore[unsupported-base]
+        @property
+        def model_arguments(self) -> dict[str, Any]:
+            """Model arguments for the extension."""
+            parent_model_args = super().model_arguments
+            return {
+                **parent_model_args,
+                "features": {
+                    **parent_model_args["features"],
+                    feature_key: {"version": version},
+                },
+            }
+
+    name = title_case(feature_key)
+    FeatureMixin.__name__ = FeatureMixin.__qualname__ = f"{name}FeatureMixin"
+
+    class FeaturePreset(Preset):
+        modifies = ("Ext",)
+
+        @override
+        def apply(
+            self,
+            builder: InvenioModelBuilder,
+            model: InvenioModel,
+            dependencies: dict[str, Any],
+        ) -> Generator[Customization]:
+            yield PrependMixin("Ext", FeatureMixin)
+
+    FeaturePreset.__name__ = FeaturePreset.__qualname__ = f"{name}FeaturePreset"
+    FeaturePreset.__doc__ = f'Preset for enabling the "{feature_key}" feature.'
+    return FeaturePreset
 
 
 class ExtPreset(Preset):
     """Preset for extension class."""
 
-    provides = ("Ext",)
+    provides = (
+        "Ext",
+        "services_registry_list",
+        "indexers_registry_list",
+    )
 
     modifies = (
         "app_application_blueprint_initializers",
         "api_application_blueprint_initializers",
     )
 
-    @override
-    def apply(  # noqa C901: complexity is high
+    def _build_ext_base(
         self,
         builder: InvenioModelBuilder,
         model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        runtime_dependencies = builder.get_runtime_dependencies()
+        runtime_dependencies: RuntimeDependencies,
+    ) -> type:
+        """Build the base extension class for the given model/builder."""
 
         class ExtBase:
             """Base class for extension."""
@@ -119,6 +221,11 @@ class ExtPreset(Preset):
             @cached_property
             def model(self) -> Model:
                 return Model(**self.model_arguments)
+
+        return ExtBase
+
+    def _build_services_mixin(self, runtime_dependencies: RuntimeDependencies) -> type:
+        """Build the mixin adding records service/resource support to the extension."""
 
         class ServicesResourcesExtMixin(ModelMixin, RecordExtensionProtocol):
             """Mixin for extension class."""
@@ -182,11 +289,61 @@ class ExtPreset(Preset):
             def init_config(self, app: Flask) -> None:
                 super().init_config(app)
 
-        yield AddClass("Ext", clazz=ExtBase)
-        yield PrependMixin("Ext", ServicesResourcesExtMixin)
+        return ServicesResourcesExtMixin
+
+    def _build_registry_initializer(
+        self,
+        model: InvenioModel,
+        runtime_dependencies: RuntimeDependencies,
+    ) -> Callable[[BlueprintSetupState], None]:
+        """Build the blueprint-setup callback registering services/indexers on first use."""
+
+        def add_to_service_and_indexer_registry(state: BlueprintSetupState) -> None:
+            """Init app."""
+            app = state.app
+            ext = app.extensions[model.base_name]
+
+            # neither registry exposes a listing/contains check, but get() raises KeyError
+            # for an id that has not been registered yet
+            sregistry = cast("ServiceRegistry", app.extensions["invenio-records-resources"].registry)
+            _register_entries(
+                sregistry,
+                runtime_dependencies.get("services_registry_list"),
+                ext,
+                lambda registry, item, item_id: registry.register(item, service_id=item_id),
+            )
+
+            iregistry = cast("IndexerRegistry", app.extensions["invenio-indexer"].registry)
+            _register_entries(
+                iregistry,
+                runtime_dependencies.get("indexers_registry_list"),
+                ext,
+                lambda registry, item, item_id: registry.register(item, indexer_id=item_id),
+            )
+
+        add_to_service_and_indexer_registry.__name__ = f"{model.base_name}_add_to_service_and_indexer_registry"
+        return add_to_service_and_indexer_registry
+
+    @override
+    def apply(
+        self,
+        builder: InvenioModelBuilder,
+        model: InvenioModel,
+        dependencies: dict[str, Any],
+    ) -> Generator[Customization]:
+        runtime_dependencies = builder.get_runtime_dependencies()
+
+        ext_base = self._build_ext_base(builder, model, runtime_dependencies)
+        services_mixin = self._build_services_mixin(runtime_dependencies)
+
+        yield AddClass("Ext", clazz=ext_base)
+        yield PrependMixin("Ext", services_mixin)
 
         yield AddEntryPoint("invenio_base.apps", model.base_name, "Ext")
         yield AddEntryPoint("invenio_base.api_apps", model.base_name, "Ext")
+
+        yield AddList("services_registry_list", exists_ok=True)
+        yield AddList("indexers_registry_list", exists_ok=True)
 
         yield AddToList(
             "services_registry_list",
@@ -204,36 +361,7 @@ class ExtPreset(Preset):
             ),
         )
 
-        def add_to_service_and_indexer_registry(state: BlueprintSetupState) -> None:
-            """Init app."""
-            app = state.app
-            ext = app.extensions[model.base_name]
-
-            # register service
-            sregistry = app.extensions["invenio-records-resources"].registry
-            for service_getter, service_id_getter in runtime_dependencies.get(
-                "services_registry_list",
-            ):
-                service = service_getter(ext)
-                service_id = service_id_getter(ext)
-                if (
-                    service_id not in sregistry._services  # noqa: SLF001 private member access
-                ):
-                    sregistry.register(service, service_id=service_id)
-
-            # Register indexer
-            iregistry = app.extensions["invenio-indexer"].registry
-            for indexer_getter, service_id_getter in runtime_dependencies.get(
-                "indexers_registry_list",
-            ):
-                indexer = indexer_getter(ext)
-                service_id = service_id_getter(ext)
-                if (
-                    indexer and service_id not in iregistry._indexers  # noqa: SLF001 private member access
-                ):
-                    iregistry.register(indexer, indexer_id=service_id)
-
-        add_to_service_and_indexer_registry.__name__ = f"{model.base_name}_add_to_service_and_indexer_registry"
+        add_to_service_and_indexer_registry = self._build_registry_initializer(model, runtime_dependencies)
 
         yield AddToDictionary(
             "app_application_blueprint_initializers",
@@ -247,57 +375,5 @@ class ExtPreset(Preset):
         )
 
 
-class FilesFeaturePreset(Preset):
-    """Preset for enabling files feature."""
-
-    modifies = ("Ext",)
-
-    @override
-    def apply(
-        self,
-        builder: InvenioModelBuilder,
-        model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        class FilesFeatureMixin(RecordExtensionProtocol):
-            @property
-            def model_arguments(self) -> dict[str, Any]:
-                """Model arguments for the extension."""
-                parent_model_args = super().model_arguments
-                return {
-                    **parent_model_args,
-                    "features": {
-                        **parent_model_args["features"],
-                        "files": {"version": __version__},
-                    },
-                }
-
-        yield PrependMixin("Ext", FilesFeatureMixin)
-
-
-class RecordsFeaturePreset(Preset):
-    """Preset for enabling records feature."""
-
-    modifies = ("Ext",)
-
-    @override
-    def apply(
-        self,
-        builder: InvenioModelBuilder,
-        model: InvenioModel,
-        dependencies: dict[str, Any],
-    ) -> Generator[Customization]:
-        class RecordsFeatureMixin(RecordExtensionProtocol):
-            @property
-            def model_arguments(self) -> dict[str, Any]:
-                """Model arguments for the extension."""
-                parent_model_args = super().model_arguments
-                return {
-                    **parent_model_args,
-                    "features": {
-                        **parent_model_args["features"],
-                        "records": {"version": __version__},
-                    },
-                }
-
-        yield PrependMixin("Ext", RecordsFeatureMixin)
+FilesFeaturePreset = feature_preset("files", __version__)
+RecordsFeaturePreset = feature_preset("records", __version__)

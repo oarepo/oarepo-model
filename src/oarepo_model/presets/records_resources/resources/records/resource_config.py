@@ -1,16 +1,11 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Resource configuration preset for records."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, Protocol, cast, override
 
 from babel.support import LazyProxy
 from flask_resources import (
@@ -30,11 +25,18 @@ from oarepo_model.model import Dependency, InvenioModel
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Callable, Generator
 
     from oarepo_runtime.api import Export, Import
 
     from oarepo_model.builder import InvenioModelBuilder
+
+
+class _Coded(Protocol):
+    """Common shape of Export/Import — the handler cache and map keys."""
+
+    code: str
+    mimetype: str
 
 
 class RecordResourceConfigPreset(Preset):
@@ -85,55 +87,57 @@ class RecordResourceConfigPreset(Preset):
 
 
 def _merge_with_exports(record_response_handlers: dict, exports: list[Export]) -> dict:
-    """Merge exports into the record_response_handlers."""
-    # we need to return lazy response handlers as well as do not recreate then with
-    # every call. To do this we need to cache the created handlers.
-    handler_cache: dict[str, ResponseHandler] = {}
-
-    for export in exports:
-        record_response_handlers[export.mimetype] = _register_export(handler_cache, export)
-    return record_response_handlers
-
-
-def _register_export(cache: dict[str, ResponseHandler], export: Export) -> ResponseHandler:
-    """Register a new export and return its response handler.
-
-    The handler is created when it is accessed first time and cached for future use.
-    """
-
-    def lookup_or_create() -> ResponseHandler:
-        """Lookup or create a new response handler."""
-        if export.code not in cache:
-            cache[export.code] = ResponseHandler(
-                export.serializer,
-                headers=etag_headers,
-            )
-        return cache[export.code]
-
-    return cast("ResponseHandler", LazyProxy(lookup_or_create))
+    """Merge exports into the record response handlers."""
+    return _merge_into(
+        record_response_handlers,
+        exports,
+        lambda export: ResponseHandler(export.serializer, headers=etag_headers),
+    )
 
 
 def _merge_with_imports(record_request_body_parsers: dict, imports: list[Import]) -> dict:
     """Merge imports into the record_request_body_parsers."""
-    # we need to return lazy request body parsers as well as do not recreate then with
-    # every call. To do this we need to cache the created handlers.
-    handler_cache: dict[str, RequestBodyParser] = {}
-
-    for import_option in imports:
-        record_request_body_parsers[import_option.mimetype] = _register_import(handler_cache, import_option)
-    return record_request_body_parsers
+    return _merge_into(
+        record_request_body_parsers,
+        imports,
+        lambda import_option: RequestBodyParser(import_option.deserializer),
+    )
 
 
-def _register_import(cache: dict[str, RequestBodyParser], import_option: Import) -> RequestBodyParser:
-    """Register a new import and return its request body parser.
+def _merge_into[I: _Coded, T](
+    target: dict[str, T],
+    items: list[I],
+    make_handler: Callable[[I], T],
+) -> dict[str, T]:
+    """Merge exports/imports into ``target``, keyed by ``item.mimetype``.
 
-    The handler is created when it is accessed first time and cached for future use.
+    The handlers are created lazily on first access and cached by ``item.code``
+    so that repeated accesses do not recreate them.
+
+    Note that the map is keyed by ``mimetype`` while the cache is keyed by
+    ``code``: this assumes code and mimetype are 1:1 within one model. If they
+    are not, two items with the same code but different mimetypes would share
+    one cached handler.
+    """
+    handler_cache: dict[str, T] = {}
+    for item in items:
+        target[item.mimetype] = _register_lazy(handler_cache, item, make_handler)
+    return target
+
+
+def _register_lazy[I: _Coded, T](
+    cache: dict[str, T],
+    item: I,
+    make: Callable[[I], T],
+) -> T:
+    """Register a lazily-created handler for ``item`` and return its proxy.
+
+    The handler is created when it is first accessed and cached for future use.
     """
 
-    def lookup_or_create() -> RequestBodyParser:
-        """Lookup or create a new request body parser."""
-        if import_option.code not in cache:
-            cache[import_option.code] = RequestBodyParser(import_option.deserializer)
-        return cache[import_option.code]
+    def lookup_or_create() -> T:
+        if item.code not in cache:
+            cache[item.code] = make(item)
+        return cache[item.code]
 
-    return cast("RequestBodyParser", LazyProxy(lookup_or_create))
+    return cast("T", LazyProxy(lookup_or_create))

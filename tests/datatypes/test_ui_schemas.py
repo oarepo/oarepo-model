@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 from datetime import time
@@ -740,6 +735,48 @@ def test_polymorphic_ui_schema_in_obj(test_ui_schema):
             "supported_by": {"age": formatted_number, "isFree_i18n": "true"},
         },
     }
+
+
+def test_polymorphic_ui_schema_variant_without_ui_fields(test_ui_schema):
+    """A variant whose datatype has no UI transform is skipped, not an error."""
+    person_schema = {
+        "type": "object",
+        "properties": {
+            "first_name": {"type": "fulltext"},
+            "type": {"type": "keyword"},
+            "age": {"type": "int"},
+        },
+    }
+
+    schema = test_ui_schema(
+        {
+            "type": "polymorphic",
+            "discriminator": "type",
+            "oneof": [
+                {"discriminator": "person", "type": "Person"},
+                {"discriminator": "plain", "type": "keyword"},
+            ],
+        },
+        extra_types={"Person": person_schema},
+    )
+    loc = str(get_locale()) if get_locale() else None
+
+    val = {"a": {"type": "person", "first_name": "bob", "age": 123}}
+    ret = schema.dump(val)
+    formatted_number = format_decimal(123, locale=loc)
+    assert ret == {"a": {"age": formatted_number}}
+
+
+def test_polymorphic_ui_schema_empty_oneof_raises(test_ui_schema):
+    """A polymorphic type without variants cannot build a UI field."""
+    with pytest.raises(ValueError, match="non-empty 'oneof'"):
+        test_ui_schema(
+            {
+                "type": "polymorphic",
+                "discriminator": "type",
+                "oneof": [],
+            },
+        )
 
 
 def test_vocabulary_ui_schema(app, test_ui_schema):

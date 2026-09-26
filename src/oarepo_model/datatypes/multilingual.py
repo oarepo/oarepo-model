@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type for multilingual dictionary fields.
 
 This module provides the I18nDictDataType class for handling internationalized
@@ -21,7 +16,7 @@ from typing import TYPE_CHECKING, Any, override
 from invenio_vocabularies.services.schema import i18n_strings
 from marshmallow import ValidationError
 
-from .collections import ArrayDataType, ObjectDataType
+from .collections import ArrayDataType, NoItemsError, ObjectDataType
 
 if TYPE_CHECKING:
     import marshmallow
@@ -39,9 +34,22 @@ def multilingual_validator(data: list) -> None:
 
 
 class MultilingualDataType(ArrayDataType):
-    """A data type for multilingual dictionaries."""
+    """A data type for multilingual fields: an array of i18n entries ({lang, value}).
+
+    Registered directly as "multilingual" - unlike the i18n entry, no wrapper
+    dict with a separate impl key is needed, because the default item
+    definition is supplied by ``_get_items`` below.
+    """
 
     TYPE = "multilingual"
+
+    @override
+    def _get_items(self, element: dict[str, Any]) -> dict[str, Any]:
+        """Return the declared items, defaulting to an i18n entry definition."""
+        try:
+            return super()._get_items(element)
+        except NoItemsError:
+            return {"type": "i18n"}
 
     def _get_marshmallow_field_args(
         self,

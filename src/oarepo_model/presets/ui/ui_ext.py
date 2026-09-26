@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Extension preset for UI.json registration.
 
 This module provides the ExtUIPreset that registers ui.json
@@ -52,10 +47,15 @@ class UIExtPreset(Preset):
             @property
             def model_arguments(self) -> dict[str, Any]:
                 """Model arguments for the extension."""
-                return {
+                ret = {
                     **super().model_arguments,
                     "ui_model": builder.runtime_dependencies.get("ui_model"),
-                    "ui_blueprint_name": f"{model.configuration.get('ui_blueprint_name')}",
                 }
+                ui_blueprint_name = model.configuration.get("ui_blueprint_name")
+                if ui_blueprint_name:
+                    # omit when unset/falsy - a "None" string would create a
+                    # blueprint literally named None and emit dead links
+                    ret["ui_blueprint_name"] = f"{ui_blueprint_name}"
+                return ret
 
         yield PrependMixin("Ext", ExtUIMixin)

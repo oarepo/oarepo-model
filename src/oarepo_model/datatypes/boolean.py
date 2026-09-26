@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Boolean data type for OARepo models.
 
@@ -25,11 +19,6 @@ from .base import DataType, FacetMixin
 
 class FormatBoolean(marshmallow.fields.Field):
     """Helper class for formatting single values of booleans."""
-
-    @override
-    def __init__(self, *args: Any, **kwargs: Any):
-        """Initialize the FormatBoolean field."""
-        super().__init__(*args, **kwargs)
 
     @override
     def _serialize(self, value: Any, attr: str | None, obj: Any, **kwargs: Any) -> Any:

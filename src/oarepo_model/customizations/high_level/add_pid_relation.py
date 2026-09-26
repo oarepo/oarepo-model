@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """High-level customization for adding PID relations to models.
 
 This module provides the AddPIDRelation customization that creates appropriate
@@ -92,6 +87,8 @@ class RelationFieldCustomization(Customization, ABC):
     AddLazyRelation is exactly such a nested group.
     """
 
+    modifies = ("relations",)
+
     @abstractmethod
     def build_relation_fields(self) -> Mapping[str, RelationBase | RelationsField]:
         """Build and return the {name: field} entries this customization contributes."""
@@ -119,8 +116,7 @@ class AddPIDRelation(RelationFieldCustomization):
         :param path: The path to the relation.
         :param keys: The keys for the relation.
         """
-        super().__init__("add_pid_relation")
-        self.name = name
+        super().__init__(name)
         self.path = path
         self.keys = keys
         self.pid_field = pid_field

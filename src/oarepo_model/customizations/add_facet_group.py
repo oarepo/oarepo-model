@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Customization for creating new lists in the model.
 
 This module provides the AddList customization that creates new empty lists
@@ -30,6 +25,8 @@ if TYPE_CHECKING:
 
 class AddFacetGroup(Customization):
     """Customization to add a facet group to the model."""
+
+    modifies = ("FacetGroups", "DraftFacetGroups")
 
     def __init__(
         self,
@@ -60,7 +57,7 @@ class AddFacetGroup(Customization):
         self._write(builder, "DraftFacetGroups", self.draft_facets)
 
     def _write(self, builder: InvenioModelBuilder, dict_name: str, facets: list) -> None:
-        facet_groups = builder.add_dictionary(dict_name, exists_ok=True)
+        facet_groups = builder.get_dictionary(dict_name)
         fg_typed: dict[str, list] = cast("dict[str, list]", facet_groups)
 
         if self.name in fg_typed:

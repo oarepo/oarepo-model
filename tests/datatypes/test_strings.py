@@ -1,12 +1,7 @@
-#
-# Copyright (c) 2026 University of West Bohemia
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
-"""Additional tests for string data types.
+# SPDX-FileCopyrightText: 2026 University of West Bohemia
+# SPDX-License-Identifier: MIT
+
+"""Tests for string data types.
 
 Covers:
 - enum validation on keyword / fulltext / fulltext+keyword
@@ -18,7 +13,6 @@ Covers:
 - mapping types for all three string types
 - JSON schema type for all three string types
 """
-# ruff: noqa: D102
 
 from __future__ import annotations
 
@@ -44,7 +38,7 @@ def make_schema(datatype_registry, element):
 # It is referenced by its fully qualified name, so it must stay at module level.
 # ---------------------------------------------------------------------------
 
-NO_SPACES_VALIDATOR = "tests.datatypes.test_strings_extra.no_spaces_validator"
+NO_SPACES_VALIDATOR = "tests.datatypes.test_strings.no_spaces_validator"
 
 
 def no_spaces_validator(value):
@@ -63,6 +57,7 @@ class TestEnumValidation:
 
     @pytest.mark.parametrize("type_name", ["keyword", "fulltext", "fulltext+keyword"])
     def test_enum_accepts_valid_value(self, datatype_registry, type_name):
+        """Accept a value listed in the enum for each string type."""
         schema = make_schema(
             datatype_registry,
             {"type": type_name, "enum": ["alpha", "beta", "gamma"]},
@@ -71,6 +66,7 @@ class TestEnumValidation:
 
     @pytest.mark.parametrize("type_name", ["keyword", "fulltext", "fulltext+keyword"])
     def test_enum_rejects_invalid_value(self, datatype_registry, type_name):
+        """Reject a value missing from the enum for each string type."""
         schema = make_schema(
             datatype_registry,
             {"type": type_name, "enum": ["alpha", "beta", "gamma"]},
@@ -97,6 +93,7 @@ class TestPatternValidation:
     """pattern constraint must limit accepted values for string types."""
 
     def test_pattern_accepts_matching_value(self, datatype_registry):
+        """Accept a value that matches the declared regex pattern."""
         schema = make_schema(
             datatype_registry,
             {"type": "keyword", "pattern": r"^\d{4}$"},
@@ -104,6 +101,7 @@ class TestPatternValidation:
         assert schema.load({"a": "2025"}) == {"a": "2025"}
 
     def test_pattern_rejects_non_matching_value(self, datatype_registry):
+        """Reject a value that does not match the declared regex pattern."""
         schema = make_schema(
             datatype_registry,
             {"type": "keyword", "pattern": r"^\d{4}$"},
@@ -132,6 +130,7 @@ class TestRequiredImpliesMinLength:
     """Required fields with no explicit min_length reject empty strings."""
 
     def test_required_rejects_empty_string(self, datatype_registry):
+        """Reject an empty string on a required field, which implies min_length=1."""
         schema = make_schema(
             datatype_registry,
             {"type": "keyword", "required": True},
@@ -140,6 +139,7 @@ class TestRequiredImpliesMinLength:
             schema.load({"a": ""})
 
     def test_required_accepts_non_empty_string(self, datatype_registry):
+        """Accept a non-empty string on a required field."""
         schema = make_schema(
             datatype_registry,
             {"type": "keyword", "required": True},
@@ -173,18 +173,21 @@ class TestFieldOptions:
     """dump_only, load_only, and allow_none must be forwarded to the marshmallow field."""
 
     def test_dump_only_field_is_ignored_on_load(self, datatype_registry):
+        """Set dump_only on the marshmallow field built from a dump_only element."""
         field = datatype_registry.get_type({"type": "keyword", "dump_only": True}).create_marshmallow_field(
             field_name="a", element={"type": "keyword", "dump_only": True}
         )
         assert field.dump_only is True
 
     def test_load_only_field_is_ignored_on_dump(self, datatype_registry):
+        """Set load_only on the marshmallow field built from a load_only element."""
         field = datatype_registry.get_type({"type": "keyword", "load_only": True}).create_marshmallow_field(
             field_name="a", element={"type": "keyword", "load_only": True}
         )
         assert field.load_only is True
 
     def test_allow_none_field_accepts_null(self, datatype_registry):
+        """Accept null on a field declared with allow_none."""
         schema = make_schema(
             datatype_registry,
             {"type": "keyword", "allow_none": True},
@@ -192,6 +195,7 @@ class TestFieldOptions:
         assert schema.load({"a": None}) == {"a": None}
 
     def test_disallow_none_by_default(self, datatype_registry):
+        """Reject null when the element does not declare allow_none."""
         schema = make_schema(datatype_registry, {"type": "keyword"})
         with pytest.raises(ma.ValidationError):
             schema.load({"a": None})
@@ -384,6 +388,7 @@ class TestStringFacets:
     """Facet behaviour differs across string types."""
 
     def test_fulltext_produces_no_facet(self, datatype_registry):
+        """Return a facet mapping without an entry for a fulltext field."""
         dt = datatype_registry.get_type({"type": "fulltext"})
         facets = {}
         result = dt.get_facet("metadata.title", {"type": "fulltext"}, [], facets)
@@ -392,6 +397,7 @@ class TestStringFacets:
         )
 
     def test_keyword_produces_facet(self, datatype_registry):
+        """Return a facet mapping containing the keyword field's path."""
         dt = datatype_registry.get_type({"type": "keyword"})
         facets = {}
         result = dt.get_facet("metadata.status", {"type": "keyword"}, [], facets)
@@ -429,27 +435,32 @@ class TestStringMappings:
     """Each string type must produce its correct Elasticsearch mapping."""
 
     def test_keyword_mapping_type(self, datatype_registry):
+        """Return an Elasticsearch mapping of type keyword for the keyword datatype."""
         dt = datatype_registry.get_type({"type": "keyword"})
         mapping = dt.create_mapping({"type": "keyword"})
         assert mapping["type"] == "keyword"
 
     def test_fulltext_mapping_type(self, datatype_registry):
+        """Return an Elasticsearch mapping of type text for the fulltext datatype."""
         dt = datatype_registry.get_type({"type": "fulltext"})
         mapping = dt.create_mapping({"type": "fulltext"})
         assert mapping["type"] == "text"
 
     def test_fulltext_keyword_mapping_has_keyword_subfield(self, datatype_registry):
+        """Return a text mapping with a keyword sub-field for the fulltext+keyword datatype."""
         dt = datatype_registry.get_type({"type": "fulltext+keyword"})
         mapping = dt.create_mapping({"type": "fulltext+keyword"})
         assert mapping["type"] == "text"
         assert mapping["fields"]["keyword"]["type"] == "keyword"
 
     def test_keyword_json_schema_type_is_string(self, datatype_registry):
+        """Return a JSON schema of type string for the keyword datatype."""
         dt = datatype_registry.get_type({"type": "keyword"})
         schema = dt.create_json_schema({"type": "keyword"})
         assert schema["type"] == "string"
 
     def test_fulltext_json_schema_type_is_string(self, datatype_registry):
+        """Return a JSON schema of type string for the fulltext datatype."""
         dt = datatype_registry.get_type({"type": "fulltext"})
         schema = dt.create_json_schema({"type": "fulltext"})
         assert schema["type"] == "string"

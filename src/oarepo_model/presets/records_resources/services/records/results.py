@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Module to generate record result item and list classes."""
 
 from __future__ import annotations
@@ -55,6 +50,34 @@ class RecordResultComponentsPreset(Preset):
         )
 
 
+def _result_components_mixin(
+    base: Any,
+    components_key: str,
+    dependencies: dict[str, Any],
+) -> type:
+    """Build a mixin that appends the model's result components to a result class."""
+
+    class ResultComponentsMixin(base):
+        @property
+        def components(self) -> tuple[type[ResultComponent], ...]:
+            return (
+                *super().components,
+                *cast(
+                    "list[type[ResultComponent]]",
+                    dependencies.get(
+                        components_key,
+                    ),
+                ),
+            )
+
+        @components.setter
+        def components(self, _value: tuple[type[ResultComponent], ...]) -> None:
+            # needed to silence mypy error about read-only property
+            raise AttributeError("can't set attribute")
+
+    return ResultComponentsMixin
+
+
 class RecordResultItemPreset(Preset):
     """Preset for record result item class."""
 
@@ -68,26 +91,15 @@ class RecordResultItemPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class RecordItemMixin(BaseRecordItem):
-            @property
-            def components(self) -> tuple[type[ResultComponent], ...]:
-                return (
-                    *super().components,
-                    *cast(
-                        "list[type[ResultComponent]]",
-                        dependencies.get(
-                            "record_result_item_components",
-                        ),
-                    ),
-                )
-
-            @components.setter
-            def components(self, _value: tuple[type[ResultComponent], ...]) -> None:
-                # needed to silence mypy error about read-only property
-                raise AttributeError("can't set attribute")  # pragma: no cover
-
         yield AddClass("RecordItem", clazz=RecordItem)
-        yield PrependMixin("RecordItem", RecordItemMixin)
+        yield PrependMixin(
+            "RecordItem",
+            _result_components_mixin(
+                BaseRecordItem,
+                "record_result_item_components",
+                dependencies,
+            ),
+        )
 
 
 class RecordResultListPreset(Preset):
@@ -103,23 +115,12 @@ class RecordResultListPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class RecordListMixin(BaseRecordList):
-            @property
-            def components(self) -> tuple[type[ResultComponent], ...]:
-                return (
-                    *super().components,
-                    *cast(
-                        "list[type[ResultComponent]]",
-                        dependencies.get(
-                            "record_result_list_components",
-                        ),
-                    ),
-                )
-
-            @components.setter
-            def components(self, _value: tuple[type[ResultComponent], ...]) -> None:
-                # needed to silence mypy error about read-only property
-                raise AttributeError("can't set attribute")  # pragma: no cover
-
         yield AddClass("RecordList", clazz=RecordList)
-        yield PrependMixin("RecordList", RecordListMixin)
+        yield PrependMixin(
+            "RecordList",
+            _result_components_mixin(
+                BaseRecordList,
+                "record_result_list_components",
+                dependencies,
+            ),
+        )

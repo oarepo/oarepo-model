@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 from datetime import date, datetime, time
@@ -309,8 +304,8 @@ def test_date_field(test_schema):
 
 
 def test_datetime_field(test_schema):
-    min_dt = datetime(2023, 1, 1, 0, 0, 0)  # noqa: DTZ001 no naive datetime
-    max_dt = datetime(2023, 12, 31, 23, 59, 59)  # noqa: DTZ001 no naive datetime
+    min_dt = datetime(2023, 1, 1, 0, 0, 0)  # noqa DTZ001 no naive datetime
+    max_dt = datetime(2023, 12, 31, 23, 59, 59)  # noqa DTZ001  no naive datetime
     schema = test_schema(
         {
             "type": "datetime",
@@ -425,6 +420,14 @@ def test_edtf_interval_field(test_schema):
     val = "2005/2006-02"
     assert schema.load({"a": val}) == {"a": val}
 
+    # a bare date is not an interval
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2023-01-01"})
+
+    # a non-chronological interval is not either
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2008/1964"})
+
 
 def test_edtf_date_or_interval_field(test_schema):
     schema = test_schema(
@@ -517,6 +520,43 @@ def test_polymorphic_field(test_schema):
     }
     with pytest.raises(ma.ValidationError):
         schema.load(val)
+
+
+def test_polymorphic_field_unknown_discriminator(test_schema):
+    """An unknown discriminator value must produce a field validation error.
+
+    Regression test: the field had no error message defined for an unknown
+    discriminator value, so marshmallow raised AssertionError instead of
+    ValidationError, turning a user typo into an internal error.
+    """
+    person_schema = {
+        "type": "object",
+        "properties": {"first_name": {"type": "fulltext"}, "type": {"type": "keyword"}},
+    }
+    organization_schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "fulltext+keyword"},
+            "type": {"type": "keyword"},
+        },
+    }
+
+    schema = test_schema(
+        {
+            "type": "polymorphic",
+            "discriminator": "type",
+            "oneof": [
+                {"discriminator": "person", "type": "Person"},
+                {"discriminator": "organization", "type": "Organization"},
+            ],
+        },
+        extra_types={"Person": person_schema, "Organization": organization_schema},
+    )
+
+    with pytest.raises(ma.ValidationError) as exc_info:
+        schema.load({"a": {"type": "robot", "first_name": "bob"}})
+
+    assert exc_info.value.messages == {"a": ["Unknown type 'robot'."]}
 
 
 def test_polymorphic_field_required(test_schema):

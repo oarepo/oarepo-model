@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Module to generate file service configuration."""
 
 from __future__ import annotations
@@ -39,6 +34,8 @@ class FileServiceConfigPreset(Preset):
         "file_links_item",
         "file_search_item",
     )
+
+    modifies = ("primary_record_service",)
 
     @override
     def apply(

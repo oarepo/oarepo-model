@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type for controlled vocabulary references.
 
 This module provides the VocabularyDataType class for creating references to
@@ -25,6 +20,8 @@ from .base import FacetMixin
 from .relations import PIDRelation
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from invenio_records_resources.records.systemfields.pid import PIDFieldContext
     from invenio_vocabularies.records.systemfields.pid import VocabularyPIDFieldContext
     from marshmallow import Schema
@@ -55,47 +52,24 @@ class VocabularyDataType(FacetMixin, PIDRelation):
 
     TYPE = "vocabulary"
 
-    def _resolve_keys(self, element: dict[str, Any]) -> dict[str, Any]:  # noqa: C901
-        """Resolve keys for the vocabulary."""
-        ret: dict[str, Any] = {}
-        keys = element.setdefault("keys", [])
-        known_keys = set()
-        for key in keys:
-            if isinstance(key, str):
-                known_keys.add(key)
-            elif isinstance(key, dict):
-                known_keys.update(key.keys())
-            else:
-                raise TypeError(f"Invalid key type: {type(key)}")
+    @override
+    def _default_key_properties(self, element: dict[str, Any]) -> Mapping[str, dict[str, Any]]:
+        """Vocabulary-type-specific default fields, plus a searchable 'id'.
 
-        # if 'id' is not in keys, add it as a keyword field
-        if "id" not in known_keys:
-            keys.append({"id": {"type": "keyword"}})
-
-        # add other fields based on the vocabulary type
+        Unlike a generic PIDRelation (whose target may be an unresolvable
+        still-building self-reference, see PIDRelation._default_key_properties),
+        a vocabulary's target type is always known synchronously, so 'id' is
+        safe to make searchable/facetable here - that's why it is overriden here.
+        """
         vocabulary_fields = (
             default_vocabulary_fields_in_relations.get(element["vocabulary-type"])
             or default_vocabulary_fields_in_relations["*"]
         )
-        for prop in vocabulary_fields:
-            for key, value in prop.items():
-                if key not in known_keys:
-                    keys.append({key: value})
-        for k in element["keys"]:
-            ret.update(k)
-
-        if "id" not in ret:
-            ret["id"] = {"type": "keyword"}
-        # if @v is not in keys, add it as a keyword field, set marshmallow as dump only
-        if "@v" not in ret:
-            ret["@v"] = {"type": "keyword", "skip_marshmallow": True}
-        return ret
-
-    @override
-    def _get_properties(self, element: dict[str, Any], ignore_missing: bool = False) -> dict[str, Any]:
-        self._resolve_keys(element)
-
-        return super()._get_properties(element, ignore_missing=ignore_missing)
+        return {
+            **super()._default_key_properties(element),
+            **{key: value for prop in vocabulary_fields for key, value in prop.items()},
+            "id": {"type": "keyword"},
+        }
 
     @override
     def create_marshmallow_schema(self, element: dict[str, Any]) -> type[Schema]:
@@ -146,7 +120,8 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         element: dict[str, Any],
         path: list[ArrayPathMember],
     ) -> list[str]:
-        return sorted(self._resolve_keys(element).keys())
+        names = self._key_names(element.get("keys", [])) | self._default_key_properties(element).keys()
+        return sorted(names)
 
     @override
     def _relation_pid_field(

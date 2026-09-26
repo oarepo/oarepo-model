@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type for PID-based record relations.
 
 This module provides the PIDRelation data type for creating relationships
@@ -18,7 +13,7 @@ customizations for the model builder.
 from __future__ import annotations
 
 import copy
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, NoReturn, cast, override
 
 import marshmallow
 from invenio_base.utils import obj_or_import_string
@@ -32,7 +27,7 @@ from oarepo_model.utils import ArrayPathMember, import_runtime_model, walk_type_
 from .collections import ObjectDataType
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterable, Iterator, Mapping
 
     from invenio_records_resources.records.systemfields.pid import (
         PIDFieldContext,
@@ -56,11 +51,37 @@ class PIDRelation(ObjectDataType):
         pid_field: "my_module:pid_field_getter" or PIDField instance (not required if record_cls is provided)
         cache_key: "my_cache_key" (optional, used for caching the resolved record)
     ```
+
+    Note: the target must be a **published** record. A relation value is
+    validated as soon as it is assigned (`RelationBase.set_value` resolves it
+    right away), and resolution goes through `PIDFieldContext.resolve` with
+    `registered_only=True` against the target's published Record class - a target
+    that only exists as a draft therefore resolves to nothing and is rejected
+    with an InvalidRelationValue. Record instances are not supported as values
+    either (upstream `PIDRelation.parse_value` reads `pid_field.attr_name`, which
+    a `PIDFieldContext` does not have); pass the PID value or a
+    `PersistentIdentifier`.
     """
 
     TYPE = "pid-relation"
 
     marshmallow_field_class = marshmallow.fields.Nested
+
+    def _default_key_properties(self, element: dict[str, Any]) -> Mapping[str, dict[str, Any]]:
+        """Properties always available for a relation, even when not declared in 'keys'.
+
+        'id' is non-searchable here because the target may not be introspectable yet
+        (e.g. a still-building self-reference) - see test_recursive_relations_facets
+        and LazyPIDRelation.get_facet, which relies on this to suppress the facet.
+        Subclasses with an always-resolvable target (e.g. VocabularyDataType) may
+        override this to make 'id' searchable/facetable, or add further defaults.
+        """
+        del element  # unused in base class, but subclasses may use it
+        # TODO: revisit whether 'id' really needs to be non-searchable by default.
+        return {
+            "id": {"type": "keyword", "searchable": False},
+            "@v": {"type": "keyword", "skip_marshmallow": True, "searchable": False},
+        }
 
     @override
     def get_facet(
@@ -76,7 +97,7 @@ class PIDRelation(ObjectDataType):
             path, element, nested_facets, facets, path_suffix, ignored_keys={*(ignored_keys or ()), "@v"}
         )
 
-    def _get_relation_model(self, element: dict[str, Any], must_exist: bool = False) -> str:
+    def _get_relation_model_name(self, element: dict[str, Any], must_exist: bool = False) -> str:
         """Get the model for the relation.
 
         The single seam every other method routes target-model resolution
@@ -89,18 +110,19 @@ class PIDRelation(ObjectDataType):
             raise KeyError("model is required")
         return cast("str", model)
 
-    def _get_properties(  # noqa: PLR0912,C901 too many branches
+    def _get_properties(
         self,
         element: dict[str, Any],
         ignore_missing: bool = False,
     ) -> dict[str, Any]:
-        """Get the properties for the recursive pid relation data type.
+        """Build the properties contributed by this relation.
 
-        Note: we can not introspect the target's schema at this point, so
-        we return only the explicitly defined properties. There is no fallback
-        to 'keyword'.
+        Each 'keys' entry is resolved against the target model's real schema
+        (_get_target_properties); an explicitly defined property always wins.
+        Entries that resolve nowhere fall back to the default key properties
+        (id/@v) and raise if still unresolved, unless ignore_missing skips them.
         """
-        model_name = self._get_relation_model(element)
+        model_name = self._get_relation_model_name(element)
         try:
             target_properties = self._get_target_properties(element)
         except ModuleNotFoundError:
@@ -109,43 +131,36 @@ class PIDRelation(ObjectDataType):
             else:
                 raise
 
-        fallbacks = {
-            "id": {"type": "keyword", "searchable": False},
-            "@v": {"type": "keyword", "skip_marshmallow": True, "searchable": False},
-        }
+        fallbacks = self._default_key_properties(element)
 
         ret: dict[str, Any] = {}
-        for key in element["keys"]:
-            if isinstance(key, str):
-                prop = self._lookup_property(target_properties, key)
-                if prop is None and not ignore_missing:
-                    if key in fallbacks:
-                        prop = fallbacks[key]
-                    else:
-                        if model_name is not None:
-                            raise KeyError(f"Property not found: {key} in target properties of {model_name}")
-                        raise KeyError(
-                            f"Model name is not available, cannot determine target properties for '{key}'. "
-                            "Either provide model or define the props explicitly."
-                        )
-                if prop is not None:
-                    set_key_model(
-                        ret,
-                        key,
-                        copy.deepcopy(prop),
-                    )
-            elif isinstance(key, dict):
-                for k, v in key.items():
-                    set_key_model(ret, k, v)
-            else:
-                raise TypeError(f"Invalid key type: {type(key)}")
+        for key, explicit_prop in self._iter_key_entries(element.get("keys", [])):
+            if explicit_prop is not None:
+                set_key_model(ret, key, explicit_prop)
+                continue
+
+            prop = self._lookup_target_element(target_properties, key)
+            if prop is None and not ignore_missing:
+                prop = fallbacks.get(key)
+                if prop is None:
+                    self._raise_missing_property(key, model_name)
+            if prop is not None:
+                set_key_model(ret, key, copy.deepcopy(prop))
 
         for k, v in fallbacks.items():
-            if k not in ret:
-                ret[k] = v
+            ret.setdefault(k, v)
         return ret
 
-    def _lookup_property(self, properties: dict[str, Any], key: str) -> dict[str, Any] | None:
+    def _raise_missing_property(self, key: str, model_name: str | None) -> NoReturn:
+        """Raise a descriptive KeyError for a 'keys' entry with no resolvable property."""
+        if model_name is not None:
+            raise KeyError(f"Property not found: {key} in target properties of {model_name}")
+        raise KeyError(
+            f"Model name is not available, cannot determine target properties for '{key}'. "
+            "Either provide model or define the props explicitly."
+        )
+
+    def _lookup_target_element(self, properties: dict[str, Any], key: str) -> dict[str, Any] | None:
         """Walk a dotted key path down a properties tree, mirroring set_key_model.
 
         Returns None if any segment of the path is missing, so callers can fall
@@ -171,9 +186,9 @@ class PIDRelation(ObjectDataType):
 
         Returns an empty dict if the target can't be introspected this way
         (e.g. it was declared only via 'pid_field', or isn't an oarepo_model
-        -built model) - callers fall back to "keyword" per key in that case.
+        -built model).
         """
-        model_name = self._get_relation_model(element)
+        model_name = self._get_relation_model_name(element)
         if not model_name:
             return {}
 
@@ -226,7 +241,7 @@ class PIDRelation(ObjectDataType):
 
     def _relation_path(
         self,
-        element: dict[str, Any],  # noqa: ARG002
+        element: dict[str, Any],  # noqa ARG002 for extensibility
         path: list[ArrayPathMember],
     ) -> list:
         """Get the relation path for the PID relation."""
@@ -243,7 +258,7 @@ class PIDRelation(ObjectDataType):
     def _relation_pid_field(
         self,
         element: dict[str, Any],
-        path: list[ArrayPathMember],  # noqa: ARG002
+        path: list[ArrayPathMember],  # noqa ARG002 for extensibility
     ) -> PIDFieldContext:
         """Get the PID field from the element."""
         if "pid_field" in element:
@@ -270,24 +285,39 @@ class PIDRelation(ObjectDataType):
     def _relation_cache_key(
         self,
         element: dict[str, Any],
-        path: list[ArrayPathMember],  # noqa: ARG002
+        path: list[ArrayPathMember],  # noqa ARG002 for extensibility
     ) -> str | None:
         return element.get("cache_key")
 
     def _relation_key_names(
         self,
         element: dict[str, Any],
-        path: list[ArrayPathMember],  # noqa: ARG002
+        path: list[ArrayPathMember],  # noqa ARG002 for extensibility
     ) -> list[str]:
-        keys = set()
-        for key in element.get("keys", []):
+        return list(self._key_names(element.get("keys", [])))
+
+    @staticmethod
+    def _key_names(keys: Iterable[str | dict[str, Any]]) -> set[str]:
+        """Extract the set of key names from a mixed list of str / single-key dict entries."""
+        return {name for name, _ in PIDRelation._iter_key_entries(keys)}
+
+    @staticmethod
+    def _iter_key_entries(
+        keys: Iterable[str | dict[str, Any]],
+    ) -> Iterator[tuple[str, dict[str, Any] | None]]:
+        """Normalize a mixed list of str / single-key dict 'keys' entries.
+
+        Yields (name, None) for a bare string entry - its property must be
+        looked up or defaulted by the caller - or (name, value) for each
+        key in a dict entry, which already carries its explicit property.
+        """
+        for key in keys:
             if isinstance(key, str):
-                keys.add(key)
+                yield key, None
             elif isinstance(key, dict):
-                keys.update(key.keys())
+                yield from key.items()
             else:
                 raise TypeError(f"Invalid key type: {type(key)}")
-        return list(keys)
 
 
 def set_key_model(properties: dict[str, Any], key: str, value: Any, update: bool = False) -> None:

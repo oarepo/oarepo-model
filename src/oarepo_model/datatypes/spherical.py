@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Data type for geo fields."""
 
 from __future__ import annotations
@@ -222,5 +217,5 @@ class ICRSDataType(GeoPointDataType):
             "dec": {"type": "double"},
         }
 
-    # note: mapping type is set to "geo_point" by default, we need to convert the ra/dec to lat/lon
-    # in a specialized dumper if we want to use this data type
+    # the declared fields are ra/dec while the mapping type is "geo_point"; ICRSDumperExtPreset
+    # (spherical_dumper_ext) converts between the two at dump/load time

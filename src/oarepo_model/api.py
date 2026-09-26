@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """High-level API for OARepo model creation and management.
 
@@ -17,6 +11,7 @@ registration with the Invenio framework.
 from __future__ import annotations
 
 import itertools
+import logging
 from contextvars import ContextVar
 from functools import partial
 from typing import TYPE_CHECKING, Any
@@ -33,9 +28,9 @@ from invenio_db import db
 from .builder import InvenioModelBuilder
 from .datatypes.registry import DataTypeRegistry
 from .errors import ApplyCustomizationError
-from .model import InvenioModel
+from .model import FileContent, InvenioModel
 from .register import register_model, unregister_model
-from .sorter import sort_presets
+from .sorter import check_preset_declarations, sort_presets
 
 #: The `InvenioModel` currently being built on this thread, if any (`.value`,
 #: absent/None outside of a `_internal_model` call). Lets code that runs
@@ -43,6 +38,8 @@ from .sorter import sort_presets
 #: which model they are being built for without it being threaded explicitly
 #: through every call - see InternalRelationDataType for the motivating case.
 current_model: ContextVar[InvenioModel] = ContextVar("current_model")
+
+log = logging.getLogger("oarepo_model")
 
 
 class FunctionalPreset:
@@ -77,7 +74,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after populating the type registry."""
 
-    def after_builder_created(  # noqa PLR0913 - too many arguments
+    def after_builder_created(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -88,7 +85,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after the model builder is created."""
 
-    def after_presets_sorted(  # noqa PLR0913 - too many arguments
+    def after_presets_sorted(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -99,7 +96,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after the presets are sorted."""
 
-    def after_user_customizations_applied(  # noqa PLR0913 - too many arguments
+    def after_user_customizations_applied(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -110,7 +107,7 @@ class FunctionalPreset:
     ) -> None:
         """Perform extra action after user customizations are applied."""
 
-    def after_model_built(  # noqa PLR0913
+    def after_model_built(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
         types: list[dict[str, Any]],
@@ -146,7 +143,7 @@ type PresetList = (
 )
 
 
-def model(  # noqa: PLR0913 too many arguments
+def model(  # noqa PLR0913 arguments needed in callback
     name: str,
     presets: PresetList,
     *,
@@ -164,9 +161,9 @@ def model(  # noqa: PLR0913 too many arguments
     :param presets: A list of presets to apply to the model.
     :param description: A description of the model.
     :param version: The version of the model.
-    :param config: Configuration for the model.
+    :param configuration: Configuration for the model.
     :param customizations: Customizations for the model.
-    :return: An instance of InvenioModel.
+    :return: The built model's namespace.
     """
     if not presets:
         raise ValueError("At least one preset must be provided to create a model.")
@@ -185,7 +182,7 @@ def model(  # noqa: PLR0913 too many arguments
     return _internal_model(**params)
 
 
-def _internal_model(  # noqa: PLR0913 too many arguments
+def _internal_model(  # noqa PLR0913 arguments needed in callback
     name: str,
     presets: PresetList,
     *,
@@ -276,7 +273,12 @@ def _internal_model(  # noqa: PLR0913 too many arguments
             idx = 0
             while idx < len(user_customizations):
                 customization = user_customizations[idx]
-                if customization.name in preset.depends_on:
+                if any(dep in customization.modifies for dep in preset.depends_on):
+                    log.debug(
+                        "Applying user customization %s before preset %s",
+                        customization,
+                        preset,
+                    )
                     try:
                         customization.apply(builder, model)
                     except Exception as e:
@@ -288,16 +290,29 @@ def _internal_model(  # noqa: PLR0913 too many arguments
                     idx += 1
 
             build_dependencies = {dep: builder.build_partial(dep) for dep in preset.depends_on}
-            for customization in preset.apply(builder, model, build_dependencies):
-                try:
-                    customization.apply(builder, model)
-                except Exception as e:
-                    raise ApplyCustomizationError(
-                        f"Error evaluating user customization {customization} while applying preset {preset}: {e}",
-                    ) from e
+            log.debug("Applying preset %s", preset)
+            builder.start_preset(preset)
+            try:
+                for customization in preset.apply(builder, model, build_dependencies):
+                    log.debug(
+                        "  Applying customization %s from preset %s",
+                        customization,
+                        preset,
+                    )
+                    try:
+                        customization.apply(builder, model)
+                    except Exception as e:
+                        raise ApplyCustomizationError(
+                            f"Error evaluating user customization {customization} while applying preset {preset}: {e}",
+                        ) from e
+            finally:
+                builder.finish_preset()
+
+        check_preset_declarations(sorted_presets, builder.created_by, builder.touched_by)
 
         for customization in user_customizations:
             # apply user customizations that were not handled by presets
+            log.debug("Applying user customization %s after all presets", customization)
             customization.apply(builder, model)
 
         FunctionalPreset.call(
@@ -313,7 +328,7 @@ def _internal_model(  # noqa: PLR0913 too many arguments
 
         # maybe replace this with a LazyNamespace if there are dependency issues
         ret = builder.build()
-        run_checks(ret)
+        run_checks(model, ret)
 
         ret.register = partial(register_model, model=model, namespace=ret)
         ret.unregister = partial(unregister_model, model=model)
@@ -333,7 +348,7 @@ def _internal_model(  # noqa: PLR0913 too many arguments
         return ret
 
 
-def get_model_resources(model: InvenioModel, namespace: SimpleNamespace) -> dict[str, str]:
+def get_model_resources(model: InvenioModel, namespace: SimpleNamespace) -> dict[str, FileContent]:
     """Get the model resources from the namespace.
 
     Return dictionary where key is file path which starts with
@@ -355,7 +370,7 @@ def populate_type_registry(
                 type_registry.add_types(type_collection)
             else:
                 raise TypeError(
-                    f"Invalid type collection: {type_collection}. Expected a dict, str to a file or Path to the file.",
+                    f"Invalid type collection: {type_collection}. Expected a dict mapping type names to datatypes.",
                 )
 
     return type_registry
@@ -377,11 +392,15 @@ def flatten_presets(presets: PresetList) -> tuple[list[Preset], list[FunctionalP
     return flattened_presets, functional_presets
 
 
-def run_checks(model: SimpleNamespace) -> None:
-    """Run checks on the model to ensure it is valid."""
+def run_checks(model: InvenioModel, namespace: SimpleNamespace) -> None:
+    """Run checks on a built model namespace to ensure it is valid.
+
+    :param model: the invenio model being built, used for error reporting.
+    :param namespace: the built namespace to check.
+    """
     # for each of sqlalchemy models, check if they have a valid table name
 
-    for key, value in model.__dict__.items():
+    for key, value in namespace.__dict__.items():
         if isinstance(value, type) and issubclass(value, db.Model):
             attr = getattr(value, "__tablename__", None)
             if not attr:

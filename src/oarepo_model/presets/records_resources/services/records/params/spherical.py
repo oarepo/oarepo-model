@@ -1,19 +1,15 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Search parameter interpreters for geo filtering."""
 
 from __future__ import annotations
 
+import logging
 import math
 import re
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, override
 
 from flask import current_app
 from geopy.exc import GeopyError
@@ -33,11 +29,13 @@ from oarepo_model.datatypes.spherical import icrs_shape_to_lon_lat, ra_dec_to_la
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from opensearch_dsl.search import Search
+    from invenio_search import RecordsSearchV2
     from shapely.geometry.base import BaseGeometry
 
 #: Mean earth radius in kilometers, used to convert angular distances to km.
 _EARTH_RADIUS_KM = 6371.0088
+
+log = logging.getLogger("oarepo_model")
 
 
 # NOTE: this talks to the public OpenStreetMap Nominatim instance by default.
@@ -61,7 +59,7 @@ def _get_geocode() -> Callable[..., Any]:
     user_agent = current_app.config.get("NOMINATIM_USER_AGENT", default_user_agent)
     min_delay_seconds = current_app.config.get("NOMINATIM_MIN_DELAY_SECONDS", 1)
     geolocator = Nominatim(user_agent=user_agent)
-    return RateLimiter(  # type: ignore[no-any-return]
+    return RateLimiter(
         geolocator.geocode,
         min_delay_seconds=min_delay_seconds,
         swallow_exceptions=False,
@@ -83,7 +81,7 @@ def _nominatim_geocode_shape(location_name: str) -> dict[str, Any]:
     location = _get_geocode()(location_name, geometry="geojson")
     if location is None or "geojson" not in location.raw:
         raise ValueError(location_name)
-    return location.raw["geojson"]  # type: ignore[no-any-return]
+    return location.raw["geojson"]
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -152,12 +150,13 @@ class _PrefixedGeoParam(ParamInterpreter):
     #: Prefix of the query string parameter, e.g. ``geo_distance:metadata.location``.
     prefix: ClassVar[str]
 
-    def apply(  # type: ignore[reportIncompatibleMethodOverride]
+    @override
+    def apply(
         self,
-        identity: Any,  # noqa: ARG002 for override
-        search: Search,
+        identity: Any,
+        search: RecordsSearchV2,
         params: dict[str, Any],
-    ) -> Search:
+    ) -> RecordsSearchV2:
         """Evaluate the parameters on the search."""
         search = self._apply_from_mapping(search, params)
 
@@ -175,7 +174,7 @@ class _PrefixedGeoParam(ParamInterpreter):
 
         return search
 
-    def _apply_from_mapping(self, search: Search, mapping: dict[str, Any]) -> Search:
+    def _apply_from_mapping(self, search: RecordsSearchV2, mapping: dict[str, Any]) -> RecordsSearchV2:
         for key in list(mapping.keys()):
             if not key.startswith(self.prefix):
                 continue
@@ -188,33 +187,44 @@ class _PrefixedGeoParam(ParamInterpreter):
 
         return search
 
-    def _apply_value(self, search: Search, field: str, value: str) -> Search:
+    def _apply_value(self, search: RecordsSearchV2, field: str, value: str) -> RecordsSearchV2:
         raise NotImplementedError
 
     def _geocode_point(self, field: str, location_name: str) -> tuple[float, float]:
-        try:
-            return _nominatim_geocode_point(location_name)
-        except (ValueError, GeopyError) as error:
-            raise QuerystringValidationError(
-                _(
-                    "Could not resolve location name %(location)r for parameter '%(param)s%(field)s'.",
-                    location=location_name,
-                    param=self.prefix,
-                    field=field,
-                )
-            ) from error
+        return self._geocode(field, location_name, _nominatim_geocode_point)
 
     def _geocode_shape(self, field: str, location_name: str) -> dict[str, Any]:
+        return self._geocode(field, location_name, _nominatim_geocode_shape)
+
+    def _geocode[T](self, field: str, location_name: str, resolve: Callable[[str], T]) -> T:
+        """Resolve a place name, telling "no result" apart from a geocoder failure.
+
+        Only "no result" is the client's fault; a failure of the geocoder itself is
+        an upstream condition, so it is logged and re-raised to surface as a 5xx
+        instead of blaming the user's location name with a 400.
+        """
         try:
-            return _nominatim_geocode_shape(location_name)
-        except (ValueError, GeopyError) as error:
+            return resolve(location_name)
+        except GeopyError as error:
+            # several geopy errors subclass ValueError too, so this must come first
+            log.warning(
+                "Geocoding of %r for parameter '%s%s' failed: %s: %s",
+                location_name,
+                self.prefix,
+                field,
+                type(error).__name__,
+                error,
+                exc_info=True,
+            )
+            raise
+        except ValueError as error:
             raise QuerystringValidationError(
                 _(
                     "Could not resolve location name %(location)r for parameter '%(param)s%(field)s'.",
                     location=location_name,
                     param=self.prefix,
                     field=field,
-                )
+                ),
             ) from error
 
 
@@ -280,7 +290,7 @@ class GeoDistanceParam(_PrefixedGeoParam):
     #: Fraction of the requested distance used as the ``distance_feature`` pivot.
     pivot_divisor: ClassVar[int] = 10
 
-    def _apply_value(self, search: Search, field: str, value: str) -> Search:
+    def _apply_value(self, search: RecordsSearchV2, field: str, value: str) -> RecordsSearchV2:
         point = self._parse_value(field, value)
 
         search = search.filter(
@@ -337,7 +347,8 @@ class GeoDistanceParam(_PrefixedGeoParam):
 
     def _pivot(self, distance: str) -> str:
         match = _DISTANCE_RE.match(distance)
-        assert match is not None  # noqa: S101 -- already validated by _parse_value
+        if match is None:
+            raise QuerystringValidationError(_("Invalid distance value: %(distance)r", distance=distance))
         pivot_value = round(float(match.group("value")) / self.pivot_divisor, 6)
         if pivot_value == int(pivot_value):
             pivot_value = int(pivot_value)
@@ -402,7 +413,7 @@ class GeoBoundingBoxParam(_PrefixedGeoParam):
 
     prefix: ClassVar[str] = "geo_bounding_box:"
 
-    def _apply_value(self, search: Search, field: str, value: str) -> Search:
+    def _apply_value(self, search: RecordsSearchV2, field: str, value: str) -> RecordsSearchV2:
         box = self._parse_value(field, value)
         south = _normalize_latitude(box.south)
         north = _normalize_latitude(box.north)
@@ -549,7 +560,7 @@ class GeoShapeParam(_PrefixedGeoParam):
     #: turns this off and only ever accepts WKT.
     allow_location_name: ClassVar[bool] = True
 
-    def _apply_value(self, search: Search, field: str, value: str) -> Search:
+    def _apply_value(self, search: RecordsSearchV2, field: str, value: str) -> RecordsSearchV2:
         operation, shape = self._parse_value(field, value)
 
         return search.filter(

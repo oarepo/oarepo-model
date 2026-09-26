@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Customization for creating new dictionaries in the model.
 
 This module provides the AddDictionary customization that creates new dictionaries
@@ -46,6 +41,8 @@ class AddDictionary(Customization):
         super().__init__(name)
         self.default = default
         self.exists_ok = exists_ok
+
+    modifies_own_name = True
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:

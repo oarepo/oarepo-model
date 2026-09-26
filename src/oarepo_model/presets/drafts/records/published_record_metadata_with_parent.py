@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Preset for adding parent record support to published record metadata.
 
 This module provides a preset that extends the RecordMetadata model with
@@ -51,7 +46,7 @@ class RecordMetadataWithParentPreset(Preset):
     ) -> Generator[Customization]:
         class ParentRecordModelMixin:
             @declared_attr
-            def __parent_record_model__(cls):  # noqa declared attr is a class method
+            def __parent_record_model__(cls):  # declared attr is a class method
                 return dependencies["ParentRecordMetadata"]
 
         yield AddBaseClass("RecordMetadata", ParentRecordMixin)

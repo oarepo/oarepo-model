@@ -1,11 +1,5 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see https://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
 
 """Invenio model builder for constructing and managing model components.
 
@@ -16,9 +10,11 @@ dependency resolution, and dynamic component creation for OARepo models.
 
 from __future__ import annotations
 
+import warnings
+from collections import defaultdict
 from importlib.metadata import EntryPoint
 from types import MappingProxyType, SimpleNamespace
-from typing import TYPE_CHECKING, Any, cast, override
+from typing import TYPE_CHECKING, Any, override
 
 from werkzeug.local import LocalProxy
 
@@ -27,14 +23,16 @@ from oarepo_model.errors import (
     ClassBuildError,
     ClassListBuildError,
     PartialNotFoundError,
+    PostBuildMutationWarning,
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable, SupportsIndex
 
     from .datatypes.registry import DataTypeRegistry
+    from .presets.base import Preset
 
-from .model import FileContent, InvenioModel, RuntimeDependencies
+from .model import CachedDescriptor, FileContent, InvenioModel, RuntimeDependencies
 from .utils import (
     is_mro_consistent,
     make_mro_consistent,
@@ -59,6 +57,100 @@ class Partial:
         return f"{self.__class__.__name__}(key={self.key})"
 
 
+def _warn_post_build_mutation(owner: Partial, attribute: str, stacklevel: int) -> None:
+    """Warn that a mutation performed after the partial was built is silently lost."""
+    if owner.built:
+        warnings.warn(
+            f"{attribute} of partial '{owner.key}' was modified after the partial was built, so the "
+            f"change has no effect on what is generated. Make the preset performing the modification "
+            f"declare '{owner.key}' in its modifies and use the guarded BuilderClass methods instead "
+            f"of the containers directly; this will raise RuntimeError in a future version.",
+            PostBuildMutationWarning,
+            stacklevel=stacklevel,
+        )
+
+
+class _GuardedList[T](list[T]):
+    """List of a partial that warns when it is modified after the partial was built."""
+
+    def __init__(self, owner: Partial, attribute: str, values: Iterable[T] = ()) -> None:
+        """Initialize the guarded list."""
+        super().__init__(values)
+        self._owner = owner
+        self._attribute = attribute
+
+    def _guard(self) -> None:
+        _warn_post_build_mutation(self._owner, self._attribute, stacklevel=4)
+
+    @override
+    def append(self, object: T) -> None:
+        self._guard()
+        super().append(object)
+
+    @override
+    def extend(self, iterable: Iterable[T]) -> None:
+        self._guard()
+        super().extend(iterable)
+
+    @override
+    def insert(self, index: SupportsIndex, object: T) -> None:
+        self._guard()
+        super().insert(index, object)
+
+    @override
+    def __setitem__(self, index: Any, value: Any) -> None:
+        self._guard()
+        super().__setitem__(index, value)
+
+    @override
+    def pop(self, index: SupportsIndex = -1) -> T:
+        self._guard()
+        return super().pop(index)
+
+    @override
+    def clear(self) -> None:
+        self._guard()
+        super().clear()
+
+
+class _GuardedDict(dict[str, Any]):
+    """Dictionary of a partial that warns when it is modified after the partial was built."""
+
+    def __init__(self, owner: Partial, attribute: str, values: dict[str, Any] | None = None) -> None:
+        """Initialize the guarded dictionary."""
+        super().__init__(values or {})
+        self._owner = owner
+        self._attribute = attribute
+
+    def _guard(self) -> None:
+        _warn_post_build_mutation(self._owner, self._attribute, stacklevel=4)
+
+    @override
+    def __setitem__(self, key: str, value: Any) -> None:
+        self._guard()
+        super().__setitem__(key, value)
+
+    @override
+    def update(self, *args: Any, **kwargs: Any) -> None:
+        self._guard()
+        super().update(*args, **kwargs)
+
+    @override
+    def setdefault(self, key: str, default: Any = None) -> Any:
+        self._guard()
+        return super().setdefault(key, default)
+
+    @override
+    def pop(self, *args: Any) -> Any:
+        self._guard()
+        return super().pop(*args)
+
+    @override
+    def clear(self) -> None:
+        self._guard()
+        super().clear()
+
+
 class BuilderClass(Partial):
     """Builder for classes in the model."""
 
@@ -72,22 +164,70 @@ class BuilderClass(Partial):
         """Initialize the BuilderClass customization."""
         super().__init__(key=class_name)
         self.class_name = class_name
-        self.mixins = list(mixins) if mixins else []
-        self.base_classes = list(base_classes) if base_classes else []
-        self.fields = fields or {}
+        self._mixins = _GuardedList(self, "mixins", mixins or ())
+        self._base_classes = _GuardedList(self, "base_classes", base_classes or ())
+        self._fields = _GuardedDict(self, "fields", fields)
+
+    @property
+    def mixins(self) -> _GuardedList[type]:
+        """Mixins of the class; prefer add_mixins / set_mixins over assigning to it."""
+        return self._mixins
+
+    @mixins.setter
+    def mixins(self, value: Iterable[type]) -> None:
+        _warn_post_build_mutation(self, "mixins", stacklevel=3)
+        self._mixins = _GuardedList(self, "mixins", value)
+
+    @property
+    def base_classes(self) -> _GuardedList[type]:
+        """Base classes of the class; prefer add_base_classes / set_base_classes over assigning."""
+        return self._base_classes
+
+    @base_classes.setter
+    def base_classes(self, value: Iterable[type]) -> None:
+        _warn_post_build_mutation(self, "base_classes", stacklevel=3)
+        self._base_classes = _GuardedList(self, "base_classes", value)
+
+    @property
+    def fields(self) -> _GuardedDict:
+        """Fields of the class; prefer add_field over assigning to it."""
+        return self._fields
+
+    @fields.setter
+    def fields(self, value: dict[str, Any]) -> None:
+        _warn_post_build_mutation(self, "fields", stacklevel=3)
+        self._fields = _GuardedDict(self, "fields", value)
 
     def add_base_classes(self, *classes: type) -> None:
         """Add base classes to the class."""
         if self.built:
             raise RuntimeError("Cannot add base classes after the class is built.")
-        self.base_classes.extend(classes)
+        self._base_classes.extend(classes)
+
+    def set_base_classes(self, *classes: type) -> None:
+        """Replace the base classes of the class."""
+        if self.built:
+            raise RuntimeError("Cannot set base classes after the class is built.")
+        self._base_classes = _GuardedList(self, "base_classes", classes)
 
     def add_mixins(self, *classes: type) -> None:
         """Add mixins to the class."""
         if self.built:
             raise RuntimeError("Cannot add mixins after the class is built.")
         for clazz in reversed(classes):
-            self.mixins.insert(0, clazz)  # Prepend to preserve MRO
+            self._mixins.insert(0, clazz)  # Prepend to preserve MRO
+
+    def set_mixins(self, *classes: type) -> None:
+        """Replace the mixins of the class."""
+        if self.built:
+            raise RuntimeError("Cannot set mixins after the class is built.")
+        self._mixins = _GuardedList(self, "mixins", classes)
+
+    def add_field(self, name: str, value: Any) -> None:
+        """Add a field to the class."""
+        if self.built:
+            raise RuntimeError("Cannot add fields after the class is built.")
+        self._fields[name] = value
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> type:
@@ -109,7 +249,11 @@ class BuilderClass(Partial):
             self.class_name,
             tuple(base_list),
             {
-                "__module__": type(self).__module__,
+                # __module__ deliberately points at the model's in-memory package (not this
+                # builder module), so tracebacks, repr and dotted-path resolution (pickle,
+                # marshmallow Nested) resolve to runtime_models_<base_name>.<Class> instead
+                # of oarepo_model.builder.<Class> - see InvenioModel.in_memory_package_name.
+                "__module__": model.in_memory_package_name,
                 "__qualname__": self.class_name,
                 "oarepo_model": model,
                 "oarepo_model_namespace": namespace,
@@ -118,8 +262,13 @@ class BuilderClass(Partial):
         )
 
 
-class BuilderClassList(Partial, list[type]):
+class BuilderClassList(Partial, _GuardedList[type]):
     """Builder for class lists in the model."""
+
+    def __init__(self, key: str, values: Iterable[type] = ()) -> None:
+        """Initialize the class list partial."""
+        Partial.__init__(self, key)
+        _GuardedList.__init__(self, self, "items", values)
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> list[type]:
@@ -132,74 +281,35 @@ class BuilderClassList(Partial, list[type]):
                 f"Error while building class list {self}: {e}",
             ) from e
 
-    @override
-    def append(self, object: type) -> None:
-        if self.built:
-            raise RuntimeError("Cannot append to class list after it is built.")
-        return super().append(object)
 
-    @override
-    def extend(self, iterable: Iterable[type]) -> None:
-        if self.built:
-            raise RuntimeError("Cannot append to class list after it is built.")
-        return super().extend(iterable)
-
-
-class BuilderList(Partial, list[Any]):
+class BuilderList(Partial, _GuardedList[Any]):
     """Builder for lists in the model."""
+
+    def __init__(self, key: str, values: Iterable[Any] = ()) -> None:
+        """Initialize the list partial."""
+        Partial.__init__(self, key)
+        _GuardedList.__init__(self, self, "items", values)
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> list[Any]:
+        """Build a list from the partial."""
         self.built = True
         return list(self)
 
-    @override
-    def append(self, object: Any) -> None:
-        if self.built:
-            raise RuntimeError("Cannot append to class list after it is built.")
-        return super().append(object)
 
-    @override
-    def extend(self, iterable: Iterable[Any]) -> None:
-        if self.built:
-            raise RuntimeError("Cannot append to class list after it is built.")
-        return super().extend(iterable)
-
-
-class BuilderDict(Partial, dict[str, Any]):
+class BuilderDict(Partial, _GuardedDict):
     """Builder for dictionaries in the model."""
+
+    def __init__(self, key: str, values: dict[str, Any] | None = None) -> None:
+        """Initialize the dictionary partial."""
+        Partial.__init__(self, key)
+        _GuardedDict.__init__(self, self, "items", values)
 
     @override
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> dict[str, Any]:
         """Build a dictionary from the partial."""
         self.built = True
         return {k: v for k, v in self.items() if v is not None}
-
-    @override
-    def update(self, *args: Any, **kwargs: Any) -> None:
-        if self.built:
-            raise RuntimeError("Cannot update class list after it is built.")
-        return super().update(*args, **kwargs)
-
-    @override
-    def __setitem__(self, key: str, value: Any) -> None:
-        if self.built:
-            raise RuntimeError("Cannot set item after the dictionary is built.")
-        return super().__setitem__(key, value)
-
-
-class BuilderConstant(Partial):
-    """Builder for constants in the model."""
-
-    def __init__(self, key: str, value: Any):
-        """Initialize the BuilderConstant customization."""
-        super().__init__(key)
-        self.value = value
-
-    @override
-    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> None:
-        """Build a dictionary from the partial."""
-        self.built = True
 
 
 class BuilderModule(Partial, SimpleNamespace):
@@ -214,18 +324,20 @@ class BuilderModule(Partial, SimpleNamespace):
     def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
         """Build a module from the partial."""
         self.built = True
-        # iterate through all attributes of the simple namespace and
-        # if any of those has a __get__ method, call it. This will handle
-        # Dependency descriptors and other similar cases.
         ret = SimpleNamespace()
-        ret.__files__ = self.files
+        ret.__files__ = dict(self.files)
         for attr in self.__dict__:
             try:
                 if attr.startswith("_") and attr != "__file__":
                     continue
                 value = getattr(self, attr)
-                if callable(value) and not isinstance(value, LocalProxy) and hasattr(value, "__get__"):
-                    value = value.__get__(self, type(self))
+                if isinstance(value, LocalProxy):
+                    # must stay lazy, resolving it here would require an app context
+                    pass
+                elif isinstance(value, (staticmethod, classmethod)):
+                    value = value.__get__(None, type(self))
+                elif isinstance(value, CachedDescriptor):
+                    value = value.real_get_value(None, type(self), model, namespace)
                 setattr(ret, attr, value)
             except Exception as e:
                 raise RuntimeError(
@@ -235,6 +347,8 @@ class BuilderModule(Partial, SimpleNamespace):
 
     def add_file(self, file_path: str, content: FileContent) -> None:
         """Add a file to the module."""
+        if self.built:
+            raise RuntimeError("Cannot add files after the module is built.")
         self.files[file_path] = content
 
     def __setitem__(self, key: str, value: Any) -> None:
@@ -244,18 +358,25 @@ class BuilderModule(Partial, SimpleNamespace):
         setattr(self, key, value)
 
 
-class BuilderFile(Partial):
-    """Builder for files in the model."""
+class _FileLike(Partial):
+    """Shared base of file and symlink partials: one payload shape for both."""
 
-    def __init__(self, name: str, module_name: str, file_path: str, content: FileContent):
-        """Initialize the BuilderFile customization."""
+    def __init__(
+        self,
+        name: str,
+        module_name: str,
+        file_path: str,
+        content: FileContent | None,
+    ) -> None:
+        """Initialize the file-like partial."""
         super().__init__(name)
         self.module_name = module_name
         self.file_path = file_path
         self.content = content
 
     @override
-    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
+    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> dict[str, Any]:
+        """Build the payload describing where the file lives."""
         self.built = True
 
         return {
@@ -265,24 +386,20 @@ class BuilderFile(Partial):
         }
 
 
-class BuilderSymbolicLink(Partial):
-    """Builder for symbolic links in the model."""
+class BuilderFile(_FileLike):
+    """Builder for files in the model."""
 
-    def __init__(self, name: str, module_name: str, file_path: str):
-        """Initialize the BuilderSymbolicLink customization."""
-        super().__init__(name)
-        self.module_name = module_name
-        self.file_path = file_path
+    content: FileContent
 
-    @override
-    def build(self, model: InvenioModel, namespace: SimpleNamespace) -> Any:
-        self.built = True
 
-        return {
-            "name": self.key,
-            "module-name": self.module_name,
-            "file-path": self.file_path,
-        }
+class BuilderSymbolicLink(_FileLike):
+    """Builder for symbolic links in the model; its content is the link target's."""
+
+    content: None
+
+    def __init__(self, name: str, module_name: str, file_path: str) -> None:
+        """Initialize the symlink partial."""
+        super().__init__(name, module_name, file_path, None)
 
 
 class InvenioModelBuilder:
@@ -296,6 +413,45 @@ class InvenioModelBuilder:
         self.entry_points: dict[tuple[str, str], str] = {}
         self.runtime_dependencies = RuntimeDependencies()
         self.type_registry = type_registry
+        self.current_preset: Preset | None = None
+        #: which preset created which partial, and which presets touched which partial
+        self.created_by: dict[str, Preset] = {}
+        self.touched_by: dict[str, set[Preset]] = defaultdict(set)
+
+    def start_preset(self, preset: Preset) -> None:
+        """Attribute the partials created and used from now on to `preset`."""
+        self.current_preset = preset
+
+    def finish_preset(self) -> None:
+        """Stop attributing partials to the preset being applied."""
+        self.current_preset = None
+
+    def _record(self, name: str, *, created: bool) -> None:
+        """Remember what the preset being applied does with partials."""
+        preset = self.current_preset
+        if preset is None:
+            return
+        if created:
+            self.created_by[name] = preset
+        else:
+            self.touched_by[name].add(preset)
+
+    def _add[T: Partial](
+        self,
+        name: str,
+        clz: type[T],
+        exists_ok: bool,
+        label: str,
+        create: Callable[[], T],
+    ) -> T:
+        """Add a partial, checking its kind with `_get` when `exists_ok` is set."""
+        if name in self.partials:
+            if exists_ok:
+                return self._get(name, clz)
+            raise AlreadyRegisteredError(f"{label} {name} already exists.")
+        self.partials[name] = ret = create()
+        self._record(name, created=True)
+        return ret
 
     def add_class(
         self,
@@ -304,15 +460,16 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderClass:
         """Add a class to the builder."""
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderClass", self.partials[name])
-            raise AlreadyRegisteredError(f"Class {name} already exists.")
-        self.partials[name] = clz = BuilderClass(
-            self.model.title_name + title_case(name).replace("_", ""),
-            base_classes=[clazz] if clazz else [],
+        return self._add(
+            name,
+            BuilderClass,
+            exists_ok,
+            "Class",
+            lambda: BuilderClass(
+                self.model.title_name + title_case(name),
+                base_classes=[clazz] if clazz else [],
+            ),
         )
-        return clz
 
     def get_class(self, name: str) -> BuilderClass:
         """Get a class by name."""
@@ -328,13 +485,13 @@ class InvenioModelBuilder:
 
         A class list is a list of classes that will be used to build a mro consistent class list.
         """
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderClassList", self.partials[name])
-            raise AlreadyRegisteredError(f"Class list {name} already exists.")
-        self.partials[name] = cll = BuilderClassList(name)
-        cll.extend(classes)
-        return cll
+
+        def create() -> BuilderClassList:
+            cll = BuilderClassList(name)
+            cll.extend(classes)
+            return cll
+
+        return self._add(name, BuilderClassList, exists_ok, "Class list", create)
 
     def get_class_list(self, name: str) -> BuilderClassList:
         """Get a class list by name."""
@@ -347,13 +504,13 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderList:
         """Add a list to the builder."""
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderList", self.partials[name])
-            raise AlreadyRegisteredError(f"List {name} already exists.")
-        self.partials[name] = cll = BuilderList(name)
-        cll.extend(classes)
-        return cll
+
+        def create() -> BuilderList:
+            lst = BuilderList(name)
+            lst.extend(classes)
+            return lst
+
+        return self._add(name, BuilderList, exists_ok, "List", create)
 
     def get_list(self, name: str) -> BuilderList:
         """Get a list by name."""
@@ -366,35 +523,17 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderDict:
         """Add a dictionary to the builder."""
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderDict", self.partials[name])
-            raise AlreadyRegisteredError(f"Dictionary {name} already exists.")
-        self.partials[name] = ret = BuilderDict(name)
-        ret.update(default or {})
-        return ret
+
+        def create() -> BuilderDict:
+            ret = BuilderDict(name)
+            ret.update(default or {})
+            return ret
+
+        return self._add(name, BuilderDict, exists_ok, "Dictionary", create)
 
     def get_dictionary(self, name: str) -> dict[str, Any]:
         """Get a dictionary by name."""
         return self._get(name, BuilderDict)
-
-    def add_constant(
-        self,
-        name: str,
-        value: Any,
-        exists_ok: bool = False,
-    ) -> BuilderConstant:
-        """Add a constant to the builder."""
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderConstant", self.partials[name])
-            raise AlreadyRegisteredError(f"Constant {name} already exists.")
-        self.partials[name] = ret = BuilderConstant(name, value)
-        return ret
-
-    def get_constant(self, name: str) -> BuilderConstant:
-        """Get a constant by name."""
-        return self._get(name, BuilderConstant)
 
     def add_module(
         self,
@@ -402,12 +541,7 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderModule:
         """Add a module to the builder."""
-        if name in self.partials:
-            if exists_ok:
-                return cast("BuilderModule", self.partials[name])
-            raise AlreadyRegisteredError(f"Module {name} already exists.")
-        self.partials[name] = _module = BuilderModule(name)
-        return _module
+        return self._add(name, BuilderModule, exists_ok, "Module", lambda: BuilderModule(name))
 
     def add_file(
         self,
@@ -418,14 +552,13 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderFile:
         """Add a file to the builder."""
-        if symbolic_name in self.partials:
-            if exists_ok:
-                return cast("BuilderFile", self.partials[symbolic_name])
-            raise AlreadyRegisteredError(f"Module {symbolic_name} already exists.")
-
-        ret = BuilderFile(symbolic_name, module_name, file_path, content)
-        self.partials[symbolic_name] = ret
-        return ret
+        return self._add(
+            symbolic_name,
+            BuilderFile,
+            exists_ok,
+            "File",
+            lambda: BuilderFile(symbolic_name, module_name, file_path, content),
+        )
 
     def add_symlink(
         self,
@@ -435,14 +568,13 @@ class InvenioModelBuilder:
         exists_ok: bool = False,
     ) -> BuilderSymbolicLink:
         """Add a symlink to the builder."""
-        if symbolic_name in self.partials:
-            if exists_ok:
-                return cast("BuilderSymbolicLink", self.partials[symbolic_name])
-            raise AlreadyRegisteredError(f"Module {symbolic_name} already exists.")
-
-        ret = BuilderSymbolicLink(symbolic_name, module_name, file_path)
-        self.partials[symbolic_name] = ret
-        return ret
+        return self._add(
+            symbolic_name,
+            BuilderSymbolicLink,
+            exists_ok,
+            "Symlink",
+            lambda: BuilderSymbolicLink(symbolic_name, module_name, file_path),
+        )
 
     def get_file(self, symbolic_name: str) -> BuilderFile:
         """Get a file by symbolic name."""
@@ -460,15 +592,15 @@ class InvenioModelBuilder:
         overwrite: bool = False,
         separator: str = ":",
     ) -> None:
-        """Add an entry point to the builder."""
+        """Add an entry point to the builder, or remove it when `value` is None."""
+        if value is None:
+            self.entry_points.pop((group, name), None)
+            return
+
         if (group, name) in self.entry_points and not overwrite:
             raise AlreadyRegisteredError(f"Entry point {group}:{name} already exists.")
 
-        if value is None and (group, name) in self.entry_points:
-            del self.entry_points[(group, name)]
-            return
-
-        self.entry_points[(group, name)] = f"runtime_models_{self.model.base_name}{separator}{value}"
+        self.entry_points[(group, name)] = f"{self.model.in_memory_package_name}{separator}{value}"
 
     _not_found_messages = MappingProxyType[type, str](
         {
@@ -477,6 +609,8 @@ class InvenioModelBuilder:
             BuilderList: "Builder list",
             BuilderDict: "Builder dictionary",
             BuilderModule: "Builder module",
+            BuilderFile: "Builder file",
+            BuilderSymbolicLink: "Builder symbolic link",
         },
     )
 
@@ -484,11 +618,12 @@ class InvenioModelBuilder:
         """Get a partial by name."""
         if name not in self.partials:
             raise PartialNotFoundError(
-                f"{self._not_found_messages[clz]} {name} not found.",
+                f"{self._not_found_messages.get(clz, clz.__name__)} {name} not found.",
             )
         partial = self.partials[name]
         if not isinstance(partial, clz):
             raise TypeError(f"Partial {name} is not a {clz.__name__}.")
+        self._record(name, created=False)
         return partial
 
     def get_runtime_dependencies(self) -> RuntimeDependencies:

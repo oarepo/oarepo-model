@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Utilities for OAREPO model."""
 
 from __future__ import annotations
@@ -93,19 +88,12 @@ class ReadOnlyDict(Mapping):
         return ReadOnlyDict(copy.deepcopy(self._data, memo))
 
 
-def _to_plain(value: Any) -> Any:
-    """Recursively convert Mapping/list containers into plain dict/list."""
-    if isinstance(value, Mapping):
-        return {k: _to_plain(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_to_plain(v) for v in value]
-    return value
-
-
 def _resolve_readonly_dict_conflict(merger: Merger, path: list, base: Any, nxt: Any) -> Any:
     """Deep-clone a non-dict Mapping ``base`` to a plain dict, then merge."""
     if isinstance(base, Mapping) and not isinstance(base, dict) and isinstance(nxt, dict):
-        return merger.value_strategy(path, _to_plain(base), nxt)
+        # Tuples must stay tuples here: deepmerge appends two lists, so converting
+        # a tuple base would turn deepmerge's override into a concatenation.
+        return merger.value_strategy(path, deepcopy_to_plain(base), nxt)
     return STRATEGY_END
 
 
@@ -168,14 +156,23 @@ def make_mro_consistent(class_list: list[type]) -> list[type]:
 
 
 def camel_case_split(s: str) -> list[str]:
-    """Split a camel case string into a list of words."""
-    return re.findall(r"([A-Z]?[a-z]+)", s)
+    """Split a camel case string into a list of words, keeping acronym runs together."""
+    return re.findall(r"[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z0-9]+", s)
 
 
 def title_case(s: str) -> str:
-    """Convert a string to title case."""
-    parts = camel_case_split(s)
-    return "".join(part.capitalize() for part in parts)
+    """Convert a string to title case, preserving acronym runs like "PID".
+
+    :param s: The string to convert.
+    :return: A title-cased string usable as a Python identifier.
+    :raises ValueError: If the string contains no characters to title case.
+    """
+    ret = "".join(part if part.isupper() else part[0].upper() + part[1:] for part in camel_case_split(s))
+    if not ret:
+        raise ValueError(f"Cannot convert {s!r} to a title case name, it contains no letters or digits.")
+    if ret[0].isdigit():
+        ret = f"_{ret}"
+    return ret
 
 
 def convert_to_python_identifier(s: str) -> str:
@@ -197,6 +194,9 @@ def convert_to_python_identifier(s: str) -> str:
             else:
                 ret.append(c)
         s = "".join(ret)
+        if not s.isidentifier():
+            # the transliteration above only replaces characters, it cannot fix a leading digit
+            s = f"_{s}"
 
     if keyword.iskeyword(s):
         s = f"{s}_"
@@ -224,7 +224,7 @@ class MultiFormatField(marshmallow.fields.Field):
         :param kwargs: Additional keyword arguments.
         """
         super().__init__(*args, **kwargs)
-        if len(subfields) < 2:  # noqa: PLR2004   magic constant
+        if len(subfields) < 2:  # noqa PLR2004 no need to create a constant here
             raise ValueError("MultiFormatField requires at least two subfields.")
 
         self.subfields = subfields
@@ -242,7 +242,7 @@ class MultiFormatField(marshmallow.fields.Field):
 
         # otherwise return key: value dictionary
         return {
-            key: field._serialize(  # noqa: SLF001 private value access
+            key: field._serialize(  # noqa SLF001 - ok to access private method here
                 value,
                 attr,
                 obj,
@@ -272,10 +272,20 @@ def resolve_file_content(content: FileContent) -> str:
     return content
 
 
+def in_memory_package_name(base_name: str) -> str:
+    """Return the name of the in-memory (importable) package for a model base name.
+
+    Single source of the ``runtime_models_`` prefix - InvenioModel.in_memory_package_name
+    and import_runtime_model both build on this, and generated classes carry it as
+    their ``__module__`` so that dotted paths (pickle, marshmallow Nested) resolve
+    to the model's own package.
+    """
+    return f"runtime_models_{base_name}"
+
+
 def import_runtime_model[R: Record = Record](model_name: str) -> ModelNamespace[R]:
     """Import a runtime model by name."""
-    import_package = f"runtime_models_{model_name}"
-    module = importlib.import_module(import_package)
+    module = importlib.import_module(in_memory_package_name(model_name))
     return cast("ModelNamespace", module)
 
 
@@ -293,13 +303,16 @@ def import_runtime_json(model_name: str, filename: str) -> dict[str, Any]:
     return cast("dict[str, Any]", json.loads(file_content))
 
 
-def deeply_copy_to_mutable(obj: Any) -> Any:
-    """Convert an object to a dictionary. Any mappings or sequences are converted recursively."""
+def deepcopy_to_plain(obj: Any) -> Any:
+    """Convert an object to a dictionary.
+
+    Unlike the "deepcopy" it also converts lazy mappings to plain dicts.
+    """
     if isinstance(obj, Mapping):
-        return {k: deeply_copy_to_mutable(v) for k, v in obj.items()}
+        return {k: deepcopy_to_plain(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
-        return [deeply_copy_to_mutable(v) for v in obj]
-    return obj
+        return [deepcopy_to_plain(v) for v in obj]
+    return copy.deepcopy(obj)
 
 
 def _merged_one_of_properties(node: dict[str, Any]) -> dict[str, Any] | None:
@@ -407,8 +420,8 @@ def walk_type_tree_path_leaf(root: Mapping[str, Any], path: str) -> dict[str, An
 
     :param root: the "properties"-style mapping (field name -> declarative node)
         to start walking from.
-    :param path: a dot-separated field path, e.g. "metadata.authors.name". An
-        empty path returns `None` (no leaf can be determined).
+    :param path: a dot-separated field path, e.g. "metadata.authors.name". Must
+        be non-empty; an empty path raises `ValueError`.
     :return: the node at the end of `path`
     :raises ValueError: if `path` is not specified
     :raises KeyError: if any segment is missing
@@ -462,8 +475,8 @@ def walk_ui_model_path_leaf(root: Mapping[str, Any], path: str) -> dict[str, Any
 
     :param root: the "children"-style mapping (field name -> UI model node) to
         start walking from.
-    :param path: a dot-separated field path, e.g. "metadata.authors.name". An
-        empty path returns `None` (no leaf can be determined).
+    :param path: a dot-separated field path, e.g. "metadata.authors.name". Must
+        be non-empty; an empty path raises `ValueError`.
     :return: the node at the end of `path`
     :raises ValueError: if `path` is not specified
     :raises KeyError: if any segment is missing

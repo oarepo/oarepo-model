@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """Customization for adding JSON files to modules.
 
 This module provides the AddJSONFile customization that creates JSON files
@@ -46,6 +41,8 @@ class AddFileSymlink(Customization):
         self.module_name = module_name
         self.file_path = file_path
         self.exists_ok = exists_ok
+
+    modifies_own_name = True
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:

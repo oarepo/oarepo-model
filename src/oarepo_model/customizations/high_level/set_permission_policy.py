@@ -1,11 +1,6 @@
-#
-# Copyright (c) 2025 CESNET z.s.p.o.
-#
-# This file is a part of oarepo-model (see http://github.com/oarepo/oarepo-model).
-#
-# oarepo-model is free software; you can redistribute it and/or modify it
-# under the terms of the MIT License; see LICENSE file for more details.
-#
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
+# SPDX-License-Identifier: MIT
+
 """High-level customization for setting models' permission policy.
 
 This module provides the SetPermissionPolicy customization that sets the permission policy
@@ -32,13 +27,13 @@ class SetPermissionPolicy(Customization):
 
     def __init__(self, permission_policy: type[RecordPermissionPolicy], keep_mixins: bool = False):
         """Initialize the SetPermissionPolicy customization."""
-        super().__init__("SetPermissionPolicy")
+        super().__init__(permission_policy.__name__)
         self._permission_policy = permission_policy
         self._keep_mixins = keep_mixins
 
     @override
     def apply(self, builder: InvenioModelBuilder, model: InvenioModel) -> None:
         policy = builder.get_class("PermissionPolicy")
-        policy.base_classes = [self._permission_policy]
+        policy.set_base_classes(self._permission_policy)
         if not self._keep_mixins:
-            policy.mixins = []
+            policy.set_mixins()
