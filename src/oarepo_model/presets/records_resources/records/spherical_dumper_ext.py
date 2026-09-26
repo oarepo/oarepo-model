@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 CESNET z.s.p.o
+# SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
 """Spherical coordinate dumper extensions generated from model data types."""
@@ -103,4 +103,3 @@ class ICRSShapeDumperExtPreset(PathDumperExtPreset):
 
     datatype_class = ICRSShapeDataType
     dumper_ext_class = ICRSShapeDumperExt
-
