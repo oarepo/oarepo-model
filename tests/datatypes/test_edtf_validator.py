@@ -73,7 +73,9 @@ def _outcome(validator, value: str) -> str:
 
     The grammar path dies on some inputs (``2024-21`` makes ``edtf``'s ``Season`` blow
     up, an open bound makes the chronological comparison raise). Those inputs are
-    included on purpose: the fast path must not change what happens to them either.
+    included on purpose: the fast path must not change what happens to them either,
+    except that a crash becomes an ordinary rejection - a crashing value is user
+    input, so it deserves a validation error rather than a server error.
     """
     try:
         validator(value)
@@ -90,7 +92,13 @@ def test_fast_path_agrees_with_the_grammar(value: str, kind: str) -> None:
     fast = MultilayerEDTFValidator(types=TYPES[kind])
     grammar = EDTFValidator(types=TYPES[kind])
 
-    assert _outcome(fast, value) == _outcome(grammar, value)
+    grammar_outcome = _outcome(grammar, value)
+    fast_outcome = _outcome(fast, value)
+    if grammar_outcome in ("valid", "invalid"):
+        assert fast_outcome == grammar_outcome
+    else:
+        # where the grammar path crashes, the fast path politely rejects
+        assert fast_outcome == "invalid"
 
 
 def test_interval_validator_rejects_a_bare_date() -> None:

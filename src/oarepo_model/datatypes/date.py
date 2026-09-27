@@ -18,6 +18,7 @@ import edtf
 import marshmallow.fields
 import marshmallow.validate
 import marshmallow_utils.fields
+from marshmallow.exceptions import ValidationError
 from marshmallow_utils.fields.edtfdatestring import EDTFValidator
 
 from oarepo_model.utils import ReadOnlyDict
@@ -286,7 +287,15 @@ class MultilayerEDTFValidator(EDTFValidator):
         """Validate the EDTF value and return it."""
         if self._accepts_strict_value(value):
             return value
-        return super().__call__(value)
+        try:
+            return super().__call__(value)
+        except ValidationError:
+            raise
+        except Exception as error:
+            # despite the name ``parse_edtf`` resolves to babel_edtf's, which
+            # *crashes* on some level-1/2 inputs (seasons, open bounds) instead
+            # of rejecting them; turn the crash into an ordinary rejection
+            raise ValidationError(f"Invalid EDTF value {value!r}: {error}") from error
 
     def _accepts_strict_value(self, value: Any) -> bool:
         """Whether ``value`` is a strict date/interval the configured types accept.
@@ -366,7 +375,14 @@ class EDTFBaseDataType(DataType):
 
 
 class EDTFTimeDataType(FacetMixin, EDTFBaseDataType):
-    """Data type for EDTF (Extended Date/Time Format) time values."""
+    """Data type for EDTF (Extended Date/Time Format) time values.
+
+    A datetime without a timezone offset is indexed as UTC: the strict mapping
+    formats require an offset, so :class:`EDTFTimeDumperExt` appends ``Z`` to
+    naive datetimes when the record is indexed. Other grammar-valid forms the
+    mapping cannot parse (``19XX``, ...) are silently not indexed (the same
+    ``ignore_malformed`` policy as plain ``edtf``).
+    """
 
     TYPE = "edtf-time"
 
@@ -376,6 +392,7 @@ class EDTFTimeDataType(FacetMixin, EDTFBaseDataType):
         {
             "type": "date",
             "format": "strict_date_time||strict_date_time_no_millis||strict_date||yyyy-MM||yyyy",
+            "ignore_malformed": True,
         },
     )
     edtf_validator_types = (edtf.DateAndTime, edtf.Date)
@@ -388,7 +405,14 @@ class EDTFTimeDataType(FacetMixin, EDTFBaseDataType):
 
 
 class EDTFDataType(FacetMixin, EDTFBaseDataType):
-    """Data type for EDTF (Extended Date/Time Format) values."""
+    """Data type for EDTF (Extended Date/Time Format) values.
+
+    Any date the EDTF grammar accepts validates, including level-1 forms like
+    ``19XX`` or ``-1997`` that OpenSearch's date formats cannot parse:
+    ``ignore_malformed`` means such a value stays in ``_source`` but is simply
+    not indexed, instead of failing the whole document. Date searches, sorts
+    and aggregations then cover only dates OpenSearch understands.
+    """
 
     TYPE = "edtf"
 
@@ -396,6 +420,7 @@ class EDTFDataType(FacetMixin, EDTFBaseDataType):
         {
             "type": "date",
             "format": _EDTF_DATE_FORMATS,
+            "ignore_malformed": True,
         },
     )
     edtf_validator_types = (edtf.Date,)
@@ -407,18 +432,35 @@ class EDTFDataType(FacetMixin, EDTFBaseDataType):
 
 
 class EDTFIntervalType(EDTFBaseDataType):
-    """Data type for EDTF intervals."""
+    """Data type for EDTF intervals.
+
+    The interval string itself is stored as a keyword (it is not parseable by any
+    index mapping); :class:`EDTFDateRangeDumperExt` converts it to a
+    ``{gte, lte}`` range in the sibling ``<field>_range`` ``date_range`` field,
+    which is the field range queries must target.
+    """
 
     TYPE = "edtf-interval"
 
     mapping_type = ReadOnlyDict(
         {
-            "type": "date_range",
-            "format": _EDTF_DATE_FORMATS,
-        },
+            "type": "keyword",
+        }
     )
     edtf_validator_types = (edtf.Interval,)
     default_ui_field_class = LocalizedEDTFTimeInterval
+
+    @override
+    def create_dynamic_mapping(self, field_name: str, element: dict[str, Any]) -> ReadOnlyDict:
+        """Create sibling date_range mapping, same as for edtf-date-or-interval."""
+        _ = element
+        return ReadOnlyDict(
+            {
+                f"{field_name}_range": {
+                    "type": "date_range",
+                },
+            },
+        )
 
 
 class EDTFDateOrIntervalDataType(EDTFBaseDataType):

@@ -226,6 +226,18 @@ class TestStrictValidation:
         result = schema.load({"a": "3.14"})
         assert result["a"] == pytest.approx(3.14)
 
+    @pytest.mark.parametrize("type_name", ["float", "double"])
+    def test_float_types_do_not_pass_strict_kwarg(self, datatype_registry, type_name):
+        """Don't pass strict to Float fields.
+
+        Marshmallow's Float has no such parameter, so it would end up as inert
+        field metadata.
+        """
+        dt = datatype_registry.get_type({"type": type_name})
+        for strict in (True, False):
+            args = dt._get_marshmallow_field_args("a", {"type": type_name, "strict_validation": strict})
+            assert "strict" not in args
+
 
 # ===========================================================================
 # Number facets

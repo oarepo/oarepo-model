@@ -121,7 +121,7 @@ class PathDumperExtPreset(Preset):
 
     modifies = ("record_dumper_extensions",)
 
-    datatype_class: ClassVar[type[DataType]]
+    datatype_class: ClassVar[type[DataType] | tuple[type[DataType], ...]]
     dumper_ext_class: ClassVar[type[PathDumperExtBase]]
 
     @override

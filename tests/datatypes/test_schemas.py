@@ -369,6 +369,13 @@ def test_edtf_time_field(test_schema):
     val = "2023-01-01"
     assert schema.load({"a": val}) == {"a": val}
 
+    val = "2024-01-01T00:00:00Z"
+    assert schema.load({"a": val}) == {"a": val}
+
+    val = "2024-01-01T00:00:00+02:00"
+    assert schema.load({"a": val}) == {"a": val}
+
+    # a naive datetime validates; EDTFTimeDumperExt appends Z when indexing
     val = "2024-01-01T00:00:00"
     assert schema.load({"a": val}) == {"a": val}
 
@@ -396,6 +403,15 @@ def test_edtf_field(test_schema):
     val = "2024-01-01T00:00:00"
     with pytest.raises(ma.ValidationError):
         schema.load({"a": val})
+
+    # EDTF level-1 forms validate: the date mapping's ignore_malformed makes
+    # them unsearchable instead of unindexable
+    for val in ("19XX", "2023-XX", "-1997"):
+        assert schema.load({"a": val}) == {"a": val}
+
+    # a season crashes the edtf library itself; it is rejected politely
+    with pytest.raises(ma.ValidationError):
+        schema.load({"a": "2001-21"})
 
 
 def test_edtf_interval_field(test_schema):
@@ -427,6 +443,34 @@ def test_edtf_interval_field(test_schema):
     # a non-chronological interval is not either
     with pytest.raises(ma.ValidationError):
         schema.load({"a": "2008/1964"})
+
+
+def test_edtf_interval_object_mapping(datatype_registry):
+    ret = datatype_registry.get_type("object").create_mapping(
+        element={
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "edtf-interval",
+                },
+            },
+        },
+    )
+
+    # the interval string is not index-time parseable; the searchable range
+    # lives in the sibling date_range field written by EDTFDateRangeDumperExt
+    assert ret == {
+        "type": "object",
+        "dynamic": "strict",
+        "properties": {
+            "date": {
+                "type": "keyword",
+            },
+            "date_range": {
+                "type": "date_range",
+            },
+        },
+    }
 
 
 def test_edtf_date_or_interval_field(test_schema):

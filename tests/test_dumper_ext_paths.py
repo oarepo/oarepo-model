@@ -11,6 +11,7 @@ from oarepo_model.api import model
 from oarepo_model.presets.records_resources import records_preset
 from oarepo_model.presets.records_resources.records.date_range_dumper_ext import (
     EDTFDateRangeDumperExt,
+    EDTFTimeDumperExt,
 )
 from oarepo_model.presets.records_resources.records.spherical_dumper_ext import (
     ICRSDumperExt,
@@ -23,8 +24,9 @@ from oarepo_model.presets.records_resources.records.spherical_dumper_ext import 
     [
         ("icrs_dumper_ext_test", "icrs", "locations", "position", ICRSDumperExt),
         ("date_range_dumper_ext_test", "edtf-date-or-interval", "dates", "date", EDTFDateRangeDumperExt),
+        ("edtf_time_dumper_ext_test", "edtf-time", "dates", "date", EDTFTimeDumperExt),
     ],
-    ids=["icrs", "date_range"],
+    ids=["icrs", "date_range", "edtf_time"],
 )
 def test_records_preset_registers_dumper_extension_with_nested_paths(
     name, field_type, array_name, field_name, extension_cls
@@ -110,6 +112,49 @@ def test_array_of_dates_gets_a_sibling_array_of_ranges():
         {"gte": "2020-01-01", "lte": "2020-12-31"},
         {"gte": "2021-01-01", "lte": "2022-12-31"},
     ]
+    dumper.load(result, None)
+    assert result == data
+
+
+def test_naive_edtf_datetime_is_indexed_as_utc():
+    """A datetime without an offset gets Z appended on dump, kept on load."""
+    data = {
+        "metadata": {
+            "naive": "2024-01-01T00:00:00",
+            "zoned": "2024-01-01T00:00:00Z",
+            "offset": "2024-01-01T00:00:00+02:00",
+            "date": "2024-01-01",
+        }
+    }
+    dumper = EDTFTimeDumperExt(
+        [["metadata", "naive"], ["metadata", "zoned"], ["metadata", "offset"], ["metadata", "date"]],
+    )
+
+    result = deepcopy(data)
+    dumper.dump(None, result)
+
+    assert result["metadata"] == {
+        "naive": "2024-01-01T00:00:00Z",
+        "zoned": "2024-01-01T00:00:00Z",
+        "offset": "2024-01-01T00:00:00+02:00",
+        "date": "2024-01-01",
+    }
+    dumper.load(result, None)
+    assert result["metadata"]["naive"] == "2024-01-01T00:00:00Z"  # the appended Z is kept
+
+
+def test_unconvertible_interval_is_skipped_not_fatal():
+    """A value that crashes the EDTF library's range computation is skipped.
+
+    The record stays indexable instead of failing the whole document.
+    """
+    data = {"metadata": {"date": "2001-21"}}  # a season crashes babel_edtf's range computation
+    dumper = EDTFDateRangeDumperExt([["metadata", "date"]])
+
+    result = deepcopy(data)
+    dumper.dump(None, result)
+
+    assert result == data  # the original interval stays, no sibling was written
     dumper.load(result, None)
     assert result == data
 

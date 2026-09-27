@@ -114,6 +114,20 @@ class GeoPointDataType(ObjectDataType):
             "type": self.mapping_type,
         }
 
+    @override
+    def get_facet(
+        self,
+        path: str,
+        element: dict[str, Any],
+        nested_facets: list[Any],
+        facets: dict[str, list],
+        path_suffix: str = "",
+        ignored_keys: set[str] | None = None,
+    ) -> Any:
+        """Create no facets: a geo_point mapping has no lat/lon sub-fields to aggregate on."""
+        _ = path, element, nested_facets, path_suffix, ignored_keys
+        return facets
+
 
 class GeoShapeDataType(ObjectDataType):
     """Data type for geo shapes.
@@ -142,7 +156,7 @@ class GeoShapeDataType(ObjectDataType):
         """Add the shapely validator and drop 'nested', which Raw does not accept."""
         args = super()._get_marshmallow_field_args(field_name, element)
         args.pop("nested", None)
-        args["validate"] = validate_geo_shape
+        args.setdefault("validate", []).append(validate_geo_shape)
         return args
 
     @override

@@ -399,7 +399,7 @@ class LazyPIDRelation(PIDRelation):
     Usage:
     ```yaml
     a:
-        type: recursive-pid-relation
+        type: lazy-pid-relation
         model: "target model"      # target model's name
         keys:
         - id                       # dotted path to the field.
