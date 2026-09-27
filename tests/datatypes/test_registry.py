@@ -18,7 +18,6 @@ Covers:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 import yaml
@@ -26,119 +25,48 @@ import yaml
 from oarepo_model.datatypes.registry import from_json, from_yaml
 
 # ===========================================================================
-# from_json
+# from_json / from_yaml
 # ===========================================================================
 
 
-class TestFromJson:
-    """from_json must parse both dict and list formats."""
+@pytest.mark.parametrize(
+    ("loader", "dump", "suffix"),
+    [(from_json, json.dumps, "json"), (from_yaml, yaml.dump, "yaml")],
+    ids=["json", "yaml"],
+)
+class TestLoaders:
+    """from_json and from_yaml must parse both dict and list formats."""
 
-    def _write_json(self, data: object, *, directory: str) -> str:
-        path = Path(directory) / "types.json"
-        path.write_text(json.dumps(data), encoding="utf-8")
-        return str(path)
+    def test_dict_format_returns_dict(self, tmp_path, loader, dump, suffix):
+        """Return the mapping unchanged when the file uses the dict format."""
+        path = tmp_path / f"types.{suffix}"
+        path.write_text(dump({"MyType": {"type": "keyword"}}), encoding="utf-8")
+        assert loader(str(path)) == {"MyType": {"type": "keyword"}}
 
-    def test_dict_format_returns_dict(self, tmp_path):
-        """Return the JSON mapping unchanged when the file uses the dict format."""
-        path = self._write_json({"MyType": {"type": "keyword"}}, directory=str(tmp_path))
-        result = from_json(path)
-        assert result == {"MyType": {"type": "keyword"}}
-
-    def test_list_format_returns_dict_keyed_by_name(self, tmp_path):
-        """Return a dict keyed by each entry's popped name field."""
-        path = self._write_json([{"name": "MyType", "type": "keyword"}], directory=str(tmp_path))
-        result = from_json(path)
-        assert "MyType" in result
-        # 'name' is popped, so it should not be in the value dict
-        assert "name" not in result["MyType"]
-        assert result["MyType"]["type"] == "keyword"
-
-    def test_list_format_multiple_entries(self, tmp_path):
-        """Return one key per element of a multi-element list format."""
-        path = self._write_json(
-            [
-                {"name": "TypeA", "type": "keyword"},
-                {"name": "TypeB", "type": "fulltext"},
-            ],
-            directory=str(tmp_path),
+    def test_list_format_returns_dict_keyed_by_popped_name(self, tmp_path, loader, dump, suffix):
+        """Return one key per list element, keyed by its popped name field."""
+        path = tmp_path / f"types.{suffix}"
+        path.write_text(
+            dump([{"name": "TypeA", "type": "keyword"}, {"name": "TypeB", "type": "fulltext"}]),
+            encoding="utf-8",
         )
-        result = from_json(path)
-        assert set(result.keys()) == {"TypeA", "TypeB"}
+        assert loader(str(path)) == {"TypeA": {"type": "keyword"}, "TypeB": {"type": "fulltext"}}
 
-    def test_origin_resolves_relative_path(self, tmp_path):
+    def test_origin_resolves_relative_path(self, tmp_path, loader, dump, suffix):
         """When origin is given, file_name is resolved relative to its parent dir."""
         origin_file = tmp_path / "subdir" / "origin.py"
         origin_file.parent.mkdir()
         origin_file.write_text("")
+        (tmp_path / "subdir" / f"types.{suffix}").write_text(dump({"T": {"type": "int"}}), encoding="utf-8")
 
-        types_file = tmp_path / "subdir" / "types.json"
-        types_file.write_text(json.dumps({"T": {"type": "int"}}), encoding="utf-8")
+        assert loader(f"types.{suffix}", origin=str(origin_file)) == {"T": {"type": "int"}}
 
-        result = from_json("types.json", origin=str(origin_file))
-        assert result == {"T": {"type": "int"}}
-
-    def test_scalar_content_raises_type_error(self, tmp_path):
+    def test_scalar_content_raises_type_error(self, tmp_path, loader, dump, suffix):
         """Raise TypeError when the file's top-level content is neither a list nor a dict."""
-        path = self._write_json(42, directory=str(tmp_path))
+        path = tmp_path / f"types.{suffix}"
+        path.write_text(dump(42), encoding="utf-8")
         with pytest.raises(TypeError, match="Expected dict or list"):
-            from_json(path)
-
-
-# ===========================================================================
-# from_yaml
-# ===========================================================================
-
-
-class TestFromYaml:
-    """from_yaml must parse both dict and list formats."""
-
-    def test_dict_format_returns_dict(self, tmp_path):
-        """Return the YAML mapping unchanged when the file uses the dict format."""
-        path = tmp_path / "types.yaml"
-        path.write_text(yaml.dump({"MyType": {"type": "keyword"}}), encoding="utf-8")
-        result = from_yaml(str(path))
-        assert result == {"MyType": {"type": "keyword"}}
-
-    def test_list_format_returns_dict_keyed_by_name(self, tmp_path):
-        """Return a dict keyed by each entry's popped name field."""
-        path = tmp_path / "types.yaml"
-        path.write_text(
-            yaml.dump([{"name": "MyType", "type": "keyword"}]),
-            encoding="utf-8",
-        )
-        result = from_yaml(str(path))
-        assert "MyType" in result
-        assert "name" not in result["MyType"]
-        assert result["MyType"]["type"] == "keyword"
-
-    def test_list_format_multiple_entries(self, tmp_path):
-        """Return one key per element of a multi-element YAML list."""
-        path = tmp_path / "types.yaml"
-        path.write_text(
-            yaml.dump([{"name": "A", "type": "keyword"}, {"name": "B", "type": "int"}]),
-            encoding="utf-8",
-        )
-        result = from_yaml(str(path))
-        assert set(result.keys()) == {"A", "B"}
-
-    def test_origin_resolves_relative_path(self, tmp_path):
-        """Resolve a relative YAML file name against the parent directory of origin."""
-        origin_file = tmp_path / "pkg" / "__init__.py"
-        origin_file.parent.mkdir()
-        origin_file.write_text("")
-
-        types_file = tmp_path / "pkg" / "types.yaml"
-        types_file.write_text(yaml.dump({"Z": {"type": "boolean"}}), encoding="utf-8")
-
-        result = from_yaml("types.yaml", origin=str(origin_file))
-        assert result == {"Z": {"type": "boolean"}}
-
-    def test_scalar_content_raises_type_error(self, tmp_path):
-        """Raise TypeError when the file's top-level content is neither a list nor a dict."""
-        path = tmp_path / "types.yaml"
-        path.write_text("42", encoding="utf-8")
-        with pytest.raises(TypeError, match="Expected dict or list"):
-            from_yaml(str(path))
+            loader(str(path))
 
 
 # ===========================================================================
@@ -189,20 +117,11 @@ class TestGetTypeErrorPaths:
 class TestAddTypesErrorPaths:
     """add_types must raise TypeError for values that are neither dicts nor DataType subclasses."""
 
-    def test_add_types_with_invalid_value_raises_type_error(self, datatype_registry):
+    @pytest.mark.parametrize("bad_value", [42, "not_a_class", int], ids=["int", "string", "non-datatype-class"])
+    def test_add_types_with_invalid_value_raises_type_error(self, datatype_registry, bad_value):
         """Reject a value that is neither a dict nor a DataType subclass with TypeError."""
         with pytest.raises(TypeError, match="Expected a dict or a subclass of DataType"):
-            datatype_registry.add_types({"BadType": 42})
-
-    def test_add_types_with_string_value_raises_type_error(self, datatype_registry):
-        """Reject a plain string value with TypeError."""
-        with pytest.raises(TypeError, match="Expected a dict or a subclass of DataType"):
-            datatype_registry.add_types({"BadType": "not_a_class"})
-
-    def test_add_types_with_non_datatype_class_raises_type_error(self, datatype_registry):
-        """Reject a class that does not subclass DataType with TypeError."""
-        with pytest.raises(TypeError, match="Expected a dict or a subclass of DataType"):
-            datatype_registry.add_types({"BadType": int})
+            datatype_registry.add_types({"BadType": bad_value})
 
     def test_add_types_with_dict_registers_wrapped_datatype(self, datatype_registry):
         """Register a dict definition as a WrappedDataType under the given name."""

@@ -99,32 +99,20 @@ class PlainSchema(ma.Schema):
 class TestUniqueValidator:
     """unique_validator must raise only when duplicates are present."""
 
-    def test_empty_list_is_valid(self):
-        """Accept an empty list without raising a validation error."""
-        unique_validator([])  # must not raise
+    @pytest.mark.parametrize("value", [[], [1, 2, 3], [{"a": 1}, {"a": 2}]], ids=["empty", "scalars", "dicts"])
+    def test_unique_values_pass(self, value):
+        """Accept a list whose values are all distinct."""
+        unique_validator(value)  # must not raise
 
-    def test_list_of_unique_scalars_is_valid(self):
-        """Accept a list whose scalar values are all distinct."""
-        unique_validator([1, 2, 3])
-
-    def test_list_of_unique_dicts_is_valid(self):
-        """Accept a list of dicts that differ in their contents."""
-        unique_validator([{"a": 1}, {"a": 2}])
-
-    def test_list_with_duplicate_scalar_raises(self):
-        """Reject a list in which the same scalar value appears twice."""
+    @pytest.mark.parametrize(
+        "value",
+        [[1, 2, 1], [{"a": 1}, {"a": 1}], [1, 1, 2, 2]],
+        ids=["scalar", "dict", "multiple"],
+    )
+    def test_duplicate_values_raise(self, value):
+        """Reject a list in which some value appears more than once."""
         with pytest.raises(ma.ValidationError):
-            unique_validator([1, 2, 1])
-
-    def test_list_with_duplicate_dict_raises(self):
-        """Reject a list that repeats an equal dict."""
-        with pytest.raises(ma.ValidationError):
-            unique_validator([{"a": 1}, {"a": 1}])
-
-    def test_list_with_multiple_duplicates_raises(self):
-        """Reject a list reporting more than one duplicated value."""
-        with pytest.raises(ma.ValidationError):
-            unique_validator([1, 1, 2, 2])
+            unique_validator(value)
 
 
 # ===========================================================================
@@ -169,39 +157,23 @@ class TestUniqueItemsInArray:
 class TestArrayLengthConstraints:
     """min_items and max_items must be enforced via marshmallow.validate.Length."""
 
-    def test_min_items_rejects_too_few(self, datatype_registry):
-        """Reject loading an array shorter than the declared min_items."""
-        schema = make_schema(
-            datatype_registry,
-            {"type": "array", "items": {"type": "int"}, "min_items": 2},
-        )
-        with pytest.raises(ma.ValidationError):
-            schema.load({"a": [1]})
-
-    def test_min_items_accepts_exact_count(self, datatype_registry):
-        """Load an array whose length is exactly the declared min_items."""
-        schema = make_schema(
-            datatype_registry,
-            {"type": "array", "items": {"type": "int"}, "min_items": 2},
-        )
-        assert schema.load({"a": [1, 2]}) == {"a": [1, 2]}
-
-    def test_max_items_rejects_too_many(self, datatype_registry):
-        """Reject loading an array longer than the declared max_items."""
-        schema = make_schema(
-            datatype_registry,
-            {"type": "array", "items": {"type": "int"}, "max_items": 2},
-        )
-        with pytest.raises(ma.ValidationError):
-            schema.load({"a": [1, 2, 3]})
-
-    def test_max_items_accepts_exact_count(self, datatype_registry):
-        """Load an array whose length is exactly the declared max_items."""
-        schema = make_schema(
-            datatype_registry,
-            {"type": "array", "items": {"type": "int"}, "max_items": 2},
-        )
-        assert schema.load({"a": [1, 2]}) == {"a": [1, 2]}
+    @pytest.mark.parametrize(
+        ("constraint", "value", "valid"),
+        [
+            ("min_items", [1], False),
+            ("min_items", [1, 2], True),
+            ("max_items", [1, 2, 3], False),
+            ("max_items", [1, 2], True),
+        ],
+    )
+    def test_length_constraint(self, datatype_registry, constraint, value, valid):
+        """Load arrays within the declared bound (inclusive) and reject arrays outside it."""
+        schema = make_schema(datatype_registry, {"type": "array", "items": {"type": "int"}, constraint: 2})
+        if valid:
+            assert schema.load({"a": value}) == {"a": value}
+        else:
+            with pytest.raises(ma.ValidationError):
+                schema.load({"a": value})
 
 
 # ===========================================================================
@@ -549,14 +521,9 @@ class TestDynamicObjectDataType:
 class TestArrayMappingDelegation:
     """Arrays are transparent in ES: create_mapping must return the items mapping."""
 
-    def test_array_of_keywords_produces_keyword_mapping(self, datatype_registry):
-        """Return the items' keyword mapping, skipping the array wrapper."""
+    @pytest.mark.parametrize(("item_type", "mapping_type"), [("keyword", "keyword"), ("int", "integer")])
+    def test_array_mapping_is_items_mapping(self, datatype_registry, item_type, mapping_type):
+        """Return the items' mapping, skipping the array wrapper."""
         dt = datatype_registry.get_type({"type": "array"})
-        mapping = dt.create_mapping({"type": "array", "items": {"type": "keyword"}})
-        assert mapping["type"] == "keyword"
-
-    def test_array_of_ints_produces_integer_mapping(self, datatype_registry):
-        """Return the items' integer mapping for an array of ints."""
-        dt = datatype_registry.get_type({"type": "array"})
-        mapping = dt.create_mapping({"type": "array", "items": {"type": "int"}})
-        assert mapping["type"] == "integer"
+        mapping = dt.create_mapping({"type": "array", "items": {"type": item_type}})
+        assert mapping["type"] == mapping_type
