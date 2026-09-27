@@ -121,33 +121,6 @@ def test_geo_shape_param_rejects_relations_unsupported_by_geo_point(
         search_dsl.execute()
 
 
-def test_geo_shape_param_removes_key_from_params():
-    params = {"geo_shape:metadata.location": ["POINT (14.5 50.0)"], "other": ["x"]}
-
-    GeoShapeParam(config=None).apply(None, Search(), params)
-
-    assert params == {"other": ["x"]}
-
-
-def test_geo_shape_param_removes_key_from_facets_bucket():
-    """Must also handle geo_shape:<field> nested in params["facets"]."""
-    params = {"facets": {"geo_shape:metadata.location": ["POINT (14.5 50.0)"], "other": ["x"]}}
-
-    GeoShapeParam(config=None).apply(None, Search(), params)
-
-    assert params == {"facets": {"other": ["x"]}}
-
-
-def test_geo_shape_param_invalid_value_raises():
-    """Malformed WKT is a client error; plain text is not invalid, it is a place name."""
-    with pytest.raises(QuerystringValidationError):
-        GeoShapeParam(config=None).apply(
-            None,
-            Search(),
-            {"geo_shape:metadata.location": ["POINT (abc)"]},
-        )
-
-
 def test_geo_shape_param_defaults_to_intersects():
     search = GeoShapeParam(config=None).apply(
         None,

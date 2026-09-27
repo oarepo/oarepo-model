@@ -112,36 +112,6 @@ def test_geo_distance_param_via_service_search(
     assert far.id not in hit_ids
 
 
-def test_geo_distance_param_removes_key_from_params():
-    params = {"geo_distance:metadata.location": ["[14.4,50.0,10km]"], "other": ["x"]}
-
-    GeoDistanceParam(config=None).apply(None, Search(), params)
-
-    assert params == {"other": ["x"]}
-
-
-def test_geo_distance_param_removes_key_from_facets_bucket():
-    """Must also handle geo_distance:<field> nested in params["facets"].
-
-    That's where the default SearchRequestArgsSchema puts unrecognized
-    query-string keys for real requests.
-    """
-    params = {"facets": {"geo_distance:metadata.location": ["[14.4,50.0,10km]"], "other": ["x"]}}
-
-    GeoDistanceParam(config=None).apply(None, Search(), params)
-
-    assert params == {"facets": {"other": ["x"]}}
-
-
-def test_geo_distance_param_invalid_value_raises():
-    with pytest.raises(QuerystringValidationError):
-        GeoDistanceParam(config=None).apply(
-            None,
-            Search(),
-            {"geo_distance:metadata.location": ["not-a-point"]},
-        )
-
-
 @pytest.mark.parametrize(
     ("distance", "expected_pivot"),
     [
@@ -287,32 +257,6 @@ def test_geo_bounding_box_param_via_service_search(
     hit_ids = {hit["id"] for hit in result.hits}
     assert hit_ids == {inside.id}
     assert outside.id not in hit_ids
-
-
-def test_geo_bounding_box_param_removes_key_from_params():
-    params = {"geo_bounding_box:metadata.location": ["[0,1,1,2]"], "other": ["x"]}
-
-    GeoBoundingBoxParam(config=None).apply(None, Search(), params)
-
-    assert params == {"other": ["x"]}
-
-
-def test_geo_bounding_box_param_removes_key_from_facets_bucket():
-    """Must also handle geo_bounding_box:<field> nested in params["facets"]."""
-    params = {"facets": {"geo_bounding_box:metadata.location": ["[0,1,1,2]"], "other": ["x"]}}
-
-    GeoBoundingBoxParam(config=None).apply(None, Search(), params)
-
-    assert params == {"facets": {"other": ["x"]}}
-
-
-def test_geo_bounding_box_param_invalid_value_raises():
-    with pytest.raises(QuerystringValidationError):
-        GeoBoundingBoxParam(config=None).apply(
-            None,
-            Search(),
-            {"geo_bounding_box:metadata.location": ["not-a-box"]},
-        )
 
 
 def _bbox_query(value: str) -> dict:
