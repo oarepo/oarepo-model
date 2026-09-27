@@ -54,10 +54,6 @@ class InvenioRecordUISchema(BaseObjectSchema):
     updated_date_l10n_medium = FormatDate(attribute="updated", format="medium")
     updated_date_l10n_long = FormatDate(attribute="updated", format="long")
     updated_date_l10n_full = FormatDate(attribute="updated", format="full")
-
-    # TODO: custom fields
-
-    # TODO: move access_status and tombstone to RDM
     access_status = AccessStatusField(attribute="access")
     tombstone = fields.Nested(TombstoneSchema, attribute="tombstone")
 

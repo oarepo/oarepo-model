@@ -77,7 +77,6 @@ class PIDRelation(ObjectDataType):
         override this to make 'id' searchable/facetable, or add further defaults.
         """
         del element  # unused in base class, but subclasses may use it
-        # TODO: revisit whether 'id' really needs to be non-searchable by default.
         return {
             "id": {"type": "keyword", "searchable": False},
             "@v": {"type": "keyword", "skip_marshmallow": True, "searchable": False},

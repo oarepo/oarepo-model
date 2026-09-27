@@ -97,6 +97,3 @@ class DraftsUILinksPreset(Preset):
             "record_search_item_links",
             self_links,
         )
-
-        # TODO: add draft_search_links when they are ready in oarepo-ui
-        # TODO: add record_version_search_links when they are ready in oarepo-ui

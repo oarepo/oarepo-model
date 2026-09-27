@@ -663,7 +663,6 @@ class InvenioModelBuilder:
         for key in self.partials:
             self.build_partial(key)
 
-        # TODO: need to have entry points separate from the partials ???
         entry_points = []
         for group, name in self.entry_points:
             value = self.entry_points[(group, name)]
