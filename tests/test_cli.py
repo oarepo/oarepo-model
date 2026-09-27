@@ -10,44 +10,45 @@ import json
 from oarepo_model.cli import list_models
 
 
-def test_model_list(app, cli_runner):
+def test_model_list(app, cli_runner, empty_model):
+    """Test that a registered RDM-like model is listed with its name and search API URL.
+
+    Only ``empty_model`` is asserted on - other session-scoped models may or may not be
+    registered depending on which tests ran first, so they must not be pinned here.
+    """
     result = cli_runner(list_models)
     assert result.exit_code == 0
-    for _line in """
-    datacite_export_test - https://127.0.0.1:5000/api/datacite-export-test -
-    test_ui_links        - https://127.0.0.1:5000/api/test-ui-links -
-    multilingual_test    - https://127.0.0.1:5000/api/multilingual-test -
-    vocabulary_test      - https://127.0.0.1:5000/api/vocabulary-test -
-    relation_test        - https://127.0.0.1:5000/api/relation-test -
-    drafts_cf            - https://127.0.0.1:5000/api/drafts-cf -
-    facet_test           - https://127.0.0.1:5000/api/facet-test -
-    records_cf           - https://127.0.0.1:5000/api/records-cf -
-    draft_with_files     - https://127.0.0.1:5000/api/draft-with-files -
-    draft_test           - https://127.0.0.1:5000/api/draft-test -
-    test                 - https://127.0.0.1:5000/api/test -
-""".splitlines():
-        line = _line.strip()
-        if not line:
-            continue
-        assert line in result.output
+    rdm_section, other_section = result.output.split("Other models:")
+    assert "test                 - https://127.0.0.1:5000/api/test - " in rdm_section.splitlines()
+    assert "/api/test -" not in other_section
 
 
 def test_dump_marshmallow(app, cli_runner, empty_model):
-    """Test dump marshmallow command."""
+    """Test dump marshmallow command dumps the record schema and all nested schemas."""
     from oarepo_model.cli import dump
 
     result = cli_runner(dump.commands["marshmallow"], None, "test")
     assert result.exit_code == 0
-    # Check that output contains schema information
-    assert "RecordSchema" in result.output or "class" in result.output
+    assert "class runtime_models_test.TestRecordSchema(" in result.output
+    assert "class runtime_models_test.TestMetadataSchema(" in result.output
+    assert "    title = fields.String(" in result.output
+    # non-generated nested schema is included without --generated
+    assert "class oarepo_model.presets.records_resources.services.files.record_with_files_schema.FilesSchema(" in (
+        result.output
+    )
 
 
 def test_dump_marshmallow_generated(app, cli_runner, empty_model):
-    """Test dump marshmallow command with --generated flag."""
+    """Test dump marshmallow command with --generated keeps only model-built schemas."""
     from oarepo_model.cli import dump
 
     result = cli_runner(dump.commands["marshmallow"], None, "test", "--generated")
     assert result.exit_code == 0
+    assert "class runtime_models_test.TestRecordSchema(" in result.output
+    assert "class runtime_models_test.TestMetadataSchema(" in result.output
+    assert "class oarepo_model.presets.records_resources.services.files.record_with_files_schema.FilesSchema(" not in (
+        result.output
+    )
 
 
 def test_dump_marhsmallow_bad_model(app, cli_runner):
@@ -69,49 +70,51 @@ def test_dump_marhsmallow_bad_model_import(app, cli_runner):
 
 
 def test_dump_ui_marshmallow(app, cli_runner, empty_model):
-    """Test dump ui_marshmallow command."""
+    """Test dump ui_marshmallow command dumps the UI schema and all nested schemas."""
     from oarepo_model.cli import dump
 
     result = cli_runner(dump.commands["ui-marshmallow"], None, "test")
     assert result.exit_code == 0
-    # Check that output contains schema information
-    assert "RecordUISchema" in result.output or "class" in result.output
+    assert "class runtime_models_test.TestRecordUISchema(" in result.output
+    # non-generated nested schema is included without --generated
+    assert "class invenio_rdm_records.resources.serializers.ui.schema.TombstoneSchema(" in result.output
 
 
 def test_dump_ui_marshmallow_generated(app, cli_runner, empty_model):
-    """Test dump ui_marshmallow command with --generated flag."""
+    """Test dump ui_marshmallow command with --generated keeps only model-built schemas."""
     from oarepo_model.cli import dump
 
     result = cli_runner(dump.commands["ui-marshmallow"], None, "test", "--generated")
     assert result.exit_code == 0
+    assert "class runtime_models_test.TestRecordUISchema(" in result.output
+    assert "class invenio_rdm_records.resources.serializers.ui.schema.TombstoneSchema(" not in result.output
 
 
 def test_dump_jsonschema(app, cli_runner, empty_model):
-    """Test dump jsonschema command."""
+    """Test dump jsonschema command outputs the model's record JSON schema."""
     from oarepo_model.cli import dump
 
     result = cli_runner(dump.commands["jsonschema"], None, "test")
     assert result.exit_code == 0
-    # Verify output is valid JSON
-    output = result.output.strip()
-    parsed = json.loads(output)
-    assert isinstance(parsed, dict)
-    # Check for typical JSON schema fields
-    assert "$schema" in parsed or "properties" in parsed or "type" in parsed
+    parsed = json.loads(result.output)
+    assert parsed["$schema"] == "http://json-schema.org/draft-07/schema#"
+    assert parsed["type"] == "object"
+    assert parsed["properties"]["metadata"]["properties"] == {
+        "title": {"type": "string"},
+        "some_bool_val": {"type": "boolean"},
+        "height": {"type": "integer"},
+    }
 
 
 def test_dump_mapping(app, cli_runner, empty_model):
-    """Test dump mapping command."""
+    """Test dump mapping command outputs the model's opensearch mappings keyed by file."""
     from oarepo_model.cli import dump
 
     result = cli_runner(dump.commands["mapping"], None, "test")
     assert result.exit_code == 0
-    # Verify output is valid JSON
-    output = result.output.strip()
-    parsed = json.loads(output)
-    assert isinstance(parsed, dict)
-    # Check that it contains mapping information
-    assert len(parsed) > 0
+    parsed = json.loads(result.output)
+    mapping = parsed["mappings/os-v2/test/metadata-v1.0.0.json"]["mappings"]
+    assert mapping["properties"]["metadata"]["properties"]["height"] == {"type": "integer"}
 
 
 def test_dump_schema_name_clashes():
@@ -203,7 +206,7 @@ def test_dump_schema_field_exception():
     # Problematic field should have error comment
     assert "problematic_field" in schema_str
     assert "# Error dumping field:" in schema_str
-    assert "Intentional error for testing" in schema_str or "Error" in schema_str
+    assert "Intentional error for testing" in schema_str
 
 
 def test_dump_schema_nested_schemas():
