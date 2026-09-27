@@ -28,7 +28,7 @@ from .files.record_metadata import RecordMetadataWithFilesPreset
 from .finalizers import FinalizationPreset
 from .model_registration import ModelMetadataRegistrationPreset, ModelRegistrationPreset
 from .proxy import ProxyPreset
-from .records.date_range_dumper_ext import DateRangeDumperExtPreset
+from .records.date_range_dumper_ext import DateRangeDumperExtPreset, EDTFTimeDumperExtPreset
 from .records.dumper import RecordDumperPreset
 from .records.jsonschema import JSONSchemaPreset
 from .records.mapping import MappingPreset
@@ -92,6 +92,7 @@ records_preset: list[type[Preset]] = [
     RecordMetadataPreset,
     RecordDumperPreset,
     DateRangeDumperExtPreset,
+    EDTFTimeDumperExtPreset,
     ICRSDumperExtPreset,
     ICRSShapeDumperExtPreset,
     JSONSchemaPreset,

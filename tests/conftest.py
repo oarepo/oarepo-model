@@ -713,6 +713,25 @@ def icrs_model():
     return _build_model("icrs_test", icrs_model_types, [records_preset])
 
 
+edtf_model_types = {
+    "Metadata": {
+        "properties": {
+            "title": {"type": "fulltext+keyword"},
+            "date": {"type": "edtf"},
+            "datetime": {"type": "edtf-time"},
+            "interval": {"type": "edtf-interval"},
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def edtf_model():
+    from oarepo_model.presets.records_resources import records_preset
+
+    return _build_model("edtf_test", edtf_model_types, [records_preset])
+
+
 @pytest.fixture(scope="session")
 def drafts_cf_model(model_types):
     from oarepo_model.presets.custom_fields import custom_fields_preset

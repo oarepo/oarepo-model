@@ -81,7 +81,13 @@ class NumberDataType(FacetMixin, DataType):
                     max_inclusive=element.get("max_inclusive") is not None,
                 ),
             )
-        ret["strict"] = element.get("strict_validation", True)
+        # 'strict' exists only on marshmallow's Integer field; on Float it would
+        # be swallowed into field metadata without any effect, so it is not passed.
+        if issubclass(
+            self._get_marshmallow_field_class(field_name, element),
+            marshmallow.fields.Integer,
+        ):
+            ret["strict"] = element.get("strict_validation", True)
         if self.range_bounds is not None:
             ret.setdefault("validate", []).append(
                 marshmallow.validate.Range(
