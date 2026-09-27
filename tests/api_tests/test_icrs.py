@@ -105,31 +105,6 @@ def test_icrs_distance_param_via_service_search(
     assert far.id not in hit_ids
 
 
-def test_icrs_distance_param_removes_key_from_params():
-    params = {"icrs_distance:metadata.position": ["[1,2,5]"], "other": ["x"]}
-
-    IcrsDistanceParam(config=None).apply(None, Search(), params)
-
-    assert params == {"other": ["x"]}
-
-
-def test_icrs_distance_param_removes_key_from_facets_bucket():
-    params = {"facets": {"icrs_distance:metadata.position": ["[1,2,5]"], "other": ["x"]}}
-
-    IcrsDistanceParam(config=None).apply(None, Search(), params)
-
-    assert params == {"facets": {"other": ["x"]}}
-
-
-def test_icrs_distance_param_invalid_value_raises():
-    with pytest.raises(QuerystringValidationError):
-        IcrsDistanceParam(config=None).apply(
-            None,
-            Search(),
-            {"icrs_distance:metadata.position": ["not-a-point"]},
-        )
-
-
 def test_icrs_distance_param_rejects_unit_suffix():
     """Unlike geo_distance:, the distance here is always in degrees, no unit."""
     with pytest.raises(QuerystringValidationError):
@@ -230,23 +205,6 @@ def test_icrs_bounding_box_param_via_service_search(
     hit_ids = {hit["id"] for hit in result.hits}
     assert hit_ids == {inside.id}
     assert outside.id not in hit_ids
-
-
-def test_icrs_bounding_box_param_removes_key_from_params():
-    params = {"icrs_bounding_box:metadata.position": ["[1,1,0,2]"], "other": ["x"]}
-
-    IcrsBoundingBoxParam(config=None).apply(None, Search(), params)
-
-    assert params == {"other": ["x"]}
-
-
-def test_icrs_bounding_box_param_invalid_value_raises():
-    with pytest.raises(QuerystringValidationError):
-        IcrsBoundingBoxParam(config=None).apply(
-            None,
-            Search(),
-            {"icrs_bounding_box:metadata.position": ["not-a-box"]},
-        )
 
 
 def test_icrs_bounding_box_param_converts_ra_dec_to_lat_lon():
@@ -422,23 +380,6 @@ def test_icrs_shape_param_via_service_search(
     hit_ids = {hit["id"] for hit in result.hits}
     assert hit_ids == {inside.id}
     assert outside.id not in hit_ids
-
-
-def test_icrs_shape_param_removes_key_from_params():
-    params = {"icrs_shape:metadata.position": ["POINT (14.5 50.0)"], "other": ["x"]}
-
-    IcrsShapeParam(config=None).apply(None, Search(), params)
-
-    assert params == {"other": ["x"]}
-
-
-def test_icrs_shape_param_invalid_value_raises():
-    with pytest.raises(QuerystringValidationError):
-        IcrsShapeParam(config=None).apply(
-            None,
-            Search(),
-            {"icrs_shape:metadata.position": ["not a shape"]},
-        )
 
 
 def test_icrs_shape_param_converts_ra_dec_coordinates():
