@@ -414,6 +414,19 @@ class LazyPIDRelation(PIDRelation):
 
     marshmallow_field_class = marshmallow.fields.Nested
 
+    @override
+    def _default_key_properties(self, element: dict[str, Any]) -> Mapping[str, dict[str, Any]]:
+        """Keep 'id' non-searchable.
+
+        The target is the still-building model itself, so its schema cannot be
+        introspected at facet-generation time (unlike a plain pid-relation, see
+        PIDRelation._default_key_properties and get_facet below, which skips
+        this relation's 'keys' wholesale anyway).
+        """
+        defaults = dict(super()._default_key_properties(element))
+        defaults["id"] = {"type": "keyword", "searchable": False}
+        return defaults
+
     def _get_lazy_kwargs(self, element: dict[str, Any]) -> dict[str, Any]:
         """Return extra keyword arguments to pass to lazy customization classes.
 

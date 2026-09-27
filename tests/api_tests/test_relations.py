@@ -242,6 +242,7 @@ def test_relations(
 
     assert len(md["triple_array"]) == 1
     assert len(md["triple_array"][0]["array"]) == 2
+    assert len(md["triple_array"][0]["array"][1]["array"]) == 2
     assert len(md["triple_array"][0]["array"][0]["array"]) == 1
     assert md["triple_array"][0]["array"][0]["array"][0]["id"] == rec1_id
     assert md["triple_array"][0]["array"][0]["array"][0]["metadata"]["title"] == "Record 1"
@@ -250,3 +251,74 @@ def test_relations(
     assert md["triple_array"][0]["array"][1]["array"][0]["metadata"]["title"] == "Record 2"
     assert md["triple_array"][0]["array"][1]["array"][1]["id"] == rec3_id
     assert md["triple_array"][0]["array"][1]["array"][1]["metadata"]["title"] == "Record 3"
+
+
+# ---------------------------------------------------------------------------
+# pid-relation id facet: searchable by default, lazy-relation opts out
+# ---------------------------------------------------------------------------
+
+
+def test_pid_relation_default_key_properties_make_id_searchable(pid_relation):
+    """A plain pid-relation's 'id' yields a facet (a keyword needs no lookup)."""
+    facets = pid_relation.get_facet(
+        "metadata.direct",
+        {"type": "pid-relation", "keys": ["id"]},
+        [],
+        {},
+    )
+    assert "metadata.direct.id" in facets
+    assert "metadata.direct.@v" not in facets
+
+
+def test_lazy_pid_relation_keeps_id_facet_suppressed(datatype_registry):
+    """A lazy (self-referencing) relation must not get an 'id' facet.
+
+    Its target is still being built when facets are generated.
+    """
+    lazy = datatype_registry.get_type({"type": "lazy-pid-relation"})
+    facets = lazy.get_facet(
+        "metadata.direct",
+        {"type": "lazy-pid-relation", "keys": ["id"], "model": "some_model"},
+        [],
+        {},
+    )
+    assert "metadata.direct.id" not in facets
+
+
+def test_relation_facets(
+    app,
+    identity_simple,
+    empty_model,
+    relation_model,
+    search,
+    search_clear,
+    location,
+):
+    """A plain pid-relation's 'id' is registered as a facet and can filter.
+
+    test_recursive_relations_facets in test_recursive_relations.py covers the
+    self-referencing (lazy) counterpart keeping its facets suppressed.
+    """
+    assert hasattr(relation_model.facets, "metadata.direct.id")
+
+    target_service = empty_model.proxies.current_service
+    rec1_id = target_service.create(
+        identity_simple,
+        {"files": {"enabled": False}, "metadata": {"title": "Facet Target 1"}},
+    ).id
+    rec2_id = target_service.create(
+        identity_simple,
+        {"files": {"enabled": False}, "metadata": {"title": "Facet Target 2"}},
+    ).id
+
+    relation_service = relation_model.proxies.current_service
+    relation_service.create(
+        identity_simple,
+        {"files": {"enabled": False}, "metadata": {"direct": {"id": rec1_id}}},
+    )
+    relation_model.Record.index.refresh()
+
+    hit = relation_service.search(identity_simple, facets={"metadata.direct.id": [rec1_id]})
+    assert hit.total == 1
+    no_hit = relation_service.search(identity_simple, facets={"metadata.direct.id": [rec2_id]})
+    assert no_hit.total == 0
