@@ -366,14 +366,15 @@ def test_recursive_relations_facets(app, recursive_relation_model):
     deliberately does not guess at types for a target it can't introspect
     (which could produce an invalid facet, e.g. aggregating on a text field
     with no keyword sub-field) - so, for this case only, no facets are
-    generated for the relation's keys at all (see
+    generated for the relation's keys (see
     test_recursive_relations_facets_warning below for the warning this
-    logs).
+    logs). The relation's 'id' is the exception: it is always present and
+    always a keyword, so it is facetable even here.
     """
     facets = recursive_relation_model.facets
 
     for base in ("metadata.direct", "metadata.array", "metadata.object.a"):
-        assert not hasattr(facets, f"{base}.id"), f"unexpected facet for {base}.id"
+        assert hasattr(facets, f"{base}.id"), f"missing id facet for {base}.id"
         assert not hasattr(facets, f"{base}.metadata.title"), f"unexpected facet for {base}.metadata.title"
 
     # the relation's own top-level facet-less-ness doesn't affect unrelated,
@@ -419,7 +420,7 @@ def test_recursive_relations_facets_warning(caplog):
         )
         m.register()
 
-    assert not hasattr(m.facets, "metadata.direct.id")
+    assert hasattr(m.facets, "metadata.direct.id")  # id is always present, always a keyword
     warnings = [r for r in caplog.records if "Cannot generate facets for the pid-relation's 'keys'" in r.message]
     assert len(warnings) == 1
     assert "rrf_warning_test" in warnings[0].message

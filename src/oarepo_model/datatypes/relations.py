@@ -64,8 +64,10 @@ class PIDRelation(ObjectDataType):
 
     Faceting/filtering: the related record's ``id`` gets a facet by default
     (every relation's ``id`` maps as ``keyword`` - see _default_key_properties).
-    For a self-referencing relation use `lazy-pid-relation`, which opts out of
-    that default, as facet generation cannot resolve a still-building target.
+    This holds for the self-referencing `lazy-pid-relation` too: the ``id``
+    link is always present, so ``id`` is facetable there as well - it is the
+    user-declared 'keys' that cannot be resolved against a still-building
+    target and stay facet-less.
     """
 
     TYPE = "pid-relation"
@@ -77,10 +79,8 @@ class PIDRelation(ObjectDataType):
 
         The related record's ``id`` is searchable by default: it always maps as
         ``keyword``, so aggregating/filtering on it works no matter when the
-        target model was built. ``LazyPIDRelation`` (a self-reference still
-        being built) overrides this to keep ``id`` non-searchable instead, and
-        skips facet generation for its 'keys' wholesale - see its get_facet /
-        test_recursive_relations_facets.
+        target model was built - including a still-building self-reference
+        (lazy-pid-relation), which always stores its target by ``id``.
         """
         del element  # unused in base class, but subclasses may use it
         return {
