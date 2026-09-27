@@ -54,12 +54,11 @@ class VocabularyDataType(FacetMixin, PIDRelation):
 
     @override
     def _default_key_properties(self, element: dict[str, Any]) -> Mapping[str, dict[str, Any]]:
-        """Vocabulary-type-specific default fields, plus a searchable 'id'.
+        """Vocabulary-type-specific default fields, over PIDRelation's searchable 'id'.
 
-        Unlike a generic PIDRelation (whose target may be an unresolvable
-        still-building self-reference, see PIDRelation._default_key_properties),
-        a vocabulary's target type is always known synchronously, so 'id' is
-        safe to make searchable/facetable here - that's why it is overriden here.
+        The 'id' handling is inherited from PIDRelation._default_key_properties
+        (searchable/facetable - a vocabulary's target is always known, so no
+        override is needed for it).
         """
         vocabulary_fields = (
             default_vocabulary_fields_in_relations.get(element["vocabulary-type"])
@@ -68,7 +67,6 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         return {
             **super()._default_key_properties(element),
             **{key: value for prop in vocabulary_fields for key, value in prop.items()},
-            "id": {"type": "keyword"},
         }
 
     @override

@@ -61,6 +61,11 @@ class PIDRelation(ObjectDataType):
     either (upstream `PIDRelation.parse_value` reads `pid_field.attr_name`, which
     a `PIDFieldContext` does not have); pass the PID value or a
     `PersistentIdentifier`.
+
+    Faceting/filtering: the related record's ``id`` gets a facet by default
+    (every relation's ``id`` maps as ``keyword`` - see _default_key_properties).
+    For a self-referencing relation use `lazy-pid-relation`, which opts out of
+    that default, as facet generation cannot resolve a still-building target.
     """
 
     TYPE = "pid-relation"
@@ -70,15 +75,16 @@ class PIDRelation(ObjectDataType):
     def _default_key_properties(self, element: dict[str, Any]) -> Mapping[str, dict[str, Any]]:
         """Properties always available for a relation, even when not declared in 'keys'.
 
-        'id' is non-searchable here because the target may not be introspectable yet
-        (e.g. a still-building self-reference) - see test_recursive_relations_facets
-        and LazyPIDRelation.get_facet, which relies on this to suppress the facet.
-        Subclasses with an always-resolvable target (e.g. VocabularyDataType) may
-        override this to make 'id' searchable/facetable, or add further defaults.
+        The related record's ``id`` is searchable by default: it always maps as
+        ``keyword``, so aggregating/filtering on it works no matter when the
+        target model was built. ``LazyPIDRelation`` (a self-reference still
+        being built) overrides this to keep ``id`` non-searchable instead, and
+        skips facet generation for its 'keys' wholesale - see its get_facet /
+        test_recursive_relations_facets.
         """
         del element  # unused in base class, but subclasses may use it
         return {
-            "id": {"type": "keyword", "searchable": False},
+            "id": {"type": "keyword"},
             "@v": {"type": "keyword", "skip_marshmallow": True, "searchable": False},
         }
 
