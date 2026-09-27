@@ -95,7 +95,7 @@ class I18nDictDataType(ObjectDataType):
 
     @override
     def create_ui_marshmallow_fields(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
-        return {}  # TODO: create UI field serialization
+        return {}
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
