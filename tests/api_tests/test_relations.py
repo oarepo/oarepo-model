@@ -270,10 +270,11 @@ def test_pid_relation_default_key_properties_make_id_searchable(pid_relation):
     assert "metadata.direct.@v" not in facets
 
 
-def test_lazy_pid_relation_keeps_id_facet_suppressed(datatype_registry):
-    """A lazy (self-referencing) relation must not get an 'id' facet.
+def test_lazy_pid_relation_keeps_id_facet(datatype_registry):
+    """A lazy (self-referencing) relation gets an 'id' facet.
 
-    Its target is still being built when facets are generated.
+    The 'id' link is always present and always a keyword, so no target
+    introspection is needed - unlike the user-declared 'keys'.
     """
     lazy = datatype_registry.get_type({"type": "lazy-pid-relation"})
     facets = lazy.get_facet(
@@ -282,7 +283,7 @@ def test_lazy_pid_relation_keeps_id_facet_suppressed(datatype_registry):
         [],
         {},
     )
-    assert "metadata.direct.id" not in facets
+    assert "metadata.direct.id" in facets
 
 
 def test_relation_facets(
