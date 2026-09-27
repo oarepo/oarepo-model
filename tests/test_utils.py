@@ -110,13 +110,12 @@ NAMES = [
 ]
 
 
-def test_convert_to_python_identifier():
-    assert convert_to_python_identifier("") == "_empty_"
-    assert convert_to_python_identifier("a") == "a"
-    assert convert_to_python_identifier("a-b") == "a_45_b"
-    assert convert_to_python_identifier("for") == "for_"
-    assert convert_to_python_identifier("2nd") == "_2nd"
-    assert convert_to_python_identifier("2 nd") == "_2_32_nd"
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("", "_empty_"), ("a", "a"), ("a-b", "a_45_b"), ("for", "for_"), ("2nd", "_2nd"), ("2 nd", "_2_32_nd")],
+)
+def test_convert_to_python_identifier(value, expected):
+    assert convert_to_python_identifier(value) == expected
 
 
 def test_convert_to_python_identifier_always_returns_an_identifier():

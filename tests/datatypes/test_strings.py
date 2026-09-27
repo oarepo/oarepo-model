@@ -434,33 +434,23 @@ class TestStringFacets:
 class TestStringMappings:
     """Each string type must produce its correct Elasticsearch mapping."""
 
-    def test_keyword_mapping_type(self, datatype_registry):
-        """Return an Elasticsearch mapping of type keyword for the keyword datatype."""
-        dt = datatype_registry.get_type({"type": "keyword"})
-        mapping = dt.create_mapping({"type": "keyword"})
-        assert mapping["type"] == "keyword"
-
-    def test_fulltext_mapping_type(self, datatype_registry):
-        """Return an Elasticsearch mapping of type text for the fulltext datatype."""
-        dt = datatype_registry.get_type({"type": "fulltext"})
-        mapping = dt.create_mapping({"type": "fulltext"})
-        assert mapping["type"] == "text"
+    @pytest.mark.parametrize(
+        ("type_name", "mapping_type"),
+        [("keyword", "keyword"), ("fulltext", "text"), ("fulltext+keyword", "text")],
+    )
+    def test_mapping_type(self, datatype_registry, type_name, mapping_type):
+        """Return the Elasticsearch mapping type matching the string datatype."""
+        dt = datatype_registry.get_type({"type": type_name})
+        assert dt.create_mapping({"type": type_name})["type"] == mapping_type
 
     def test_fulltext_keyword_mapping_has_keyword_subfield(self, datatype_registry):
         """Return a text mapping with a keyword sub-field for the fulltext+keyword datatype."""
         dt = datatype_registry.get_type({"type": "fulltext+keyword"})
         mapping = dt.create_mapping({"type": "fulltext+keyword"})
-        assert mapping["type"] == "text"
         assert mapping["fields"]["keyword"]["type"] == "keyword"
 
-    def test_keyword_json_schema_type_is_string(self, datatype_registry):
-        """Return a JSON schema of type string for the keyword datatype."""
-        dt = datatype_registry.get_type({"type": "keyword"})
-        schema = dt.create_json_schema({"type": "keyword"})
-        assert schema["type"] == "string"
-
-    def test_fulltext_json_schema_type_is_string(self, datatype_registry):
-        """Return a JSON schema of type string for the fulltext datatype."""
-        dt = datatype_registry.get_type({"type": "fulltext"})
-        schema = dt.create_json_schema({"type": "fulltext"})
-        assert schema["type"] == "string"
+    @pytest.mark.parametrize("type_name", ["keyword", "fulltext"])
+    def test_json_schema_type_is_string(self, datatype_registry, type_name):
+        """Return a JSON schema of type string for the string datatypes."""
+        dt = datatype_registry.get_type({"type": type_name})
+        assert dt.create_json_schema({"type": type_name})["type"] == "string"

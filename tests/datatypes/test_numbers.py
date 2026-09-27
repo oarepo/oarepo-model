@@ -164,26 +164,27 @@ class TestDoubleDataType:
 class TestExclusiveRangeBoundaries:
     """min_exclusive / max_exclusive must exclude the boundary value."""
 
-    def test_int_min_exclusive_rejects_boundary(self, datatype_registry):
-        """Reject the min_exclusive boundary value and accept the next integer."""
-        schema = make_schema(datatype_registry, {"type": "int", "min_exclusive": 0})
+    @pytest.mark.parametrize(
+        ("type_name", "boundary", "inside"),
+        [("int", 0, 1), ("long", 0, 1), ("float", 0.0, 0.001), ("double", 0.0, 0.001)],
+    )
+    def test_min_exclusive_rejects_boundary(self, datatype_registry, type_name, boundary, inside):
+        """Reject the min_exclusive boundary value and accept a value just above it."""
+        schema = make_schema(datatype_registry, {"type": type_name, "min_exclusive": boundary})
         with pytest.raises(ma.ValidationError):
-            schema.load({"a": 0})
-        assert schema.load({"a": 1}) == {"a": 1}
+            schema.load({"a": boundary})
+        assert schema.load({"a": inside})["a"] == pytest.approx(inside)
 
-    def test_int_max_exclusive_rejects_boundary(self, datatype_registry):
-        """Reject the max_exclusive boundary value and accept the previous integer."""
-        schema = make_schema(datatype_registry, {"type": "int", "max_exclusive": 10})
+    @pytest.mark.parametrize(
+        ("type_name", "boundary", "inside"),
+        [("int", 10, 9), ("long", 10, 9), ("float", 10.0, 9.999), ("double", 10.0, 9.999)],
+    )
+    def test_max_exclusive_rejects_boundary(self, datatype_registry, type_name, boundary, inside):
+        """Reject the max_exclusive boundary value and accept a value just below it."""
+        schema = make_schema(datatype_registry, {"type": type_name, "max_exclusive": boundary})
         with pytest.raises(ma.ValidationError):
-            schema.load({"a": 10})
-        assert schema.load({"a": 9}) == {"a": 9}
-
-    def test_float_min_exclusive_rejects_boundary(self, datatype_registry):
-        """Reject the min_exclusive boundary value and accept a slightly larger float."""
-        schema = make_schema(datatype_registry, {"type": "float", "min_exclusive": 0.0})
-        with pytest.raises(ma.ValidationError):
-            schema.load({"a": 0.0})
-        assert schema.load({"a": 0.001})["a"] == pytest.approx(0.001)
+            schema.load({"a": boundary})
+        assert schema.load({"a": inside})["a"] == pytest.approx(inside)
 
     def test_int_min_inclusive_accepts_boundary(self, datatype_registry):
         """Accept the min_inclusive boundary value and reject a smaller one."""
