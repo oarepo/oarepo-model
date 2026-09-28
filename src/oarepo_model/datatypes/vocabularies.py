@@ -186,14 +186,24 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         # MRO puts FacetMixin before PIDRelation (see class VocabularyDataType
         # bases below), so super() here is FacetMixin.get_facet - a leaf
         # implementation that produces a single facet for this vocabulary
-        # reference itself (not a recursive property walk), and has no
-        # 'ignored_keys' concept to forward to.
-        return super().get_facet(
+        # reference itself (not a recursive property walk).
+        facets = super().get_facet(
             path,
             element,
             nested_facets,
             facets,
             path_suffix=path_suffix or ".id",
+        )
+        # User-declared 'keys' (e.g. "props.alpha3") get facets like any pid-relation's
+        # keys; the default ones (id, title, specialized-vocabulary fields) are skipped
+        # so that a vocabulary without extra keys still has only the facet above.
+        return PIDRelation.get_facet(
+            self,
+            path,
+            element,
+            nested_facets,
+            facets,
+            ignored_keys={*(ignored_keys or ()), *self._default_key_properties(element)},
         )
 
     @override
