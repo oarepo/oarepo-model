@@ -7,6 +7,7 @@ Covers:
 - multilingual_validator (unique language codes pass; duplicate codes raise)
 - MultilingualDataType: load and dump round-trip, duplicate language rejection
 - I18nDictDataType: field type, load/dump of language-keyed dicts, JSON schema, mapping
+- I18nDictDataType UI: localized `<name>_l10n` value with locale fallbacks
 """
 
 from __future__ import annotations
@@ -177,3 +178,33 @@ class TestI18nDictDataType:
         mapping = dt.create_mapping({"type": "i18ndict"})
         assert mapping.get("dynamic") in ("true", True)
         assert mapping.get("type") == "object"
+
+
+class TestI18nDictUI:
+    """i18ndict UI serialization adds ``<name>_l10n`` with the value in the current locale."""
+
+    @pytest.fixture
+    def ui_schema(self, datatype_registry):
+        """Return a UI marshmallow schema with an i18ndict field named 'a'."""
+        element = {"type": "i18ndict"}
+        fields = datatype_registry.get_type(element).create_ui_marshmallow_fields("a", element)
+        return ma.Schema.from_dict(fields)()
+
+    @pytest.mark.parametrize(
+        ("locale", "value", "expected"),
+        [
+            ("cs", {"en": "Hello", "cs": "Ahoj"}, "Ahoj"),
+            # locale missing: default locale (en)
+            ("de", {"en": "Hello", "cs": "Ahoj"}, "Hello"),
+            # neither locale nor default: any translation rather than an error
+            ("de", {"cs": "Ahoj"}, "Ahoj"),
+            # empty dict: nothing to show, but must not crash
+            ("cs", {}, None),
+        ],
+    )
+    def test_localized_value(self, app, ui_schema, locale, value, expected):
+        """Dump the translation for the current locale, with fallbacks."""
+        from flask_babel import force_locale
+
+        with app.test_request_context(), force_locale(locale):
+            assert ui_schema.dump({"a": value}) == {"a_l10n": expected}
