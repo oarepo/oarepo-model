@@ -141,6 +141,21 @@ def test_vocabulary_key_is_mapped_as_object(pid_relation, register_fake_runtime_
     assert activity_type["properties"]["id"] == {"type": "keyword", "ignore_above": 256}
 
 
+def test_vocabulary_props_keys_resolve_without_explicit_type(datatype_registry):
+    """Vocabulary 'props' keys need no explicit type (issue #140)."""
+    element = {"type": "vocabulary", "vocabulary-type": "languages", "keys": ["id", "props.url"]}
+    vocabulary = datatype_registry.get_type(element)
+
+    props = vocabulary.create_mapping(element)["properties"]["props"]
+    assert props["properties"] == {"url": {"type": "keyword", "ignore_above": 256}}
+    assert vocabulary.create_marshmallow_schema(element)().load({"id": "en", "props": {"url": "x"}})["props"] == {
+        "url": "x"
+    }
+
+    element["keys"] = ["id", "props"]
+    assert vocabulary.create_mapping(element)["properties"]["props"] == {"type": "object", "dynamic": "true"}
+
+
 # ---------------------------------------------------------------------------
 # PIDRelation._relation_pid_field / _relation_key_names
 # ---------------------------------------------------------------------------

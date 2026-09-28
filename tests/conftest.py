@@ -602,6 +602,16 @@ vocabulary_model_types = {
                 "type": "vocabulary",
                 "vocabulary-type": "languages",
             },
+            "language_prop": {
+                "type": "vocabulary",
+                "vocabulary-type": "languages",
+                "keys": ["id", "props.alpha3"],
+            },
+            "language_props": {
+                "type": "vocabulary",
+                "vocabulary-type": "languages",
+                "keys": ["id", "props"],
+            },
             "affiliation": {
                 "type": "vocabulary",
                 "vocabulary-type": "affiliations",

@@ -26,6 +26,8 @@ def test_vocabularies(
                 "language": {
                     "id": "en",
                 },
+                "language_prop": {"id": "en"},
+                "language_props": {"id": "en"},
                 "affiliation": {"id": "02ex6cf31"},
                 "funder": {
                     "id": "05k73zm37",
@@ -42,6 +44,8 @@ def test_vocabularies(
 
     assert md == {
         "language": {"id": "en", "title": {"cs": "Angličtina", "en": "English"}},
+        "language_prop": {"id": "en", "title": {"cs": "Angličtina", "en": "English"}, "props": {"alpha3": "eng"}},
+        "language_props": {"id": "en", "title": {"cs": "Angličtina", "en": "English"}, "props": {"alpha3": "eng"}},
         "affiliation": {
             "id": "02ex6cf31",
             "name": "Brookhaven National Laboratory",
@@ -72,3 +76,11 @@ def test_vocabularies(
             },
         },
     }
+
+    # props copied via 'keys' are indexed and searchable (issue #140)
+    vocabulary_model.Record.index.refresh()
+    for field in ("language_prop", "language_props"):
+        hits = record_with_vocabulary_service.search(
+            identity_simple, params={"q": f"metadata.{field}.props.alpha3:eng"}
+        )
+        assert hits.total == 1, field
