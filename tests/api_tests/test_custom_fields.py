@@ -28,6 +28,10 @@ def test_custom_fields(
     assert item.data == read_item.data
     assert read_item.data["custom_fields"]["cern:experiment"] == "CMS"
 
+    # custom fields must survive UI serialization as well (issue #154)
+    ui = records_cf_model.RecordUISchema().dump(read_item.data)
+    assert ui["custom_fields"] == {"cern:experiment": "CMS"}
+
 
 def test_draft_custom_fields(
     drafts_cf_model,
@@ -57,3 +61,6 @@ def test_draft_custom_fields(
     published_item = service.publish(identity_simple, id_)
     assert published_item.id == id_
     assert published_item.data["custom_fields"]["cern:experiment"] == "CMS"
+
+    ui = drafts_cf_model.RecordUISchema().dump(published_item.data)
+    assert ui["custom_fields"] == {"cern:experiment": "CMS"}

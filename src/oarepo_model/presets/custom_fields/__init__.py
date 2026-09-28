@@ -17,7 +17,7 @@ from .records.draft_mapping import CustomFieldsDraftMappingPreset
 from .records.jsonschema import CustomFieldsJSONSchemaPreset
 from .records.mapping import CustomFieldsMappingPreset
 from .services.component import CustomFieldsComponentPreset
-from .services.schema import RecordCustomFieldsSchemaPreset
+from .services.schema import RecordCustomFieldsSchemaPreset, RecordCustomFieldsUISchemaPreset
 
 custom_fields_preset = [
     # records layer
@@ -29,6 +29,7 @@ custom_fields_preset = [
     CustomFieldsJSONSchemaPreset,
     # services layer
     RecordCustomFieldsSchemaPreset,
+    RecordCustomFieldsUISchemaPreset,
     CustomFieldsComponentPreset,
     # feature
     CustomFieldsFeaturePreset,
