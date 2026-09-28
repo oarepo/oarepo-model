@@ -4,7 +4,7 @@
 """String data types for OARepo models.
 
 This module provides string-based data type implementations including basic strings,
-keywords, full text fields, and editable text areas for use in OARepo models.
+keywords, URLs, full text fields, and editable text areas for use in OARepo models.
 """
 
 from __future__ import annotations
@@ -75,6 +75,22 @@ class KeywordDataType(FacetMixin, DataType):
         if "pattern" in element:
             ret["pattern"] = element["pattern"]
         return ret
+
+
+class UrlDataType(KeywordDataType):
+    """An absolute URL (http, https, ftp, ftps), indexed as a keyword."""
+
+    TYPE = "url"
+
+    marshmallow_field_class = marshmallow.fields.Url
+    jsonschema_type = ReadOnlyDict({"type": "string", "format": "uri"})
+    # URLs are often longer than the 256 chars of a plain keyword
+    mapping_type = ReadOnlyDict(
+        {
+            "type": "keyword",
+            "ignore_above": 2048,
+        },
+    )
 
 
 class FullTextDataType(KeywordDataType):
