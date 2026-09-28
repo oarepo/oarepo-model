@@ -119,6 +119,28 @@ def test_get_target_properties_includes_record_and_metadata_type_properties(
     assert properties["metadata"] == {"properties": {"title": {"type": "keyword"}}}
 
 
+def test_vocabulary_key_is_mapped_as_object(pid_relation, register_fake_runtime_model):
+    """A vocabulary key of the target model maps as an object, not a scalar keyword (issue #114)."""
+    from oarepo_runtime.api import ModelMetadata
+
+    model_metadata = ModelMetadata(
+        types={
+            "Metadata": {
+                "properties": {"activity_type": {"type": "vocabulary", "vocabulary-type": "activity_types"}},
+            },
+        },
+        metadata_type="Metadata",
+    )
+    register_fake_runtime_model("fake_with_vocabulary", oarepo_model_arguments={"model_metadata": model_metadata})
+    element = {"type": "pid-relation", "keys": ["id", "metadata.activity_type"], "model": "fake_with_vocabulary"}
+
+    mapping = pid_relation.create_mapping(element)
+
+    activity_type = mapping["properties"]["metadata"]["properties"]["activity_type"]
+    assert activity_type["type"] == "object"
+    assert activity_type["properties"]["id"] == {"type": "keyword", "ignore_above": 256}
+
+
 # ---------------------------------------------------------------------------
 # PIDRelation._relation_pid_field / _relation_key_names
 # ---------------------------------------------------------------------------
