@@ -34,7 +34,7 @@ from .numbers import DoubleDataType, FloatDataType, IntegerDataType, LongDataTyp
 from .polymorphic import PolymorphicDataType
 from .relations import PIDRelation
 from .spherical import GeoPointDataType, GeoShapeDataType, ICRSDataType, ICRSShapeDataType
-from .strings import FullTextDataType, FulltextWithKeywordDataType, KeywordDataType
+from .strings import FullTextDataType, FulltextWithKeywordDataType, KeywordDataType, UrlDataType
 from .vocabularies import VocabularyDataType
 
 if TYPE_CHECKING:
@@ -44,6 +44,7 @@ DATA_TYPES: dict[str, type[DataType] | dict[str, Any]] = {
     KeywordDataType.TYPE: KeywordDataType,
     FullTextDataType.TYPE: FullTextDataType,
     FulltextWithKeywordDataType.TYPE: FulltextWithKeywordDataType,
+    UrlDataType.TYPE: UrlDataType,
     ObjectDataType.TYPE: ObjectDataType,
     DoubleDataType.TYPE: DoubleDataType,
     FloatDataType.TYPE: FloatDataType,

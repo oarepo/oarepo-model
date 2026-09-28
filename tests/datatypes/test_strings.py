@@ -12,6 +12,7 @@ Covers:
 - facet generation: fulltext → no facet; keyword → facet; fulltext+keyword → .keyword suffix
 - mapping types for all three string types
 - JSON schema type for all three string types
+- url type: URL validation, keyword mapping, uri JSON schema format
 """
 
 from __future__ import annotations
@@ -454,3 +455,48 @@ class TestStringMappings:
         """Return a JSON schema of type string for the string datatypes."""
         dt = datatype_registry.get_type({"type": type_name})
         assert dt.create_json_schema({"type": type_name})["type"] == "string"
+
+
+# ===========================================================================
+# URL type
+# ===========================================================================
+
+
+class TestUrl:
+    """url type must validate absolute URLs and be indexed as a keyword."""
+
+    @pytest.mark.parametrize(
+        "value",
+        ["https://example.org", "http://example.org/a/b?c=d#e", "ftp://ftp.example.org/file.txt"],
+    )
+    def test_accepts_valid_url(self, datatype_registry, value):
+        """Accept absolute URLs with a supported scheme."""
+        schema = make_schema(datatype_registry, {"type": "url"})
+        assert schema.load({"a": value}) == {"a": value}
+
+    @pytest.mark.parametrize(
+        "value",
+        ["example.org", "/relative/path", "not a url", "mailto:someone@example.org", "https://"],
+    )
+    def test_rejects_invalid_url(self, datatype_registry, value):
+        """Reject relative, schemeless, malformed and unsupported-scheme values."""
+        schema = make_schema(datatype_registry, {"type": "url"})
+        with pytest.raises(ma.ValidationError):
+            schema.load({"a": value})
+
+    def test_string_constraints_still_apply(self, datatype_registry):
+        """Validators inherited from keyword (e.g. max_length) are applied on top of URL validation."""
+        schema = make_schema(datatype_registry, {"type": "url", "max_length": 20})
+        assert schema.load({"a": "https://example.org"}) == {"a": "https://example.org"}
+        with pytest.raises(ma.ValidationError):
+            schema.load({"a": "https://example.org/too/long"})
+
+    def test_mapping_is_keyword(self, datatype_registry):
+        """Index the url as a keyword, with an ignore_above large enough for long URLs."""
+        dt = datatype_registry.get_type({"type": "url"})
+        assert dt.create_mapping({"type": "url"}) == {"type": "keyword", "ignore_above": 2048}
+
+    def test_json_schema_has_uri_format(self, datatype_registry):
+        """Return a JSON schema string with the uri format."""
+        dt = datatype_registry.get_type({"type": "url"})
+        assert dt.create_json_schema({"type": "url"}) == {"type": "string", "format": "uri"}
