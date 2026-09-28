@@ -70,6 +70,19 @@ class VocabularyDataType(FacetMixin, PIDRelation):
         }
 
     @override
+    def _lookup_target_element(self, properties: dict[str, Any], key: str) -> dict[str, Any] | None:
+        """Resolve 'props' keys, which vocabularies declare as a free-form string dict.
+
+        A vocabulary has no oarepo model to introspect, so 'props' (copied as a whole)
+        maps to a dynamic object and 'props.<name>' (a single string value) to keyword.
+        """
+        if key == "props":
+            return {"type": "dynamic-object"}
+        if key.startswith("props."):
+            return {"type": "keyword"}
+        return super()._lookup_target_element(properties, key)
+
+    @override
     def create_marshmallow_schema(self, element: dict[str, Any]) -> type[Schema]:
         match element["vocabulary-type"]:
             case "affiliations":
