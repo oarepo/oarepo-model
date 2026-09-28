@@ -290,6 +290,22 @@ class PolymorphicField(ma.fields.Field):
 
         return val
 
+    def merged_schema(self) -> ma.Schema:
+        """Return a schema with the fields of all variants, for walking a path through this field.
+
+        The variant is only known per value (via the discriminator), so a path that goes
+        through a polymorphic field sees the union of all variants' fields - the same way
+        as its JSON schema/mapping. On a field name clash, the first variant wins.
+        """
+        merged: dict[str, ma.fields.Field] = {}
+        for alternative in self.alternatives.values():
+            if isinstance(alternative, ma.fields.Nested):
+                for name, field in alternative.schema.fields.items():
+                    # no copy needed: Schema.__init__ deep-copies declared fields before binding them
+                    # (marshmallow 3 and 4), so the variant's own fields stay bound to its schema
+                    merged.setdefault(name, field)
+        return ma.Schema.from_dict(merged, name="MergedPolymorphicSchema")()
+
     @override
     def _serialize(self, value: Any, attr: str | None, obj: Any, **kwargs: Any) -> Any:
         """Serialize by choosing correct serializer depending on the discriminator value."""

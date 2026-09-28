@@ -917,6 +917,7 @@ internal_relation_polymorphic_target_model_types = {
             "id": {"type": "keyword"},
             "name": {"type": "keyword"},
             "first_name": {"type": "keyword"},
+            "entity_type": {"type": "keyword"},
         },
     },
     "OrganizationEntity": {
@@ -925,6 +926,7 @@ internal_relation_polymorphic_target_model_types = {
             "id": {"type": "keyword"},
             "name": {"type": "keyword"},
             "registration_number": {"type": "keyword"},
+            "entity_type": {"type": "keyword"},
         },
     },
 }
@@ -1335,6 +1337,7 @@ def extra_entry_points(
     internal_relation_array_model,
     internal_relation_nested_model,
     internal_relation_nested_key_model,
+    internal_relation_polymorphic_target_model,
     internal_relation_no_id_key_model,
     recursive_relation_no_id_key_model,
 ):

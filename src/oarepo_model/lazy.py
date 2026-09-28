@@ -13,6 +13,7 @@ from typing import Any, override
 
 import marshmallow
 
+from oarepo_model.datatypes.polymorphic import PolymorphicField
 from oarepo_model.utils import deepcopy_to_plain, import_runtime_json
 
 
@@ -195,11 +196,14 @@ class LazyMarshmallowSchema(marshmallow.Schema):
             if part not in source_schema.fields:
                 return None
             field = source_schema.fields[part]
-            if not isinstance(field, marshmallow.fields.Nested):
+            if isinstance(field, marshmallow.fields.Nested):
+                source_schema = field.schema
+            elif isinstance(field, PolymorphicField):
+                source_schema = field.merged_schema()
+            else:
                 raise TypeError(
                     f"Field {part!r} on the path to {key!r} is not a nested field.",
                 )
-            source_schema = field.schema
         if parts[-1] not in source_schema.fields:
             return None
         return source_schema.fields[parts[-1]]
