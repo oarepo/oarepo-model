@@ -31,6 +31,7 @@ from oarepo_model.datatypes.lazy_relations import (
     LazyPIDRelation,
     _descend_marshmallow_schema,
 )
+from oarepo_model.datatypes.polymorphic import PolymorphicField
 
 if TYPE_CHECKING:
     from oarepo_model.utils import ARRAY_PATH_ITEM
@@ -257,6 +258,15 @@ class _RootSchema(marshmallow.Schema):
     nested = marshmallow.fields.Nested(_MiddleSchema)
     nested_list = marshmallow.fields.List(marshmallow.fields.Nested(_MiddleSchema))
     scalars = marshmallow.fields.List(marshmallow.fields.String())
+    polymorphic_list = marshmallow.fields.List(
+        PolymorphicField(
+            discriminator="type",
+            alternatives={
+                "a": marshmallow.fields.Nested(_LeafSchema),
+                "b": marshmallow.fields.Nested(_MiddleSchema),
+            },
+        )
+    )
 
 
 def test_descend_marshmallow_schema_empty_path_returns_the_schema():
@@ -270,6 +280,13 @@ def test_descend_marshmallow_schema_follows_nested_and_array_segments():
     # (Nested.schema returns a schema *instance*, hence isinstance).
     assert isinstance(_descend_marshmallow_schema(_RootSchema(), "nested_list.deep"), _LeafSchema)
     assert isinstance(_descend_marshmallow_schema(_RootSchema(), "nested.deep"), _LeafSchema)
+
+
+def test_descend_marshmallow_schema_merges_polymorphic_variants():
+    # a polymorphic segment (here inside an array) exposes the fields of all its variants
+    merged = _descend_marshmallow_schema(_RootSchema(), "polymorphic_list")
+    assert set(merged.fields) == {"leaf", "deep"}
+    assert isinstance(_descend_marshmallow_schema(_RootSchema(), "polymorphic_list.deep"), _LeafSchema)
 
 
 def test_descend_marshmallow_schema_missing_segment_raises():

@@ -88,6 +88,42 @@ def test_internal_relation_polymorphic_target_resolve(app, internal_relation_pol
     assert resolved["name"] == "Acme Corp"
 
 
+def test_internal_relation_polymorphic_target_service_and_ui(
+    app,
+    internal_relation_polymorphic_target_model,
+    search,
+    search_clear,
+    location,
+    db,
+    client,
+    headers,
+):
+    """Records with a relation into a polymorphic array load, dump and UI-serialize (issue #152).
+
+    The relation's keys are looked up in the marshmallow (and UI) schema of the target
+    path, which for a polymorphic field is the merge of all its variants.
+    """
+    res = client.post(
+        "/ir-polymorphic-test",
+        headers=headers.ui,
+        data=json.dumps(
+            {
+                "files": {"enabled": False},
+                "metadata": {
+                    "entities": [
+                        {"entity_type": "person", "id": "e1", "name": "Alice", "first_name": "Alice"},
+                        {"entity_type": "organization", "id": "e2", "name": "Acme Corp", "registration_number": "1"},
+                    ],
+                    "primary_entity": {"id": "e2"},
+                },
+            },
+        ),
+    )
+    assert res.status_code == 201, res.json
+    assert res.json["metadata"]["primary_entity"] == {"id": "e2", "name": "Acme Corp"}
+    assert res.json["ui"]["primary_entity"]["name"] == "Acme Corp"
+
+
 def test_internal_relation_marshmallow_schema(app, internal_relation_model):
     """LazyInternalMarshmallowSchema should resolve 'keys' against the target's real fields."""
     schema_cls = internal_relation_model.proxies.current_service.schema.schema

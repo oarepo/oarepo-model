@@ -32,6 +32,7 @@ from oarepo_model.customizations.high_level.add_pid_relation import (
     AddPIDRelation,
     RelationFieldCustomization,
 )
+from oarepo_model.datatypes.polymorphic import PolymorphicField
 from oarepo_model.datatypes.relations import PIDRelation, set_key_model
 from oarepo_model.lazy import LazyJSONNamespaceFilePart, LazyMarshmallowSchema
 from oarepo_model.utils import (
@@ -51,18 +52,23 @@ if TYPE_CHECKING:
 log = logging.getLogger("oarepo_model")
 
 
-def _unwrap_nested_field(field: marshmallow.fields.Field | None) -> marshmallow.fields.Nested | None:
-    """Return the Nested field to descend into for a (possibly array-wrapped) marshmallow field.
+def _unwrap_nested_schema(field: marshmallow.fields.Field | None) -> marshmallow.Schema | None:
+    """Return the schema to descend into for a (possibly array-wrapped) marshmallow field.
 
     ArrayDataType.create_marshmallow_field produces a plain fields.List wrapping
     the item field (see ArrayDataType._get_marshmallow_field_args) rather than a
     Nested field itself - a target_path segment pointing at an array field (e.g.
-    "metadata.proteins") must unwrap one level of List first. Returns None if
-    `field` is neither, or the unwrapped inner field is not Nested either.
+    "metadata.proteins") must unwrap one level of List first. A polymorphic field
+    contributes the merged schema of all its variants. Returns None if `field` is
+    none of these.
     """
     if isinstance(field, marshmallow.fields.List):
         field = field.inner
-    return field if isinstance(field, marshmallow.fields.Nested) else None
+    if isinstance(field, marshmallow.fields.Nested):
+        return field.schema
+    if isinstance(field, PolymorphicField):
+        return field.merged_schema()
+    return None
 
 
 def _descend_marshmallow_schema(schema: marshmallow.Schema, path: str) -> marshmallow.Schema:
@@ -76,15 +82,15 @@ def _descend_marshmallow_schema(schema: marshmallow.Schema, path: str) -> marshm
     parts = path.split(".")
 
     for i, part in enumerate(parts):
-        nested = _unwrap_nested_field(schema.fields.get(part))
-        if nested is None:
+        nested_schema = _unwrap_nested_schema(schema.fields.get(part))
+        if nested_schema is None:
             prefix = ".".join(parts[:i])
             where = f"{type(schema).__name__} at {prefix or '<root>'}"
             raise ValueError(
                 f"Cannot resolve internal-relation target path {path!r}: "
                 f"field {part!r} is either missing from {where} or is not a nested field.",
             )
-        schema = nested.schema
+        schema = nested_schema
 
     return schema
 
