@@ -13,8 +13,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
+from invenio_i18n import get_locale
+from invenio_vocabularies.resources.serializer import current_default_locale
 from invenio_vocabularies.services.schema import i18n_strings
 from marshmallow import ValidationError
+from marshmallow_utils.fields import BabelGettextDictField
 
 from .collections import ArrayDataType, NoItemsError, ObjectDataType
 
@@ -62,6 +65,19 @@ class MultilingualDataType(ArrayDataType):
         return field_args
 
 
+class I18nDictL10NField(BabelGettextDictField):
+    """The i18ndict value in the current locale (falling back to BABEL_DEFAULT_LOCALE, "en", then any)."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        """Look up the current locale, falling back to the app's default locale."""
+        super().__init__(get_locale, current_default_locale, **kwargs)
+
+    @override
+    def _serialize(self, value: Any, attr: str | None, obj: Any, **kwargs: Any) -> Any:
+        # the parent crashes on an empty dict (it picks "the first translation")
+        return super()._serialize(value, attr, obj, **kwargs) if value else None
+
+
 class I18nDictDataType(ObjectDataType):
     """A data type for multilingual dictionaries.
 
@@ -95,7 +111,8 @@ class I18nDictDataType(ObjectDataType):
 
     @override
     def create_ui_marshmallow_fields(self, field_name: str, element: dict[str, Any]) -> dict[str, Any]:
-        return {}
+        """Add ``<field_name>_l10n`` with the value in the current locale (as vocabulary ``title_l10n``)."""
+        return {f"{field_name}_l10n": I18nDictL10NField(attribute=field_name)}
 
     @override
     def create_json_schema(self, element: dict[str, Any]) -> dict[str, Any]:
