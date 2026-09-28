@@ -84,3 +84,8 @@ def test_vocabularies(
             identity_simple, params={"q": f"metadata.{field}.props.alpha3:eng"}
         )
         assert hits.total == 1, field
+
+    # a single declared props key also gets a facet
+    facet = "metadata.language_prop.props.alpha3"
+    assert record_with_vocabulary_service.search(identity_simple, facets={facet: ["eng"]}).total == 1
+    assert record_with_vocabulary_service.search(identity_simple, facets={facet: ["ces"]}).total == 0

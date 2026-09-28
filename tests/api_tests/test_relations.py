@@ -156,6 +156,24 @@ def test_vocabulary_props_keys_resolve_without_explicit_type(datatype_registry):
     assert vocabulary.create_mapping(element)["properties"]["props"] == {"type": "object", "dynamic": "true"}
 
 
+@pytest.mark.parametrize(
+    ("element", "expected_facets"),
+    [
+        ({"vocabulary-type": "languages"}, {"metadata.l"}),
+        # a dynamic object has no known fields to aggregate on
+        ({"vocabulary-type": "languages", "keys": ["id", "props"]}, {"metadata.l"}),
+        ({"vocabulary-type": "languages", "keys": ["id", "props.alpha3"]}, {"metadata.l", "metadata.l.props.alpha3"}),
+        # default keys of specialized vocabularies (identifiers, acronym, ...) stay facet-less
+        ({"vocabulary-type": "awards"}, {"metadata.l"}),
+    ],
+)
+def test_vocabulary_facets_for_declared_keys_only(datatype_registry, element, expected_facets):
+    """A vocabulary gets its id facet plus one per user-declared keyword key."""
+    element = {"type": "vocabulary", **element}
+    facets = datatype_registry.get_type(element).get_facet("metadata.l", element, [], {})
+    assert set(facets) == expected_facets
+
+
 # ---------------------------------------------------------------------------
 # PIDRelation._relation_pid_field / _relation_key_names
 # ---------------------------------------------------------------------------
