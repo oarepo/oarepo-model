@@ -1,11 +1,49 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""High-level API for OARepo model creation and management.
+"""Entry point for defining a model: the ``model()`` function.
 
-This module provides the main entry point for creating and managing OARepo models.
-It includes functions for model creation, customization application, and model
-registration with the Invenio framework.
+``model()`` builds a complete Invenio record model (record classes, service,
+resource, schemas, search mapping, ...) from presets, metadata types and
+customizations, and returns it as a namespace:
+
+```python
+from oarepo_model.api import model
+from oarepo_model.presets.records_resources import (
+    records_resources_preset,
+)
+
+my_model = model(
+    "my_model",
+    version="1.0.0",
+    presets=[records_resources_preset],
+    types=[
+        {
+            "RecordMetadata": {
+                "properties": {
+                    "title": {
+                        "type": "fulltext+keyword",
+                        "required": True,
+                    },
+                },
+            }
+        }
+    ],
+    metadata_type="RecordMetadata",
+)
+```
+
+- ``presets`` - lists of preset classes (they may be nested one level deep, e.g.
+  ``[records_resources_preset, drafts_preset]``); they generate the model.
+- ``types`` / ``metadata_type`` - the metadata definition, see the data types in
+  https://nrp-cz.github.io/docs/customize/model_backend/model_reference
+- ``customizations`` - changes applied on top of the presets, see
+  ``oarepo_model.customizations``.
+- ``configuration`` - model settings used by presets (e.g. ``ui_blueprint_name``).
+
+The returned namespace holds the generated classes (``my_model.Record``,
+``my_model.RecordService``, ...) and ``register()``/``unregister()`` to add the
+model to (or remove it from) the running application.
 """
 
 from __future__ import annotations

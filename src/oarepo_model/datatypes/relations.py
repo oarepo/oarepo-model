@@ -1,13 +1,45 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Data type for PID-based record relations.
+"""Relation to a record of another model: ``pid-relation``.
 
-This module provides the PIDRelation data type for creating relationships
-between records using persistent identifiers (PIDs). It extends the ObjectDataType
-to handle record references with configurable keys, PID fields, and caching
-mechanisms. The data type automatically generates the necessary relation
-customizations for the model builder.
+The client sends only the target's id (``{"id": "pub-12345"}``). When the record is
+saved, the fields listed in ``keys`` are copied from the target, so they can be
+searched and displayed without looking the target up again.
+
+- ``keys`` - fields to copy. A plain string (``metadata.title``) takes its
+  definition from the target model, which then must be given in ``model``. A
+  single-key mapping (``metadata.title: {type: keyword}``) defines it explicitly.
+  ``id`` is always stored, listed or not.
+- ``record_cls`` (or ``pid_field``) - how to resolve the target's PID; one of them
+  is required.
+- ``model`` - name of the target model.
+
+The target must be a published record; a draft-only target is rejected with
+``InvalidRelationValue``. Facets are generated on ``<field>.id`` and on the copied
+keys, according to their types.
+
+For a relation to the same model or a circular one (model A points to B, which
+points back to A), use ``lazy-pid-relation``; for a relation to a part of the same
+record, use ``internal-relation``.
+
+Example (model YAML):
+
+```yaml
+cited_publication:
+  type: pid-relation
+  model: publications
+  keys: ["id", "metadata.title", "metadata.doi"]
+  record_cls: "publications.records:PublicationRecord"
+related_dataset:
+  type: pid-relation
+  keys:
+    - id
+    - metadata.title: {type: fulltext+keyword}
+  record_cls: "datasets.records:DatasetRecord"
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#pid-relation
 """
 
 from __future__ import annotations

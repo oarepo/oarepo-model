@@ -1,11 +1,40 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Date and time data types for OARepo models.
+"""Date and time data types.
 
-This module provides date and time related data types including basic dates,
-date ranges, date intervals, and EDTF (Extended Date/Time Format) support
-for use in OARepo models.
+- ``date`` (``2023-03-15``), ``datetime`` (``2023-03-15T10:30:00Z``) and ``time``
+  (``10:30:00``) - ISO 8601 values. Limit them with ``min_date``/``max_date``,
+  ``min_datetime``/``max_datetime`` or ``min_time``/``max_time``.
+- ``edtf`` - an EDTF date that may be incomplete: ``1945-05`` or ``1450``.
+- ``edtf-time`` - like ``edtf``, but a full date may also carry a time.
+- ``edtf-interval`` - a closed EDTF interval such as ``1984/1985``, indexed as a
+  date range.
+- ``edtf-date-or-interval`` - either a date or an interval. The record is also
+  indexed with a hidden ``<field>_range`` field, so range queries work for both.
+
+EDTF qualifiers for uncertain or approximate dates (``1984?``, ``1984~``) are
+rejected. The stored value is kept exactly as entered. The UI serialization adds
+localized ``<field>_l10n_long``, ``_medium``, ``_short`` and ``_full`` keys. Date,
+datetime, time, edtf and edtf-time fields get a date facet.
+
+Example (model YAML):
+
+```yaml
+publication_date:
+  type: date
+  min_date: "1900-01-01"
+created:
+  type: datetime
+manuscript_date:
+  type: edtf
+coverage:
+  type: edtf-date-or-interval
+```
+
+Search: ``publication_date:[2023-01-01 TO 2023-12-31]``.
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#date-and-time-data-types
 """
 
 from __future__ import annotations

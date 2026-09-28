@@ -1,7 +1,44 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Data type for internal (same-record) relations.
+"""Relation to a part of the same record: ``internal-relation``.
+
+Points from one field of a record to an entry elsewhere in the same record, e.g.
+from ``main_protein`` to one item of ``metadata.proteins``. The client sends only the
+entry's id; the fields listed in ``keys`` are copied from that entry when the record
+is saved. An id that does not exist in ``target`` is rejected with
+``InvalidRelationValue``.
+
+- ``target`` - dotted path of the entries to point at (an object, an array of
+  objects, or an array of a polymorphic type). Every entry must have an ``id``.
+- ``keys`` - fields to copy, relative to ``target``.
+
+The model must include ``internal_relations_preset`` (from
+``oarepo_model.presets.internal_relations``); without it, the field builds but never
+resolves.
+
+Example (model YAML):
+
+```yaml
+proteins:
+  type: array
+  items:
+    type: object
+    properties:
+      id: {type: keyword}
+      name: {type: keyword}
+main_protein:
+  type: internal-relation
+  target: metadata.proteins
+  keys: ["id", "name"]
+```
+
+Input ``{"proteins": [{"id": "p1", "name": "Hemoglobin"}], "main_protein": {"id":
+"p1"}}`` is stored with ``main_protein.name`` set to ``"Hemoglobin"``.
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#internal-relation
+
+Implementation notes:
 
 This module provides the InternalRelationDataType data type for creating
 relationships that resolve against a part of the *same* record instead of an

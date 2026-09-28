@@ -1,17 +1,36 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Data type for PID-based recursive record relations.
+"""Relation to the same or a circularly referenced model: ``lazy-pid-relation``.
 
-This module provides the PIDRecursiveRelation data type for creating relationships
-between records using persistent identifiers (PIDs). It extends the ObjectDataType
-to handle record references with configurable keys, PID fields, and caching
-mechanisms. The data type automatically generates the necessary relation
-customizations for the model builder.
+Works like ``pid-relation``, but the target model is looked up only when it is first
+needed at runtime, after all models are built. Use it when the target cannot be
+imported while this model is being built:
 
-Note: this data type should be used only for recursive relations, that is:
-    * relation to the same model
-    * circular references (model A references model B refecences model A)
+- a relation to another record of the same model (e.g. a parent version),
+- circular references: model A points to model B, which points back to A.
+
+``model`` (the target model name, the model's own name for a self-reference) and
+``keys`` are required; ``record_cls`` and ``pid_field`` are optional. Only keys with
+an explicit definition get a facet, because plain-string keys can't be resolved
+while the model is being built. ``<field>.id`` always gets a facet.
+
+Example (model YAML):
+
+```yaml
+parent_version:
+  type: lazy-pid-relation
+  model: records
+  keys: ["id", "metadata.title"]
+revisions:
+  type: array
+  items:
+    type: lazy-pid-relation
+    model: records
+    keys: ["id", "metadata.title"]
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#lazy-pid-relation
 """
 
 from __future__ import annotations

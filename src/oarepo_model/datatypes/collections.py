@@ -2,10 +2,44 @@
 # SPDX-FileCopyrightText: 2026 University of West Bohemia
 # SPDX-License-Identifier: MIT
 
-"""Collection data types for OARepo models.
+"""Composite data types: ``object``, ``nested``, ``array`` and ``dynamic-object``.
 
-This module provides collection-based data types including arrays, objects,
-nested structures, and dynamic objects for use in OARepo models.
+- ``object`` - a structure with declared ``properties``. Undeclared properties are
+  rejected on input and not indexed (``dynamic: strict``). In the index, the
+  properties of objects inside an array are flattened, so a query cannot require
+  two conditions to match within the same item.
+- ``nested`` - like ``object``, but indexed as separate documents, so queries such
+  as ``contributors:(name:Smith AND role:editor)`` match within one item. Wrap it
+  in an ``array`` to store a list.
+- ``array`` - a list of ``items`` of one type. Accepts ``min_items``,
+  ``max_items`` and ``unique_items``. The shortcut ``keywords[]:`` defines an array
+  of the given item type.
+- ``dynamic-object`` - any JSON object, passed through unchanged and indexed with
+  ``dynamic: true``. Use it for parts of the metadata whose structure is not
+  known in advance.
+
+``object`` and ``nested`` accept ``marshmallow_schema_mixins``: import paths of
+``marshmallow.Schema`` subclasses mixed into the generated schema, typically for
+validation across several properties (``@validates_schema``).
+
+Example (model YAML):
+
+```yaml
+author:
+  type: object
+  properties:
+    name:
+      type: fulltext+keyword
+      required: true
+    orcid:
+      type: keyword
+keywords[]:
+  type: keyword
+instrument_settings:
+  type: dynamic-object
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#composite-data-types
 """
 
 from __future__ import annotations

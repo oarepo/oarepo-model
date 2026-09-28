@@ -1,10 +1,38 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Numeric data types for OARepo models.
+"""Numeric data types: ``int``, ``long``, ``float`` and ``double``.
 
-This module provides numeric data type implementations including integers and
-floating-point numbers for use in OARepo models.
+- ``int`` - 32-bit integer (counts, years, sample sizes).
+- ``long`` - 64-bit integer (file sizes in bytes, large counters).
+- ``float`` - single precision number, about 7 significant digits.
+- ``double`` - double precision number, about 15 significant digits. Prefer it for
+  decimal values unless storage size matters.
+
+All of them accept ``min_inclusive``, ``max_inclusive``, ``min_exclusive`` and
+``max_exclusive``; values outside the range of the type are always rejected.
+``int`` and ``long`` accept only JSON integers by default - set
+``strict_validation: false`` to also accept ``"5"`` or ``5.0``. ``float`` and
+``double`` accept numbers given as strings.
+
+Numbers get a facet and support range queries (``citation_count:[10 TO 100]``).
+In the UI serialization the value is formatted for the current locale.
+
+Example (model YAML):
+
+```yaml
+citation_count:
+  type: int
+  min_inclusive: 0
+file_size_bytes:
+  type: long
+confidence_level:
+  type: double
+  min_inclusive: 0.0
+  max_inclusive: 1.0
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#numeric-data-types
 """
 
 from __future__ import annotations

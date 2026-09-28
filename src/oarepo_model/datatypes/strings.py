@@ -1,10 +1,39 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""String data types for OARepo models.
+"""String data types: ``keyword``, ``fulltext``, ``fulltext+keyword`` and ``url``.
 
-This module provides string-based data type implementations including basic strings,
-keywords, URLs, full text fields, and editable text areas for use in OARepo models.
+Pick the type by how the value will be searched:
+
+- ``keyword`` - exact match, sorting and facets (identifiers, statuses, categories).
+  Indexed with ``ignore_above: 256``: longer values are stored, but not indexed.
+- ``fulltext`` - analyzed text searched by words (abstracts, descriptions). No facet
+  and no sorting.
+- ``fulltext+keyword`` - both: analyzed text plus an exact ``.keyword`` sub-field that
+  is used for the facet and for sorting (titles, names).
+- ``url`` - an absolute http, https, ftp or ftps URL, indexed as a keyword with
+  ``ignore_above: 2048``.
+
+All of them accept ``min_length``, ``max_length``, ``enum`` and ``pattern``. A
+``required`` field without ``min_length`` also rejects an empty string.
+
+Example (model YAML):
+
+```yaml
+title:
+  type: fulltext+keyword
+  required: true
+publication_status:
+  type: keyword
+  enum: [draft, published, retracted]
+abstract:
+  type: fulltext
+  max_length: 5000
+landing_page:
+  type: url
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#text-data-types
 """
 
 from __future__ import annotations

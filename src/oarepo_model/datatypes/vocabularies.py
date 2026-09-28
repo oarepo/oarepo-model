@@ -1,13 +1,38 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Data type for controlled vocabulary references.
+"""Reference to a controlled vocabulary term: ``vocabulary``.
 
-This module provides the VocabularyDataType class for creating references to
-controlled vocabularies in OARepo models. It extends the PIDRelation data type
-to handle vocabulary-specific functionality, including automatic field mapping
-for different vocabulary types (affiliations, funders, awards, subjects) and
-creation of appropriate Marshmallow schemas for validation and serialization.
+A ``pid-relation`` to a term of the vocabulary given in ``vocabulary-type``. The
+client sends only the term id (``{"id": "en"}``); the rest is copied from the term
+when the record is saved.
+
+- Generic vocabularies (``languages``, ``resourcetypes``, ...) copy the term's
+  ``title`` and are serialized for the UI as ``{id, title_l10n}``.
+- ``affiliations``, ``funders``, ``awards`` and ``subjects`` use Invenio's own schemas
+  and copy their predefined fields (e.g. ``name`` and ``identifiers``).
+
+``keys`` adds fields to copy. ``props`` (the whole dictionary) and
+``props.<name>`` (a single value, indexed as ``keyword``) need no type definition.
+A facet is generated on ``<field>.id`` with labels from the vocabulary, plus one for
+each added keyword key such as ``props.<name>``.
+
+Example (model YAML):
+
+```yaml
+language:
+  type: vocabulary
+  vocabulary-type: languages
+affiliation:
+  type: vocabulary
+  vocabulary-type: affiliations
+resource_type:
+  type: vocabulary
+  vocabulary-type: resourcetypes
+  keys: ["id", "props.csl"]
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#vocabulary
 """
 
 from __future__ import annotations

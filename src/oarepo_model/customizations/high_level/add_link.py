@@ -1,7 +1,45 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""High-level customization for adding item link to service config."""
+"""Record link: ``AddLink``.
+
+Adds an entry to the ``links`` of every record in API responses. The link is one of
+the link classes of ``invenio_records_resources.services`` (``ExternalLink``,
+``EndpointLink``, ``ConditionalLink``, ...).
+
+Import it from this module - unlike the other customizations, it is not exported
+from ``oarepo_model.customizations``.
+
+Example (in ``model.py``):
+
+```python
+from invenio_records_resources.services import (
+    ExternalLink,
+)
+from oarepo_model.customizations.high_level import (
+    AddLink,
+)
+
+AddLink(
+    "manufacturer_catalogue",
+    ExternalLink(
+        "https://catalogue.example.org/{serial}",
+        vars=lambda record, vars: (
+            vars.update(
+                {
+                    "serial": record.metadata.get(
+                        "serial_number",
+                        "",
+                    )
+                }
+            )
+        ),
+    ),
+)
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/customizations#links
+"""
 
 from __future__ import annotations
 

@@ -1,12 +1,25 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""High-level customizations for OARepo model builder.
+"""High-level customizations: the common changes to a model, without knowing its internals.
 
-This package contains high-level customizations that provide convenient
-abstractions for common model modifications. These customizations combine
-multiple low-level operations to achieve complex model transformations
-with simple, declarative interfaces.
+Pass them to ``model(customizations=[...])``:
+
+- permissions - ``SetPermissionPolicy``
+- service - ``AddServiceComponent``, ``AddLink``
+- metadata - ``SetSyntheticMetadata``
+- exports and imports - ``AddMetadataExport``, ``AddMetadataImport``
+- search - ``SetDefaultSearchFields``, ``PatchIndexSettings``,
+  ``SetIndexTotalFieldsLimit``, ``SetIndexNestedFieldsLimit``, ``PatchIndexMapping``,
+  ``PatchIndexPropertyMapping``, ``AddFacetGroup``, ``AddParamInterpreterCls``
+
+``AddPIDRelation``, ``AddLazyRelation`` and ``AddInternalRelation`` are generated from
+the relation data types in the metadata; you rarely need them directly.
+
+All of them can also be imported from ``oarepo_model.customizations``, except
+``AddLink``, which is only available here.
+
+See https://nrp-cz.github.io/docs/customize/model_backend/customizations#high-level-customizations-
 """
 
 from __future__ import annotations

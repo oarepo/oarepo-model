@@ -1,13 +1,48 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Data type for polymorphic schemas with discriminator fields.
+"""Polymorphic data type: ``polymorphic``, a value that is one of several variants.
 
-This module provides the PolymorphicDataType class for handling fields that can
-be one of several different types based on a discriminator field. It includes
-the PolymorphicField Marshmallow field for runtime type resolution and validation.
-The data type supports 'oneof' schemas where each variant specifies a discriminator
-value and corresponding schema type.
+The ``discriminator`` property (default ``type``) names the field whose value selects
+the variant from ``oneof``. Each variant has a ``discriminator`` value and a ``type``:
+an ``object`` with inline properties, or the name of a type defined elsewhere in the
+model. A value with a missing or unknown discriminator is rejected.
+
+Every variant must itself declare the discriminator field (e.g. as a ``keyword``).
+Otherwise loading fails with ``Unknown field.``, even though the JSON schema and
+the mapping add it automatically.
+
+In the search index all variants share one object mapping with the union of their
+properties. No facets are generated.
+
+Example (model YAML):
+
+```yaml
+creator:
+  type: polymorphic
+  discriminator: creator_type
+  oneof:
+    - discriminator: person
+      type: object
+      properties:
+        creator_type:
+          type: keyword
+        name:
+          type: fulltext+keyword
+        orcid:
+          type: keyword
+    - discriminator: organization
+      type: object
+      properties:
+        creator_type:
+          type: keyword
+        name:
+          type: fulltext+keyword
+        ror_id:
+          type: keyword
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#polymorphic
 """
 
 from __future__ import annotations

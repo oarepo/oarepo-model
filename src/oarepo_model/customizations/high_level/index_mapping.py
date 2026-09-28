@@ -1,7 +1,40 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Module to patch record mapping json file."""
+"""Search index mapping changes: ``PatchIndexMapping`` and ``PatchIndexPropertyMapping``.
+
+- ``PatchIndexPropertyMapping(field, mapping)`` - deep-merges ``mapping`` into the
+  generated mapping of one field, given by its dotted path (``metadata.title``).
+- ``PatchIndexMapping(mapping)`` - deep-merges a snippet into the whole ``mappings``
+  section of the index, e.g. ``{"properties": {...}}`` or ``{"dynamic_templates":
+  [...]}``. ``None`` values remove keys.
+
+A ``mapping`` property in the metadata YAML is not supported; use these instead.
+
+Example (in ``model.py``) - search a name with and without diacritics, using
+analyzers defined with ``PatchIndexSettings``:
+
+```python
+from oarepo_model.customizations import (
+    PatchIndexPropertyMapping,
+)
+
+PatchIndexPropertyMapping(
+    "metadata.creators.name",
+    {
+        "type": "text",
+        "fields": {
+            "_ascii_search": {
+                "type": "text",
+                "analyzer": "asciifolded_analyzer",
+            },
+        },
+    },
+)
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/search#custom-analyzers-and-multi-field-mappings
+"""
 
 from __future__ import annotations
 
