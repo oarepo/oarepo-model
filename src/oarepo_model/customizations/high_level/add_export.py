@@ -1,10 +1,35 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""High-level customization for adding metadata exports to models.
+"""Export format: ``AddMetadataExport``.
 
-This module provides the AddMetadataExport customization that registers an export
-serializer.
+Registers a serializer that converts records to another format. The REST API
+returns the format when a client asks for its ``mimetype`` in the ``Accept``
+header; with ``display=True`` (the default) it is also offered in the UI. Set
+``oai_metadata_prefix``, ``oai_schema`` and ``oai_namespace`` to serve it over
+OAI-PMH.
+
+Example (in ``model.py``):
+
+```python
+from invenio_i18n import (
+    lazy_gettext as _,
+)
+from oarepo_model.customizations import (
+    AddMetadataExport,
+)
+
+AddMetadataExport(
+    code="csv",
+    name=_("CSV export"),
+    mimetype="text/csv",
+    serializer=CSVSerializer(),
+)
+```
+
+Then ``curl -H "Accept: text/csv" https://<repository>/api/<model>/<id>``.
+
+See https://nrp-cz.github.io/docs/customize/model_backend/exports_and_imports#adding-custom-export-formats
 """
 
 from __future__ import annotations

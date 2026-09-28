@@ -1,7 +1,10 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""High-level customization for adding internal (same-record) relations to models.
+"""Internal relation system field: ``AddInternalRelation``.
+
+You rarely need it directly: the ``internal-relation`` data type in the metadata
+generates it.
 
 This module provides the AddInternalRelation customization that creates an
 `oarepo_runtime.records.systemfields.relations.InternalRelation` system field -

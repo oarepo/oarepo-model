@@ -1,11 +1,39 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Customization for creating new lists in the model.
+"""Facet group: ``AddFacetGroup``.
 
-This module provides the AddList customization that creates new empty lists
-in the model builder with specified names. The lists can then be populated
-by other customizations or used to collect related items during model building.
+A facet group selects which facets are shown together, e.g. on the search page.
+Facets are referenced by their names, the dotted paths of the fields
+(``metadata.publisher``). ``draft_facets`` sets a different list for the drafts
+search; if omitted, the drafts search uses ``facets``, and ``[]`` shows no facets of
+the group there.
+
+Example (in ``model.py``):
+
+```python
+from oarepo_model.customizations import (
+    AddFacetGroup,
+)
+
+AddFacetGroup(
+    "default",
+    [
+        "metadata.publisher",
+        "metadata.resource_type",
+    ],
+)
+AddFacetGroup(
+    "curator",
+    [
+        "metadata.publisher",
+        "metadata.acquisition_date",
+    ],
+    draft_facets=["metadata.publisher"],
+)
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/search#facet-groups
 """
 
 from __future__ import annotations

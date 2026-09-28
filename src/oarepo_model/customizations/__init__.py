@@ -1,11 +1,47 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Customization classes for OARepo model building.
+"""Customizations: change what oarepo-model generates without copying the generated code.
 
-This module provides various customization classes that can be used to modify
-and extend OARepo models during the building process. These customizations
-allow adding classes, modifying configurations, and extending model functionality.
+Pass them to ``model()`` in the ``customizations`` argument; they are applied after
+the presets:
+
+```python
+from oarepo_model.api import model
+from oarepo_model.customizations import (
+    AddServiceComponent,
+    SetPermissionPolicy,
+)
+
+equipment_model = model(
+    "equipment",
+    # ... presets, types, metadata_type etc.
+    customizations=[
+        AddServiceComponent(
+            EquipmentComponent
+        ),
+        SetPermissionPolicy(
+            EquipmentPermissionPolicy
+        ),
+    ],
+)
+```
+
+There are two kinds:
+
+- **High-level** customizations (``SetPermissionPolicy``, ``AddServiceComponent``,
+  ``AddFacetGroup``, ``SetDefaultSearchFields``, ``PatchIndexMapping``,
+  ``SetSyntheticMetadata``, ``AddMetadataExport``, ...) cover the common needs.
+  Prefer them.
+- **Low-level** customizations (``AddClass``, ``PrependMixin``, ``AddToList``,
+  ``AddToDictionary``, ``PatchJSONFile``, ...) work on the named building blocks of
+  the model (e.g. the ``Record`` class or the ``record_service_components`` list).
+  The names are defined by the presets and may change between versions.
+
+Everything can be imported from this package, except ``AddLink``, which lives in
+``oarepo_model.customizations.high_level``.
+
+See https://nrp-cz.github.io/docs/customize/model_backend/customizations
 """
 
 from __future__ import annotations

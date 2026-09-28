@@ -1,10 +1,36 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""High-level customization for adding metadata Imports to models.
+"""Import format: ``AddMetadataImport``.
 
-This module provides the AddMetadataImport customization that registers an import
-deserializer.
+Registers a deserializer for creating and updating records from another format.
+The REST API picks it by the ``Content-Type`` of the request; the deserializer
+returns the record in the internal JSON structure, which is then validated as usual.
+JSON (``application/json``) is always available. ``description`` is required; set
+``oai_name`` to use the format for OAI-PMH harvesting.
+
+Example (in ``model.py``):
+
+```python
+from invenio_i18n import (
+    lazy_gettext as _,
+)
+from oarepo_model.customizations import (
+    AddMetadataImport,
+)
+
+AddMetadataImport(
+    code="csv",
+    name=_("CSV"),
+    mimetype="text/csv",
+    deserializer=CSVDeserializer(),
+    description=_(
+        "A CSV file with one row"
+    ),
+)
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/exports_and_imports#adding-custom-import-formats
 """
 
 from __future__ import annotations

@@ -1,12 +1,44 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Data type for multilingual dictionary fields.
+"""Multilingual text data types: ``multilingual`` and ``i18ndict``.
 
-This module provides the I18nDictDataType class for handling internationalized
-text fields that contain translations in multiple languages. The data type
-serializes as a dictionary mapping language codes to their respective text
-values (e.g., {"en": "English text", "fi": "Finnish text"}).
+Two ways to store text in several languages:
+
+- ``multilingual`` - a list of ``{lang, value}`` entries (the ``i18n`` type), where
+  ``lang`` references the languages vocabulary. At most one entry per language;
+  duplicates are rejected. Accepts ``min_items`` and ``max_items``. Use it for
+  metadata fields such as titles and descriptions.
+- ``i18ndict`` - a plain dictionary keyed by language code, e.g.
+  ``{"en": "Hello", "cs": "Ahoj"}``. Compact, but has no validation options (the
+  marshmallow field is fixed). The UI serialization adds ``<field>_l10n`` with the
+  text in the current locale, falling back to the default locale, then English,
+  then any language.
+
+Neither type generates facets for its sub-fields.
+
+Example (model YAML):
+
+```yaml
+description:
+  type: multilingual
+title_translations:
+  type: i18ndict
+```
+
+Valid input:
+
+```json
+{
+  "description": [
+    {"lang": {"id": "en"}, "value": "A dataset"},
+    {"lang": {"id": "cs"}, "value": "Datová sada"}
+  ],
+  "title_translations": {"en": "Hello", "cs": "Ahoj"}
+}
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#multilingual
 """
 
 from __future__ import annotations

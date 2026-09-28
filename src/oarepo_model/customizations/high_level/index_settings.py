@@ -1,7 +1,45 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Module to generate record mapping json file."""
+"""Search index settings: ``PatchIndexSettings``, ``SetIndexTotalFieldsLimit``, ``SetIndexNestedFieldsLimit``.
+
+- ``PatchIndexSettings(settings)`` - merges ``settings`` (analyzers, tokenizers,
+  filters, ...) into the index settings. The merge is only one level deep: a
+  second patch of the same top-level key (e.g. ``analysis``) replaces what the
+  first one set, so keep all analysis settings in one call.
+- ``SetIndexTotalFieldsLimit(limit)`` - maximum number of fields in the mapping;
+  raise it for large metadata models.
+- ``SetIndexNestedFieldsLimit(limit)`` - maximum number of ``nested`` fields.
+
+Example (in ``model.py``):
+
+```python
+from oarepo_model.customizations import (
+    PatchIndexSettings,
+    SetIndexTotalFieldsLimit,
+)
+
+PatchIndexSettings(
+    {
+        "analysis": {
+            "analyzer": {
+                "asciifolded_analyzer": {
+                    "type": "custom",
+                    "tokenizer": "standard",
+                    "filter": [
+                        "lowercase",
+                        "asciifolding",
+                    ],
+                },
+            },
+        },
+    }
+)
+SetIndexTotalFieldsLimit(5000)
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/search#basic-search-customizations
+"""
 
 from __future__ import annotations
 

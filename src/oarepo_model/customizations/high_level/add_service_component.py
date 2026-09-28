@@ -1,10 +1,49 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""High-level customization for adding service components to models.
+"""Service component: ``AddServiceComponent``.
 
-This module provides the AddServiceComponent customization that appends
-a service component class to the record service components list.
+Adds a component to the record service. A component is a subclass of
+``invenio_records_resources.services.records.components.ServiceComponent`` whose
+methods (``create``, ``update``, ``publish``, ``delete``, ...) run during the
+corresponding service operations.
+
+Example (in ``model.py``):
+
+```python
+from invenio_records_resources.services.records.components import (
+    ServiceComponent,
+)
+from oarepo_model.customizations import (
+    AddServiceComponent,
+)
+
+
+class NormalizeSerialComponent(
+    ServiceComponent
+):
+    def create(
+        self,
+        identity,
+        data=None,
+        record=None,
+        **kwargs,
+    ):
+        serial = record.metadata.get(
+            "serial_number"
+        )
+        if serial:
+            record.metadata[
+                "serial_number"
+            ] = serial.strip().upper()
+
+
+AddServiceComponent(
+    NormalizeSerialComponent
+)
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/customizations#service-components
 """
 
 from __future__ import annotations

@@ -1,10 +1,56 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""High-level customization for adding search parameter interpreters to models.
+"""Custom search parameter: ``AddParamInterpreterCls``.
 
-This module provides the AddParamInterpreterCls customization that registers
-an extra search parameter interpreter class on the record search options.
+Adds a search parameter interpreter (a subclass of
+``invenio_records_resources.services.records.params.base.ParamInterpreter``) that
+changes the search query based on URL query-string parameters. Extra interpreters
+run before the facets interpreter, so they can take their own parameters out of
+``params`` before those are treated as facet filters. The ``geo_*`` and ``icrs_*``
+search parameters are implemented this way.
+
+Example (in ``model.py``):
+
+```python
+from invenio_records_resources.services.records.params.base import (
+    ParamInterpreter,
+)
+from oarepo_model.customizations import (
+    AddParamInterpreterCls,
+)
+
+
+class OnlyWithFilesParam(
+    ParamInterpreter
+):
+    def apply(
+        self, identity, search, params
+    ):
+        facets = params.get(
+            "facets", {}
+        )
+        value = params.pop(
+            "with_files", None
+        ) or facets.pop(
+            "with_files", None
+        )
+        if value and value[0] == "true":
+            search = search.filter(
+                "term",
+                **{
+                    "files.enabled": True
+                },
+            )
+        return search
+
+
+AddParamInterpreterCls(
+    OnlyWithFilesParam
+)
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/search#custom-search-parameters-
 """
 
 from __future__ import annotations

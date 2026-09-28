@@ -1,7 +1,40 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""Data type for geo fields."""
+"""Geospatial and astronomical data types: ``geo_point``, ``geo_shape``, ``icrs`` and ``icrs_shape``.
+
+- ``geo_point`` - a point on Earth, ``{"lat": 50.08, "lon": 14.42}``. Other forms
+  that OpenSearch accepts (strings, arrays, geohashes) are rejected.
+- ``geo_shape`` - any geometry as a WKT string (``POLYGON ((...))``) or a GeoJSON
+  geometry object, validated on load.
+- ``icrs`` - a position on the sky, ``{"ra": 83.6, "dec": 22.0}`` in degrees.
+- ``icrs_shape`` - an area on the sky: WKT or GeoJSON with right ascension and
+  declination instead of longitude and latitude.
+
+Coordinates follow GeoJSON order, longitude (or right ascension) first. ICRS values
+are stored as entered; they are converted to geo coordinates only in the search
+index.
+
+Records can be filtered with search parameters added automatically to the search
+API, for example ``?geo_distance:metadata.location=[14.42,50.09,10km]``,
+``geo_bounding_box:``, ``geo_shape:``, ``icrs_distance:``, ``icrs_bounding_box:`` and
+``icrs_shape:``. Place names instead of coordinates are resolved with OpenStreetMap
+Nominatim (``geo_*`` parameters only).
+
+Example (model YAML):
+
+```yaml
+location:
+  type: geo_point
+spatial_coverage:
+  type: geo_shape
+field_of_view:
+  type: icrs_shape
+```
+
+See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#geospatial-and-astronomical-data-types
+and https://nrp-cz.github.io/docs/customize/model_backend/search#geo-search
+"""
 
 from __future__ import annotations
 

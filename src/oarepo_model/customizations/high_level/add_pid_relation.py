@@ -1,7 +1,11 @@
 # SPDX-FileCopyrightText: 2025-2026 CESNET z.s.p.o
 # SPDX-License-Identifier: MIT
 
-"""High-level customization for adding PID relations to models.
+"""Relation system fields: ``AddPIDRelation`` and ``AddLazyRelation``.
+
+You rarely need these directly: the ``pid-relation``, ``lazy-pid-relation`` and
+``vocabulary`` data types in the metadata generate them. Use ``AddPIDRelation`` only
+for a relation that is not declared in the metadata types.
 
 This module provides the AddPIDRelation customization that creates appropriate
 PID relation system fields based on the path structure. It supports simple
