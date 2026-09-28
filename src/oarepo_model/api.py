@@ -57,9 +57,9 @@ class FunctionalPreset:
     def before_populate_type_registry(
         self,
         model: InvenioModel,
-        types: list[dict[str, Any]],
-        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
-        customizations: list[Customization],
+        types: Sequence[dict[str, Any]],
+        presets: PresetList,
+        customizations: Sequence[Customization],
         params: dict[str, Any],
     ) -> None:
         """Perform extra action before populating the type registry."""
@@ -67,9 +67,9 @@ class FunctionalPreset:
     def after_populate_type_registry(
         self,
         model: InvenioModel,
-        types: list[dict[str, Any]],
-        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
-        customizations: list[Customization],
+        types: Sequence[dict[str, Any]],
+        presets: PresetList,
+        customizations: Sequence[Customization],
         params: dict[str, Any],
     ) -> None:
         """Perform extra action after populating the type registry."""
@@ -77,10 +77,10 @@ class FunctionalPreset:
     def after_builder_created(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
-        types: list[dict[str, Any]],
-        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
+        types: Sequence[dict[str, Any]],
+        presets: PresetList,
         builder: InvenioModelBuilder,
-        customizations: list[Customization],
+        customizations: Sequence[Customization],
         params: dict[str, Any],
     ) -> None:
         """Perform extra action after the model builder is created."""
@@ -88,10 +88,10 @@ class FunctionalPreset:
     def after_presets_sorted(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
-        types: list[dict[str, Any]],
-        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
+        types: Sequence[dict[str, Any]],
+        presets: PresetList,
         builder: InvenioModelBuilder,
-        customizations: list[Customization],
+        customizations: Sequence[Customization],
         params: dict[str, Any],
     ) -> None:
         """Perform extra action after the presets are sorted."""
@@ -99,10 +99,10 @@ class FunctionalPreset:
     def after_user_customizations_applied(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
-        types: list[dict[str, Any]],
-        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
+        types: Sequence[dict[str, Any]],
+        presets: PresetList,
         builder: InvenioModelBuilder,
-        customizations: list[Customization],
+        customizations: Sequence[Customization],
         params: dict[str, Any],
     ) -> None:
         """Perform extra action after user customizations are applied."""
@@ -110,37 +110,20 @@ class FunctionalPreset:
     def after_model_built(  # noqa PLR0913 arguments needed in callback
         self,
         model: InvenioModel,
-        types: list[dict[str, Any]],
-        presets: list[type[Preset] | list[type[Preset]] | tuple[type[Preset]]],
+        types: Sequence[dict[str, Any]],
+        presets: PresetList,
         builder: InvenioModelBuilder,
-        customizations: list[Customization],
+        customizations: Sequence[Customization],
         model_namespace: SimpleNamespace,
         params: dict[str, Any],
     ) -> None:
         """Perform extra action after the model is built."""
 
 
-type PresetList = (
-    list[
-        type[Preset | FunctionalPreset]
-        | list[type[Preset | FunctionalPreset]]
-        | list[type[Preset]]
-        | list[type[FunctionalPreset]]
-        | tuple[type[Preset | FunctionalPreset], ...]
-        | tuple[type[Preset], ...]
-        | tuple[type[FunctionalPreset], ...]
-    ]
-    | tuple[
-        type[Preset | FunctionalPreset]
-        | list[type[Preset | FunctionalPreset]]
-        | list[type[Preset]]
-        | list[type[FunctionalPreset]]
-        | tuple[type[Preset | FunctionalPreset], ...]
-        | tuple[type[Preset], ...]
-        | tuple[type[FunctionalPreset], ...],
-        ...,
-    ]
-)
+# Sequence (covariant), not list (invariant): an unannotated `[PresetA, PresetB]`
+# is inferred as `list[type[PresetA] | type[PresetB]]`, which no `list[...]` accepts.
+type PresetItem = type[Preset | FunctionalPreset]
+type PresetList = Sequence[PresetItem | Sequence[PresetItem]]
 
 
 def model(  # noqa PLR0913 arguments needed in callback
@@ -381,7 +364,7 @@ def flatten_presets(presets: PresetList) -> tuple[list[Preset], list[FunctionalP
     functional_presets: list[FunctionalPreset] = []
     flattened_presets: list[Preset] = []
     for p in presets:
-        preset_list_or_preset = p if isinstance(p, (list, tuple)) else [p]
+        preset_list_or_preset = [p] if isinstance(p, type) else p
 
         for preset_cls in preset_list_or_preset:
             if issubclass(preset_cls, FunctionalPreset):
