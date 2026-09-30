@@ -68,6 +68,21 @@ if TYPE_CHECKING:
     from oarepo_model.customizations.base import Customization
 
 
+class RelationSchema(marshmallow.Schema):
+    """Relation schema that loads only the related record's ``id``; dumping is unchanged.
+
+    The other stored keys are removed on commit (``RelationBase.clean``) and copied
+    again from the target on dereference, so whatever the client sends for them is
+    neither validated nor kept.
+    """
+
+    @override
+    def load(self, data: Any, **kwargs: Any) -> Any:
+        if not isinstance(data, dict):
+            raise marshmallow.ValidationError({marshmallow.schema.SCHEMA: [self.error_messages["type"]]})
+        return {"id": data["id"]} if "id" in data else {}
+
+
 class PIDRelation(ObjectDataType):
     """Relation to another record using a PID.
 
@@ -133,6 +148,11 @@ class PIDRelation(ObjectDataType):
         return super().get_facet(
             path, element, nested_facets, facets, path_suffix, ignored_keys={*(ignored_keys or ()), "@v"}
         )
+
+    @override
+    def create_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
+        schema = super().create_marshmallow_schema(element)
+        return type(schema.__name__, (RelationSchema, schema), {})
 
     def _get_relation_model_name(self, element: dict[str, Any], must_exist: bool = False) -> str:
         """Get the model for the relation.

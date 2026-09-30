@@ -148,7 +148,7 @@ def test_vocabulary_props_keys_resolve_without_explicit_type(datatype_registry):
 
     props = vocabulary.create_mapping(element)["properties"]["props"]
     assert props["properties"] == {"url": {"type": "keyword", "ignore_above": 256}}
-    assert vocabulary.create_marshmallow_schema(element)().load({"id": "en", "props": {"url": "x"}})["props"] == {
+    assert vocabulary.create_marshmallow_schema(element)().dump({"id": "en", "props": {"url": "x"}})["props"] == {
         "url": "x"
     }
 

@@ -907,7 +907,9 @@ internal_relation_polymorphic_target_model_types = {
             "primary_entity": {
                 "type": "internal-relation",
                 "target": "metadata.entities",
-                "keys": ["id", "name"],
+                # first_name is required on the person variant only - loading a relation
+                # to an organization must not require it
+                "keys": ["id", "name", "first_name"],
             },
         },
     },
@@ -916,7 +918,7 @@ internal_relation_polymorphic_target_model_types = {
         "properties": {
             "id": {"type": "keyword"},
             "name": {"type": "keyword"},
-            "first_name": {"type": "keyword"},
+            "first_name": {"type": "keyword", "required": True},
             "entity_type": {"type": "keyword"},
         },
     },
