@@ -52,7 +52,7 @@ from oarepo_model.customizations.high_level.add_pid_relation import (
     RelationFieldCustomization,
 )
 from oarepo_model.datatypes.polymorphic import PolymorphicField
-from oarepo_model.datatypes.relations import PIDRelation, set_key_model
+from oarepo_model.datatypes.relations import PIDRelation, RelationSchema, set_key_model
 from oarepo_model.lazy import LazyJSONNamespaceFilePart, LazyMarshmallowSchema
 from oarepo_model.utils import (
     ArrayPathMember,
@@ -347,7 +347,7 @@ class ReferenceUIModel(LazyJSONNamespaceFilePart):
         data.update(value)
 
 
-class ReferenceMarshmallowSchema(LazyMarshmallowSchema):
+class ReferenceMarshmallowSchema(RelationSchema, LazyMarshmallowSchema):
     """Lazily resolves a relation's marshmallow schema from the target model's record schema.
 
     If the class has a `target_path` attribute, it will descend into that path

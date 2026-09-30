@@ -135,6 +135,9 @@ def test_internal_relation_marshmallow_schema(app, internal_relation_model):
     dumped = field.schema.dump({"id": "p1", "name": "Protein One", "extra": "dropped"})
     assert dumped == {"id": "p1", "name": "Protein One"}
 
+    # keys are copied from the target on save - load keeps only "id", without validating the rest
+    assert field.schema.load({"id": "p1", "name": 1, "extra": "dropped"}) == {"id": "p1"}
+
 
 def test_internal_relation_ui_model(app, internal_relation_model):
     """LazyInternalUIModelChildren should resolve 'keys' against the target's real ui model."""
