@@ -633,6 +633,86 @@ def test_polymorphic_field_required(test_schema):
         assert schema.load(val) == val
 
 
+def test_polymorphic_field_variant_required_fields(test_schema):
+    """Each variant enforces only its own required fields, not those of other variants."""
+    person_schema = {
+        "type": "object",
+        "properties": {"first_name": {"type": "fulltext", "required": True}, "type": {"type": "keyword"}},
+    }
+    organization_schema = {
+        "type": "object",
+        "properties": {"name": {"type": "fulltext+keyword", "required": True}, "type": {"type": "keyword"}},
+    }
+
+    schema = test_schema(
+        {
+            "type": "polymorphic",
+            "discriminator": "type",
+            "oneof": [
+                {"discriminator": "person", "type": "Person"},
+                {"discriminator": "organization", "type": "Organization"},
+            ],
+        },
+        extra_types={"Person": person_schema, "Organization": organization_schema},
+    )
+
+    val = {"a": {"type": "person", "first_name": "bob"}}
+    assert schema.load(val) == val
+
+    val = {"a": {"type": "organization", "name": "org name"}}
+    assert schema.load(val) == val
+
+    with pytest.raises(ma.ValidationError) as exc_info:
+        schema.load({"a": {"type": "person"}})
+    assert exc_info.value.messages == {"a": {"first_name": ["Missing data for required field."]}}
+
+    with pytest.raises(ma.ValidationError) as exc_info:
+        schema.load({"a": {"type": "organization"}})
+    assert exc_info.value.messages == {"a": {"name": ["Missing data for required field."]}}
+
+
+NESTED_POLYMORPHIC_TYPES = {
+    # a named polymorphic type used as a variant of another polymorphic type, with its own discriminator
+    "Complex": {
+        "type": "polymorphic",
+        "discriminator": "derived_from",
+        "oneof": [{"discriminator": "Body fluid", "type": "BodyFluid"}],
+    },
+    "BodyFluid": {
+        "type": "object",
+        "properties": {
+            "type": {"type": "keyword"},
+            "derived_from": {"type": "keyword"},
+            "volume": {"type": "keyword"},
+        },
+    },
+}
+NESTED_POLYMORPHIC_ELEMENT = {
+    "type": "polymorphic",
+    "discriminator": "type",
+    "oneof": [{"discriminator": "Complex substance", "type": "Complex"}],
+}
+
+
+def test_nested_polymorphic_keeps_own_discriminator(test_schema):
+    """The parent's discriminator value must not replace the nested polymorphic type's discriminator field."""
+    schema = test_schema(NESTED_POLYMORPHIC_ELEMENT, extra_types=NESTED_POLYMORPHIC_TYPES)
+
+    assert schema.fields["a"].alternatives["Complex substance"].discriminator == "derived_from"
+
+    val = {"a": {"type": "Complex substance", "derived_from": "Body fluid", "volume": "1 ml"}}
+    assert schema.load(val) == val
+
+
+def test_nested_polymorphic_json_schema_keeps_own_discriminator(datatype_registry):
+    datatype_registry.add_types(NESTED_POLYMORPHIC_TYPES)
+    ret = datatype_registry.get_type("polymorphic").create_json_schema(element=NESTED_POLYMORPHIC_ELEMENT)
+
+    inner = ret["oneOf"][0]["oneOf"][0]
+    assert inner["properties"]["derived_from"] == {"type": "string", "const": "Body fluid"}
+    assert "Complex substance" not in inner["properties"]
+
+
 def test_polymorphic_field_in_array(test_schema):
     person_schema = {
         "type": "object",
@@ -843,3 +923,22 @@ def test_custom_schema_class(test_schema):
     fld = schema.fields["a"]
     fld_schema = fld.nested
     assert fld_schema is CustomSchema
+
+
+def test_pid_relation_loads_only_id(test_schema):
+    """Keys other than "id" are re-copied from the target on save, so load neither validates nor keeps them."""
+    schema = test_schema(
+        {
+            "type": "pid-relation",
+            "keys": ["id", {"metadata.title": {"type": "keyword", "required": True}}],
+            "record_cls": "some.module:Record",
+        },
+    )
+
+    assert schema.load({"a": {"id": "1"}}) == {"a": {"id": "1"}}
+    assert schema.load({"a": {"id": "1", "metadata": {"title": 123}, "@v": "x", "extra": 1}}) == {"a": {"id": "1"}}
+    assert schema.dump({"a": {"id": "1", "metadata": {"title": "t"}}}) == {"a": {"id": "1", "metadata": {"title": "t"}}}
+
+    with pytest.raises(ma.ValidationError) as exc_info:
+        schema.load({"a": "1"})
+    assert exc_info.value.messages == {"a": {"_schema": ["Invalid input type."]}}
