@@ -145,7 +145,7 @@ class PolymorphicDataType(DataType):
                 # create a marshmallow field and save it
                 schema_fields[discriminator_value] = datatype.create_marshmallow_field(
                     field_name=field_name,
-                    element=oneof_item,
+                    element=_variant_element_without_discriminator(oneof_item),
                 )
 
         return schema_fields
@@ -175,7 +175,7 @@ class PolymorphicDataType(DataType):
                 # get UI fields from that datatype, where attribute is disciminator value
                 ui_fields = datatype.create_ui_marshmallow_fields(
                     field_name=field_name,
-                    element=oneof_item,
+                    element=_variant_element_without_discriminator(oneof_item),
                 )
                 if not ui_fields:
                     # no UI transformation for this variant - the datatype base
@@ -214,7 +214,7 @@ class PolymorphicDataType(DataType):
             if discriminator_value and schema_type:
                 # get datatype class and generate json schema from it
                 datatype = self._registry.get_type(schema_type)
-                child_jsonschema = datatype.create_json_schema(oneof_item)
+                child_jsonschema = datatype.create_json_schema(_variant_element_without_discriminator(oneof_item))
 
                 if "properties" not in child_jsonschema:
                     child_jsonschema = dict(child_jsonschema)  # make a copy to avoid modifying the original
@@ -259,7 +259,7 @@ class PolymorphicDataType(DataType):
             if discriminator_value and schema_type:
                 # get datatype class and generate mapping from it
                 datatype = self._registry.get_type(schema_type)
-                child_mapping = datatype.create_mapping(oneof_item)
+                child_mapping = datatype.create_mapping(_variant_element_without_discriminator(oneof_item))
 
                 # dump all properties from all variants in 1 dictionary
                 if "properties" in child_mapping:
@@ -277,7 +277,9 @@ class PolymorphicDataType(DataType):
         for oneof_item in element.get("oneof", []):
             schema_type = oneof_item.get("type")
             if schema_type:
-                self._registry.get_type(schema_type).visit(oneof_item, path, visitor)
+                self._registry.get_type(schema_type).visit(
+                    _variant_element_without_discriminator(oneof_item), path, visitor
+                )
 
 
 class PolymorphicField(ma.fields.Field):
@@ -380,3 +382,12 @@ class PolymorphicField(ma.fields.Field):
             data,
             **kwargs,
         )
+
+
+def _variant_element_without_discriminator(oneof_item: dict[str, Any]) -> dict[str, Any]:
+    """Return a oneof item without its "discriminator" (the variant's value, not a field name).
+
+    A named variant type merges the element over its own definition - left in, the value would
+    replace the discriminator field name of a nested polymorphic type.
+    """
+    return {key: value for key, value in oneof_item.items() if key != "discriminator"}
