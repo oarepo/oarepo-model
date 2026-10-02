@@ -110,6 +110,51 @@ class ObjectDataType(DataType):
             )
         return element["properties"]
 
+    def _get_marshmallow_schema_class(
+        self,
+        element: dict[str, Any],
+    ) -> type[marshmallow.Schema] | None:
+        """Return the schema class declared via 'marshmallow_schema_class', or None.
+
+        A declared class replaces the generated schema entirely; the default is
+        None, meaning the schema is generated from the element's properties.
+        """
+        if "marshmallow_schema_class" not in element:
+            return None
+        imported = obj_or_import_string(element["marshmallow_schema_class"])
+        if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
+            raise TypeError(
+                f"marshmallow_schema_class {element['marshmallow_schema_class']} "
+                "must be a subclass of marshmallow.Schema",
+            )
+        return imported
+
+    def _get_marshmallow_schema_mixins(
+        self,
+        element: dict[str, Any],
+    ) -> list[type[marshmallow.Schema]]:
+        """Return the mixin classes declared via 'marshmallow_schema_mixins'.
+
+        Mixins are prepended to the generated schema's bases in declaration
+        order, so a mixin method overrides both the generated fields' schema
+        and marshmallow.Schema itself. Subclasses append their own mandatory
+        mixins *after* the user-declared ones (see PIDRelation's RelationSchema).
+        """
+        mixins: list[type[marshmallow.Schema]] = []
+        if "marshmallow_schema_mixins" not in element:
+            return mixins
+        el_mixins = element["marshmallow_schema_mixins"]
+        if not isinstance(el_mixins, list):
+            raise TypeError("marshmallow_schema_mixins must be a list")
+        for mixin in el_mixins:
+            imported = obj_or_import_string(mixin)
+            if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
+                raise TypeError(
+                    f"marshmallow_schema_mixins {mixin} must be a subclass of marshmallow.Schema",
+                )
+            mixins.append(imported)
+        return mixins
+
     def create_marshmallow_schema(
         self,
         element: dict[str, Any],
@@ -118,28 +163,11 @@ class ObjectDataType(DataType):
 
         This method should be overridden by subclasses to provide specific schema creation logic.
         """
-        if "marshmallow_schema_class" in element:
+        if schema_class := self._get_marshmallow_schema_class(element):
             # if marshmallow_schema_class is specified, use it directly
-            imported = obj_or_import_string(element["marshmallow_schema_class"])
-            if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
-                raise ValueError(
-                    f"marshmallow_schema_class {element['marshmallow_schema_class']} "
-                    "must be a subclass of marshmallow.Schema",
-                )
-            return imported
+            return schema_class
 
-        mixins = []
-        if "marshmallow_schema_mixins" in element:
-            el_mixins = element["marshmallow_schema_mixins"]
-            if not isinstance(el_mixins, list):
-                raise ValueError("marshmallow_schema_mixins must be a list")
-            for mixin in el_mixins:
-                imported = obj_or_import_string(mixin)
-                if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
-                    raise TypeError(
-                        f"marshmallow_schema_mixins {mixin} must be a subclass of marshmallow.Schema",
-                    )
-                mixins.append(imported)
+        mixins = self._get_marshmallow_schema_mixins(element)
 
         properties = self._get_properties(element)
 
@@ -157,6 +185,49 @@ class ObjectDataType(DataType):
         properties_fields["Meta"] = Meta
         return type(self.name, (*mixins, marshmallow.Schema), properties_fields)
 
+    def _get_ui_marshmallow_schema_class(
+        self,
+        element: dict[str, Any],
+    ) -> type[marshmallow.Schema] | None:
+        """Return the UI schema class declared via 'ui_marshmallow_schema_class', or None.
+
+        A declared class replaces the generated UI schema entirely; the default
+        is None, meaning the UI schema is generated from the element's properties.
+        """
+        if "ui_marshmallow_schema_class" not in element:
+            return None
+        imported = obj_or_import_string(element["ui_marshmallow_schema_class"])
+        if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
+            raise TypeError(
+                f"ui_marshmallow_schema_class {element['ui_marshmallow_schema_class']} "
+                "must be a subclass of marshmallow.Schema",
+            )
+        return imported
+
+    def _get_ui_marshmallow_schema_mixins(
+        self,
+        element: dict[str, Any],
+    ) -> list[type[marshmallow.Schema]]:
+        """Return the mixin classes declared via 'ui_marshmallow_schema_mixins'.
+
+        Mirror of _get_marshmallow_schema_mixins for the UI schema: mixins are
+        prepended to the generated schema's bases in declaration order.
+        """
+        mixins: list[type[marshmallow.Schema]] = []
+        if "ui_marshmallow_schema_mixins" not in element:
+            return mixins
+        el_mixins = element["ui_marshmallow_schema_mixins"]
+        if not isinstance(el_mixins, list):
+            raise TypeError("ui_marshmallow_schema_mixins must be a list")
+        for mixin in el_mixins:
+            imported = obj_or_import_string(mixin)
+            if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
+                raise TypeError(
+                    f"ui_marshmallow_schema_mixins {mixin} must be a subclass of marshmallow.Schema",
+                )
+            mixins.append(imported)
+        return mixins
+
     def create_ui_marshmallow_schema(
         self,
         element: dict[str, Any],
@@ -165,15 +236,11 @@ class ObjectDataType(DataType):
 
         This method should be overridden by subclasses to provide specific schema creation logic.
         """
-        if "ui_marshmallow_schema_class" in element:
-            # if marshmallow_schema_class is specified, use it directly
-            imported = obj_or_import_string(element["ui_marshmallow_schema_class"])
-            if not isinstance(imported, type) or not issubclass(imported, marshmallow.Schema):
-                raise ValueError(
-                    f"ui_marshmallow_schema_class {element['ui_marshmallow_schema_class']} "
-                    "must be a subclass of marshmallow.Schema",
-                )
-            return imported
+        if schema_class := self._get_ui_marshmallow_schema_class(element):
+            # if ui_marshmallow_schema_class is specified, use it directly
+            return schema_class
+
+        mixins = self._get_ui_marshmallow_schema_mixins(element)
 
         properties = self._get_properties(element)
 
@@ -188,7 +255,7 @@ class ObjectDataType(DataType):
             unknown = marshmallow.RAISE
 
         properties_fields["Meta"] = Meta
-        return type(self.name, (marshmallow.Schema,), properties_fields)
+        return type(self.name, (*mixins, marshmallow.Schema), properties_fields)
 
     @override
     def get_facet(

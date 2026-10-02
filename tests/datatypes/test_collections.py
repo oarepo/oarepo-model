@@ -230,9 +230,9 @@ class TestObjectDataTypeErrorPaths:
             )
 
     def test_invalid_marshmallow_schema_class_raises(self, datatype_registry):
-        """marshmallow_schema_class pointing to a non-Schema class must raise ValueError."""
+        """marshmallow_schema_class that cannot be imported as a Schema subclass must raise."""
         dt = datatype_registry.get_type({"type": "object"})
-        with pytest.raises((ValueError, ImportError, AttributeError, Exception)):
+        with pytest.raises((TypeError, ValueError, ImportError, AttributeError)):
             dt.create_marshmallow_schema({"type": "object", "marshmallow_schema_class": "this.does.not.exist:Foo"})
 
 
@@ -355,9 +355,9 @@ class TestMarshmallowSchemaMixins:
     # -- error paths -------------------------------------------------------
 
     def test_mixins_must_be_a_list(self, datatype_registry):
-        """A single string instead of a list must raise ValueError."""
+        """A single string instead of a list must raise TypeError."""
         element = object_element(DATE_RANGE_MIXIN)
-        with pytest.raises(ValueError, match="marshmallow_schema_mixins must be a list"):
+        with pytest.raises(TypeError, match="marshmallow_schema_mixins must be a list"):
             datatype_registry.get_type(element).create_marshmallow_schema(element)
 
     def test_mixin_must_be_a_schema_subclass(self, datatype_registry):
@@ -400,6 +400,78 @@ class TestMarshmallowSchemaMixins:
         schema_cls = datatype_registry.get_type(element).create_marshmallow_schema(element)
         assert schema_cls is PlainSchema
         assert not issubclass(schema_cls, DateRangeMixin)
+
+
+# ===========================================================================
+# ObjectDataType ui_marshmallow_schema_mixins / ui_marshmallow_schema_class
+# ===========================================================================
+
+
+def ui_object_element(mixins=None, properties=None, **extra):
+    """Build an object element with the given ui_marshmallow_schema_mixins."""
+    element = {
+        "type": "object",
+        "properties": properties or {"start": {"type": "keyword"}, "end": {"type": "keyword"}},
+        **extra,
+    }
+    if mixins is not None:
+        element["ui_marshmallow_schema_mixins"] = mixins
+    return element
+
+
+class TestUIMarshmallowSchemaMixins:
+    """ui_marshmallow_schema_mixins mirror marshmallow_schema_mixins for the UI schema."""
+
+    def test_ui_mixin_is_a_base_of_the_generated_schema(self, datatype_registry):
+        """The imported mixin must appear in the MRO of the generated UI schema."""
+        element = ui_object_element([DATE_RANGE_MIXIN])
+        schema_cls = datatype_registry.get_type(element).create_ui_marshmallow_schema(element)
+        assert issubclass(schema_cls, DateRangeMixin)
+        assert issubclass(schema_cls, ma.Schema)
+
+    def test_ui_mixin_declared_properties_are_kept(self, datatype_registry):
+        """Mixins must not replace the UI fields generated from 'properties'."""
+        # 'date' generates localized UI fields (start_l10n_medium, ...) - keyword
+        # has no UI transformation and would legitimately produce an empty schema
+        element = ui_object_element([DATE_RANGE_MIXIN], properties={"start": {"type": "date"}})
+        schema_cls = datatype_registry.get_type(element).create_ui_marshmallow_schema(element)
+        assert "start_l10n_medium" in schema_cls().fields
+
+    def test_ui_mixin_can_declare_additional_fields(self, datatype_registry):
+        """Fields declared by a UI mixin become part of the generated UI schema."""
+        element = ui_object_element([EXTRA_FIELD_MIXIN])
+        schema_cls = datatype_registry.get_type(element).create_ui_marshmallow_schema(element)
+        assert "stamped" in schema_cls().fields
+
+    def test_ui_mixins_must_be_a_list(self, datatype_registry):
+        """A single string instead of a list must raise TypeError."""
+        element = ui_object_element(DATE_RANGE_MIXIN)
+        with pytest.raises(TypeError, match="ui_marshmallow_schema_mixins must be a list"):
+            datatype_registry.get_type(element).create_ui_marshmallow_schema(element)
+
+    def test_ui_mixin_must_be_a_schema_subclass(self, datatype_registry):
+        """A UI mixin that is not a marshmallow.Schema subclass must raise TypeError."""
+        element = ui_object_element(["tests.datatypes.test_collections.NotASchema"])
+        with pytest.raises(TypeError, match=r"must be a subclass of marshmallow\.Schema"):
+            datatype_registry.get_type(element).create_ui_marshmallow_schema(element)
+
+    def test_ui_marshmallow_schema_class_takes_precedence(self, datatype_registry):
+        """When a UI schema class is given explicitly, UI mixins are not used."""
+        element = ui_object_element(
+            [DATE_RANGE_MIXIN],
+            ui_marshmallow_schema_class="tests.datatypes.test_collections.PlainSchema",
+        )
+        schema_cls = datatype_registry.get_type(element).create_ui_marshmallow_schema(element)
+        assert schema_cls is PlainSchema
+        assert not issubclass(schema_cls, DateRangeMixin)
+
+    def test_ui_marshmallow_schema_class_must_be_a_schema_subclass(self, datatype_registry):
+        """A UI schema class that is not a marshmallow.Schema subclass must raise TypeError."""
+        element = ui_object_element(
+            ui_marshmallow_schema_class="tests.datatypes.test_collections.NotASchema",
+        )
+        with pytest.raises(TypeError, match=r"must be a subclass of marshmallow\.Schema"):
+            datatype_registry.get_type(element).create_ui_marshmallow_schema(element)
 
 
 # ===========================================================================

@@ -69,18 +69,43 @@ if TYPE_CHECKING:
 
 
 class RelationSchema(marshmallow.Schema):
-    """Relation schema that loads only the related record's ``id``; dumping is unchanged.
+    """Relation schema that loads the related record's ``id``; dumping is unchanged.
 
-    The other stored keys are removed on commit (``RelationBase.clean``) and copied
-    again from the target on dereference, so whatever the client sends for them is
-    neither validated nor kept.
+    When the payload carries an ``id``, only it is loaded: the other stored keys
+    are removed on commit (``RelationBase.clean``) and copied again from the
+    target on dereference, so whatever the client sends for them is neither
+    validated nor kept.
+
+    A payload without an ``id`` can never be dereferenced, so the id-strip
+    shortcut would discard the whole value. Instead it is deserialized against
+    the relation's declared 'keys' fields (see _load_without_id) - relation
+    fields that tolerate a missing target (unstrict relations) then keep that
+    validated subset, while strict ones reject the missing id downstream.
     """
 
     @override
     def load(self, data: Any, **kwargs: Any) -> Any:
         if not isinstance(data, dict):
             raise marshmallow.ValidationError({marshmallow.schema.SCHEMA: [self.error_messages["type"]]})
-        return {"id": data["id"]} if "id" in data else {}
+        if "id" in data:
+            return {"id": data["id"]}
+        # An id-less payload can not be dereferenced; relation fields that
+        # tolerate it (e.g. an unstrict pid relation) keep the metadata as
+        # stored instead of resolving them from a target. Keep only the fields
+        # the relation itself declares (its 'keys'), validated by the
+        # underlying schema, rather than passing arbitrary keys through or
+        # silently dropping everything.
+        return self._load_without_id(data, **kwargs)
+
+    def _load_without_id(self, data: dict[str, Any], **kwargs: Any) -> Any:
+        """Deserialize an id-less relation payload against the declared fields.
+
+        Delegates to the next schema in the MRO: the generated schema carrying
+        the relation's 'keys' properties in the non-lazy case (where
+        RelationSchema is mixed into that schema), or the lazily-built proxied
+        schema for lazy relations (LazyMarshmallowSchema.load).
+        """
+        return super().load(data, **kwargs)
 
 
 class PIDRelation(ObjectDataType):
@@ -150,9 +175,15 @@ class PIDRelation(ObjectDataType):
         )
 
     @override
-    def create_marshmallow_schema(self, element: dict[str, Any]) -> type[marshmallow.Schema]:
-        schema = super().create_marshmallow_schema(element)
-        return type(schema.__name__, (RelationSchema, schema), {})
+    def _get_marshmallow_schema_mixins(self, element: dict[str, Any]) -> list[type[marshmallow.Schema]]:
+        """Append RelationSchema after any user-declared mixins.
+
+        RelationSchema carries the id-strip on load (see its docstring); it
+        must stay in the generated schema's bases even when the user declares
+        their own 'marshmallow_schema_mixins', and user mixins win over it
+        (a user mixin overriding load replaces the id-strip deliberately).
+        """
+        return [*super()._get_marshmallow_schema_mixins(element), RelationSchema]
 
     def _get_relation_model_name(self, element: dict[str, Any], must_exist: bool = False) -> str:
         """Get the model for the relation.

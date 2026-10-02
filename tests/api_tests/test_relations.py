@@ -7,6 +7,7 @@ import sys
 import types
 from typing import TYPE_CHECKING, Any
 
+import marshmallow
 import pytest
 
 if TYPE_CHECKING:
@@ -378,3 +379,42 @@ def test_relation_facets(
     assert hit.total == 1
     no_hit = relation_service.search(identity_simple, facets={"metadata.direct.id": [rec2_id]})
     assert no_hit.total == 0
+
+
+# ---------------------------------------------------------------------------
+# RelationSchema.load: id-less payloads keep their declared 'keys' metadata
+# ---------------------------------------------------------------------------
+
+
+def test_pid_relation_schema_load_without_id_keeps_declared_keys(app, relation_model):
+    """An id-less payload keeps the metadata the relation declares in 'keys'.
+
+    Relation fields that tolerate a missing target (unstrict relations) never
+    dereference such a payload - stripping it to {} would lose data the field
+    is meant to keep, while an unknown key must still be rejected.
+    """
+    schema_cls = relation_model.proxies.current_service.schema.schema
+    field = schema_cls().fields["metadata"].schema.fields["direct"]
+
+    assert field.schema.load({"metadata": {"title": "No-id title"}}) == {"metadata": {"title": "No-id title"}}
+    assert field.schema.load({}) == {}
+    with pytest.raises(marshmallow.ValidationError):
+        field.schema.load({"not_a_declared_key": "x"})
+
+
+def test_pid_relation_schema_load_with_id_still_drops_other_keys(app, relation_model):
+    """An id-carrying payload is still reduced to {"id": ...} - copies come from the target."""
+    schema_cls = relation_model.proxies.current_service.schema.schema
+    field = schema_cls().fields["metadata"].schema.fields["direct"]
+
+    assert field.schema.load({"id": "some-id", "metadata": {"title": "Whatever"}}) == {"id": "some-id"}
+
+
+def test_lazy_pid_relation_schema_load_without_id_keeps_declared_keys(app, recursive_relation_model):
+    """The lazy (self-referencing) relation's proxied schema handles id-less payloads too."""
+    schema_cls = recursive_relation_model.proxies.current_service.schema.schema
+    field = schema_cls().fields["metadata"].schema.fields["direct"]
+
+    assert field.schema.load({"metadata": {"title": "Lazy no-id title"}}) == {"metadata": {"title": "Lazy no-id title"}}
+    with pytest.raises(marshmallow.ValidationError):
+        field.schema.load({"not_a_declared_key": "x"})
