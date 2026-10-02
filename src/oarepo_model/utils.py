@@ -337,7 +337,146 @@ def _merged_one_of_properties(node: dict[str, Any]) -> dict[str, Any] | None:
     return merged
 
 
-def walk_type_tree_path(root: Mapping[str, Any], path: str) -> Mapping[str, Any]:
+def _resolve_declarative_type_node(
+    node: dict[str, Any],
+    types: Mapping[str, Any] | None,
+    _seen: frozenset[str] = frozenset(),
+    _memo: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Resolve a declarative type node against the model's named-type registry.
+
+    Two shapes only exist in the raw declarative tree (model_metadata.types),
+    never in the built mapping/json schema/ui model:
+
+    - a *named type reference* - ``{"type": "General"}`` has no inline
+      "properties"; its definition lives under the same name in the model's
+      types registry. The reference is merged over the referred definition
+      (the same semantics the datatype registry's WrappedDataType applies).
+    - a *polymorphic node* - ``{"type": "polymorphic", "oneof": [...]}``; its
+      variants are resolved recursively and their "properties" unioned, as
+      `create_mapping` does for the built mapping.
+
+    Built-artifact nodes (no named refs, JSON-Schema "oneOf" with inline
+    branches) pass through unchanged, so the same resolver is safe to apply
+    before any walk, declarative or built.
+
+    Copying strategy (P2-F5): the merger *mutates its destination* but never
+    its sources - a referred definition is deep-copied once per type name
+    (`_memo`, one per call tree) and only then merged per node; a reference
+    carrying only scalar overrides (the common case) takes a shallow copy of
+    that memoized definition without touching shared nested containers.
+    """
+    if types is None or not isinstance(node, dict):
+        return node
+    node = _resolve_named_type_reference(node, types, _seen, _memo)
+    if node.get("type") == "polymorphic" and isinstance(node.get("oneof"), list):
+        node = {**node, "properties": _merge_declarative_oneof_properties(node["oneof"], types, _seen, _memo)}
+    return node
+
+
+def _resolve_named_type_reference(
+    node: dict[str, Any],
+    types: Mapping[str, Any],
+    _seen: frozenset[str],
+    _memo: dict[str, dict[str, Any]] | None,
+) -> dict[str, Any]:
+    """Follow the node's named type reference through the registry, if it is one.
+
+    See _resolve_declarative_type_node for the copy/memoization strategy.
+    """
+    type_name = node.get("type")
+    if not isinstance(type_name, str) or type_name not in types:
+        return node
+    if type_name in _seen:
+        raise TypeError(f"Circular named type reference: {type_name}")
+    referred = types[type_name]
+    if not isinstance(referred, dict):
+        raise TypeError(f"Named type {type_name} must be a mapping, is {referred}")
+    overrides = {k: v for k, v in node.items() if k != "type"}
+    if _memo is not None:
+        base = _memo.get(type_name)
+        if base is None:
+            base = copy.deepcopy(referred)
+            _memo[type_name] = base
+        if any(isinstance(v, dict | list) for v in overrides.values()):
+            resolved = readonly_dict_merger.merge(copy.deepcopy(base), overrides)
+        else:
+            resolved = {**base, **overrides}
+    else:
+        resolved = readonly_dict_merger.merge(copy.deepcopy(referred), overrides)
+    return _resolve_declarative_type_node(resolved, types, _seen | {type_name}, _memo)
+
+
+def _merge_declarative_oneof_properties(
+    oneof: list[Any],
+    types: Mapping[str, Any] | None,
+    _seen: frozenset[str],
+    _memo: dict[str, dict[str, Any]] | None,
+) -> dict[str, Any]:
+    """Union the resolved variant properties of a declarative polymorphic node.
+
+    Straight references are fine (nothing mutates the merged tree), but a
+    nested conflict must not be merged in place - it would mutate the *first*
+    branch's (possibly registry-owned) subtree the merged tree still aliases.
+    """
+    merged_properties: dict[str, Any] = {}
+    for branch in oneof:
+        if not isinstance(branch, dict):
+            continue
+        resolved_branch = _resolve_declarative_type_node(branch, types, _seen, _memo)
+        if not isinstance(resolved_branch.get("properties"), dict):
+            continue
+        for prop_key, prop_value in resolved_branch["properties"].items():
+            existing = merged_properties.get(prop_key)
+            if isinstance(existing, dict) and isinstance(prop_value, dict):
+                merged_properties[prop_key] = readonly_dict_merger.merge(
+                    copy.deepcopy(existing),
+                    prop_value,
+                )
+            else:
+                merged_properties[prop_key] = prop_value
+    return merged_properties
+
+
+def _fully_resolve_declarative_node(
+    node: dict[str, Any],
+    types: Mapping[str, Any] | None,
+    _seen: frozenset[str] = frozenset(),
+    _memo: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Resolve a declarative node *and* every named-type reference inside its subtree.
+
+    `_resolve_declarative_type_node` resolves only the node itself - enough for
+    walking, where each descended node is resolved in turn. A leaf copied into
+    *another* model (a cross-model relation's 'keys'), however, must not
+    contain references the target's registry cannot resolve - so the whole
+    subtree is expanded here. A genuinely cyclic named type can not be inlined
+    and raises, same as cyclic walk resolution does.
+    """
+    if types is None or not isinstance(node, dict):
+        return node
+    type_name = node.get("type")
+    resolved_node = _resolve_declarative_type_node(node, types, _seen, _memo)
+    seen_now = _seen | {type_name} if isinstance(type_name, str) and type_name in types else _seen
+    resolved: dict[str, Any] = {}
+    for key, value in resolved_node.items():
+        if isinstance(value, dict):
+            resolved[key] = _fully_resolve_declarative_node(value, types, seen_now, _memo)
+        elif isinstance(value, list):
+            resolved[key] = [
+                _fully_resolve_declarative_node(item, types, seen_now, _memo) if isinstance(item, dict) else item
+                for item in value
+            ]
+        else:
+            resolved[key] = value
+    return resolved
+
+
+def walk_type_tree_path(
+    root: Mapping[str, Any],
+    path: str,
+    types: Mapping[str, Any] | None = None,
+) -> Mapping[str, Any]:
     """Descend a dotted path through a "type"/"properties"/"items"-shaped tree.
 
     Shared by oarepo_model's own raw declarative type trees (model_metadata.types)
@@ -353,6 +492,11 @@ def walk_type_tree_path(root: Mapping[str, Any], path: str) -> Mapping[str, Any]
         to start walking from.
     :param path: a dot-separated field path, e.g. "metadata.authors". An empty
         path returns `root` itself, unchanged.
+    :param types: optional named-type registry of the model the tree belongs
+        to - lets the walk follow named type references (``{"type": "X"}``)
+        and declarative polymorphic ``oneof`` nodes of a raw model definition
+        (see _resolve_declarative_type_node). Leave it None for built
+        artifacts (mapping/json schema), which need no resolution.
     :return: the "properties" mapping of the node reached by following `path`
     :raises KeyError: if any segment along the way is missing or not an object/array/polymorphic node
     :raises TypeError: if `root` is not a mapping
@@ -362,6 +506,7 @@ def walk_type_tree_path(root: Mapping[str, Any], path: str) -> Mapping[str, Any]
         return properties
 
     path_list = path.split(".")
+    memo: dict[str, dict[str, Any]] = {}
     while path_list:
         part = path_list.pop(0)
         if part not in properties:
@@ -369,24 +514,41 @@ def walk_type_tree_path(root: Mapping[str, Any], path: str) -> Mapping[str, Any]
         node = properties[part]
         if not isinstance(node, dict):
             raise TypeError(f"Properties at {part} must be a mapping, is {node}")
+        node = _resolve_declarative_type_node(node, types, _memo=memo)
         if node.get("type") == "array":
             node = node.get("items")
             if not isinstance(node, dict):
                 raise TypeError(f"Item members at {part} must be a mapping, is {node}")
+            node = _resolve_declarative_type_node(node, types, _memo=memo)
         next_properties = node.get("properties")
-        if not isinstance(next_properties, dict):
+        if not isinstance(next_properties, dict) and "oneOf" in node:
+            # a JSON-Schema polymorphic node - union its inline branches
             next_properties = _merged_one_of_properties(node)
         if not isinstance(next_properties, dict):
-            raise TypeError(f"Properties at {part} must be a mapping, is {next_properties}")
+            raise TypeError(
+                f"Cannot descend into {part} - its node has no properties "
+                f"(type {node.get('type', '<inline properties>')})"
+            )
         properties = next_properties
     return cast("dict[str, Any]", properties)
 
 
-type PathWalker = Callable[[Mapping[str, Any], str], Mapping[str, Any]]
-"""Signature shared by `walk_type_tree_path` and `walk_ui_model_path`."""
+type PathWalker = Callable[..., Mapping[str, Any]]
+"""Signature shared by `walk_type_tree_path(root, path, types=...)` and `walk_ui_model_path(root, path)`.
+
+Both take (root, path) plus walker-specific keyword arguments; a Protocol
+spelling of this (``__call__(root, path, /, **kwargs)``) rejects implementations
+that do not themselves accept arbitrary kwargs, so it stays a plain alias
+(see the P2-F6 discussion in review.md).
+"""
 
 
-def _walk_path_leaf(walk: PathWalker, root: Mapping[str, Any], path: str) -> dict[str, Any]:
+def _walk_path_leaf(
+    walk: PathWalker,
+    root: Mapping[str, Any],
+    path: str,
+    **walk_kwargs: Any,
+) -> dict[str, Any]:
     """Resolve all but the last segment of `path` via `walk`, then return that last node.
 
     Shared by `walk_type_tree_path_leaf` and `walk_ui_model_path_leaf` - both
@@ -403,11 +565,15 @@ def _walk_path_leaf(walk: PathWalker, root: Mapping[str, Any], path: str) -> dic
     parts = path.split(".")
     parent_path = ".".join(parts[:-1])
     leaf = parts[-1]
-    parent = walk(root, parent_path)
+    parent = walk(root, parent_path, **walk_kwargs)
     return cast("dict[str, Any]", parent[leaf])
 
 
-def walk_type_tree_path_leaf(root: Mapping[str, Any], path: str) -> dict[str, Any]:
+def walk_type_tree_path_leaf(
+    root: Mapping[str, Any],
+    path: str,
+    types: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     """Descend a dotted path and return the leaf node (not its properties).
 
     Like `walk_type_tree_path`, but returns the actual node at the end of the
@@ -416,18 +582,26 @@ def walk_type_tree_path_leaf(root: Mapping[str, Any], path: str) -> dict[str, An
     rather than the properties of an object node.
 
     Uses `walk_type_tree_path` for all but the last segment to handle arrays
-    correctly, then accesses the final segment directly.
+    correctly, then accesses the final segment directly. The leaf itself is
+    fully resolved against `types` (see _fully_resolve_declarative_node): a
+    key that *is* a named type (e.g. `molecular_weight: {"type": "Unit"}`)
+    - and any named references inside its subtree - comes back inlined, so a
+    cross-model relation does not copy a reference into a model that may not
+    declare the named type. A genuinely self-referencing type can not be
+    inlined and raises TypeError, as it does when walked.
 
     :param root: the "properties"-style mapping (field name -> declarative node)
         to start walking from.
     :param path: a dot-separated field path, e.g. "metadata.authors.name". Must
         be non-empty; an empty path raises `ValueError`.
+    :param types: optional named-type registry - see walk_type_tree_path.
     :return: the node at the end of `path`
     :raises ValueError: if `path` is not specified
     :raises KeyError: if any segment is missing
     :raises TypeError: on unexpected types in the tree
     """
-    return _walk_path_leaf(walk_type_tree_path, root, path)
+    leaf = _walk_path_leaf(walk_type_tree_path, root, path, types=types)
+    return _fully_resolve_declarative_node(leaf, types, _memo={})
 
 
 def walk_ui_model_path(root: Mapping[str, Any], path: str) -> dict[str, Any]:

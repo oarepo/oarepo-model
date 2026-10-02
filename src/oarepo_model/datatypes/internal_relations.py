@@ -170,11 +170,15 @@ class InternalRelationDataType(LazyPIDRelation):
         PIDRelation._get_target_properties already resolves the target model
         (via self._get_relation_model_name, overridden above to mean "the model
         currently being built") down to its merged record/metadata root -
-        this only needs to further descend that root to target_path.
+        this only needs to further descend that root to target_path. The raw
+        tree still contains named type references and declarative polymorphic
+        `oneof` nodes (built artifacts never see these), so the model's own
+        types registry is handed to the walk to follow them.
         """
         root = super()._get_target_properties(element)
+        types = self._get_declared_types(element)
         try:
-            return {**walk_type_tree_path(root, self._get_target_path(element))}
+            return {**walk_type_tree_path(root, self._get_target_path(element), types=types)}
         except (KeyError, TypeError) as e:
             log.warning("Failed to resolve target properties: %s", e)
             return {}

@@ -220,6 +220,7 @@ class PIDRelation(ObjectDataType):
                 raise
 
         fallbacks = self._default_key_properties(element)
+        types = self._get_declared_types(element) if target_properties else None
 
         ret: dict[str, Any] = {}
         for key, explicit_prop in self._iter_key_entries(element.get("keys", [])):
@@ -227,7 +228,7 @@ class PIDRelation(ObjectDataType):
                 set_key_model(ret, key, explicit_prop)
                 continue
 
-            prop = self._lookup_target_element(target_properties, key)
+            prop = self._lookup_target_element(target_properties, key, types=types)
             if prop is None and not ignore_missing:
                 prop = fallbacks.get(key)
                 if prop is None:
@@ -248,19 +249,43 @@ class PIDRelation(ObjectDataType):
             "Either provide model or define the props explicitly."
         )
 
-    def _lookup_target_element(self, properties: dict[str, Any], key: str) -> dict[str, Any] | None:
+    def _lookup_target_element(
+        self,
+        properties: dict[str, Any],
+        key: str,
+        types: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Walk a dotted key path down a properties tree, mirroring set_key_model.
 
         Returns None if any segment of the path is missing, so callers can fall
         back to a default rather than failing outright (e.g. for system fields
         like "id" that are never part of the declared properties tree). Uses
         `walk_type_tree_path_leaf` which handles array-typed fields correctly
-        (e.g. "authors.name" resolves properly instead of failing).
+        (e.g. "authors.name" resolves properly instead of failing); a target
+        declared with named types needs its registry passed to follow the
+        references (see walk_type_tree_path's `types`).
         """
         try:
-            return walk_type_tree_path_leaf(properties, key)
+            return walk_type_tree_path_leaf(properties, key, types=types)
         except KeyError, TypeError:
             return None
+
+    def _get_declared_types(self, element: dict[str, Any]) -> Mapping[str, Any] | None:
+        """Return the named-type registry of the relation's target model, if discoverable.
+
+        Returns None when the target cannot be introspected this way (e.g. not
+        an oarepo_model-built model, or declared only via 'pid_field') - walks
+        then behave as before, failing on named/polymorphic references instead
+        of following them.
+        """
+        model_name = self._get_relation_model_name(element)
+        if not model_name:
+            return None
+        imported = import_runtime_model(model_name)
+        model_metadata = getattr(imported, "oarepo_model_arguments", {}).get("model_metadata")
+        if model_metadata is None:
+            return None
+        return cast("Mapping[str, Any]", model_metadata.types)
 
     def _get_target_properties(self, element: dict[str, Any]) -> dict[str, Any]:
         """Look up the already-built target model's real declarative schema tree.

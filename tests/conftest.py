@@ -949,6 +949,165 @@ def internal_relation_polymorphic_target_model(empty_model):
     )
 
 
+# Model types for testing internal relations whose target path goes through *named*
+# types (`{"type": "General"}`) instead of inline objects, including a named polymorphic
+# type with named variants. This is how real models (for example mbdb's
+# `general_parameters: {type: General_parameters}` and `entities_of_interest` items of the
+# polymorphic `Entity`) are written. The target's fields carry labels so that a ui model
+# resolved from the target can be told apart from the generic fallback ({"und": "name"}).
+internal_relation_named_types_model_types = {
+    "Metadata": {
+        "properties": {
+            "general": {"type": "General"},
+            "primary_protein": {
+                "type": "internal-relation",
+                "target": "metadata.general.proteins",
+                "keys": ["id", "name"],
+            },
+            "primary_entity": {
+                "type": "internal-relation",
+                "target": "metadata.general.entities",
+                "keys": ["id", "name"],
+            },
+            # target path through named General type, keys contain a real
+            # relation property (Protein.language) - its nested relation must
+            # be discovered through the named type too
+            "primary_protein_full": {
+                "type": "internal-relation",
+                "target": "metadata.general.proteins",
+                "keys": ["id", "name", "language"],
+            },
+            # an internal relation whose keys reach *inside* a polymorphic variant
+            # (entities' `details` is polymorphic - the key path crosses it)
+            "primary_entity_detail": {
+                "type": "internal-relation",
+                "target": "metadata.general.entities",
+                "keys": ["id", "details.code"],
+            },
+            # a polymorphic field whose variants contain an internal relation
+            "mixed_entries": {
+                "type": "array",
+                "items": {"type": "MixedEntry"},
+            },
+        },
+    },
+    "General": {
+        "type": "object",
+        "properties": {
+            "proteins": {"type": "array", "items": {"type": "Protein"}},
+            "entities": {"type": "array", "items": {"type": "Entity"}},
+        },
+    },
+    "MixedEntry": {
+        "type": "polymorphic",
+        "discriminator": "entry_type",
+        "oneof": [
+            {"discriminator": "sample", "type": "SampleEntry"},
+            {"discriminator": "reference", "type": "ReferenceEntry"},
+        ],
+    },
+    "SampleEntry": {
+        "type": "object",
+        "properties": {
+            "entry_type": {"type": "keyword"},
+            "label": {"type": "keyword"},
+            "related_protein": {
+                "type": "internal-relation",
+                "target": "metadata.general.proteins",
+                "keys": ["id", "name"],
+            },
+        },
+    },
+    "ReferenceEntry": {
+        "type": "object",
+        "properties": {
+            "entry_type": {"type": "keyword"},
+            "label": {"type": "keyword"},
+            "related_protein": {
+                "type": "internal-relation",
+                "target": "metadata.general.proteins",
+                "keys": ["id", "name"],
+            },
+        },
+    },
+    "Protein": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "keyword"},
+            "name": {"type": "keyword", "label": {"en": "Protein name"}},
+            # a real (non-internal) relation property, so that an internal
+            # relation targeting proteins with "language" in its keys must
+            # discover this nested relation lazily (through the named General
+            # type - see test_internal_relation_named_types_nested_relation)
+            "language": {"type": "vocabulary", "vocabulary-type": "languages"},
+        },
+    },
+    "Entity": {
+        "type": "polymorphic",
+        "discriminator": "entity_type",
+        "oneof": [
+            {"discriminator": "person", "type": "NamedPersonEntity"},
+            {"discriminator": "organization", "type": "NamedOrganizationEntity"},
+        ],
+    },
+    "NamedPersonEntity": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "keyword"},
+            "name": {"type": "keyword", "label": {"en": "Entity name"}},
+            "entity_type": {"type": "keyword"},
+            "details": {"type": "EntityDetails"},
+        },
+    },
+    "NamedOrganizationEntity": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "keyword"},
+            "name": {"type": "keyword", "label": {"en": "Entity name"}},
+            "entity_type": {"type": "keyword"},
+            "details": {"type": "EntityDetails"},
+        },
+    },
+    "EntityDetails": {
+        "type": "polymorphic",
+        "discriminator": "details_type",
+        "oneof": [
+            {"discriminator": "gene", "type": "GeneDetails"},
+            {"discriminator": "chemical", "type": "ChemicalDetails"},
+        ],
+    },
+    "GeneDetails": {
+        "type": "object",
+        "properties": {
+            "details_type": {"type": "keyword"},
+            "code": {"type": "keyword", "label": {"en": "Gene code"}},
+        },
+    },
+    "ChemicalDetails": {
+        "type": "object",
+        "properties": {
+            "details_type": {"type": "keyword"},
+            "code": {"type": "keyword", "label": {"en": "Chemical code"}},
+        },
+    },
+}
+
+
+@pytest.fixture(scope="session")
+def internal_relation_named_types_model(empty_model):
+    """Model with internal relations whose target paths go through named (and polymorphic) types."""
+    from oarepo_model.presets.internal_relations import internal_relations_preset
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
+    from oarepo_model.presets.ui import ui_preset
+
+    return _build_model(
+        "irntd",
+        internal_relation_named_types_model_types,
+        [records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
+    )
+
+
 @pytest.fixture(scope="session")
 def internal_relation_nested_key_model(empty_model):
     """Model with internal relation using nested keys like 'provider.name'."""
@@ -1339,6 +1498,7 @@ def extra_entry_points(
     internal_relation_array_model,
     internal_relation_nested_model,
     internal_relation_nested_key_model,
+    internal_relation_named_types_model,
     internal_relation_polymorphic_target_model,
     internal_relation_no_id_key_model,
     recursive_relation_no_id_key_model,
