@@ -361,6 +361,10 @@ class ReferenceMarshmallowSchema(RelationSchema, LazyMarshmallowSchema):
     # PIDRelation._get_properties's own "@v" fallback, which is marked
     # skip_marshmallow - it belongs in the mapping/json schema, not the
     # record's marshmallow schema.
+    # Id-less payloads (RelationSchema._load_without_id) deserialize via
+    # super().load, which in this MRO resolves to LazyMarshmallowSchema.load
+    # and so correctly lands on the lazily-built proxied schema - no
+    # lazy-specific _load_without_id override is needed here.
     extra_fields: Mapping[str, marshmallow.fields.Field] = {"id": marshmallow.fields.Raw()}
 
     @classmethod
