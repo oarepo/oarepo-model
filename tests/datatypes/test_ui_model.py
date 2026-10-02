@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -436,3 +437,224 @@ def test_multilingual_labels_hints_help(test_ui_model):
 
 def test_empty_path():
     assert DataType("").create_ui_model("a", None) == {}
+
+
+# ===========================================================================
+# Polymorphic UI model
+# ===========================================================================
+
+PERSON_VARIANT = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "keyword", "required": True, "help": {"en": "Person name"}},
+        "orcid": {"type": "keyword"},
+    },
+}
+ORGANIZATION_VARIANT = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "keyword", "help": {"en": "Organization name"}},
+        "ror": {"type": "keyword"},
+    },
+}
+
+
+def _polymorphic_element(**overrides):
+    return {
+        "type": "polymorphic",
+        "discriminator": "kind",
+        "oneof": [
+            {"discriminator": "person", "type": "Person"},
+            {"discriminator": "organization", "type": "Organization"},
+        ],
+        **overrides,
+    }
+
+
+_POLY_TYPES = {"Person": PERSON_VARIANT, "Organization": ORGANIZATION_VARIANT}
+
+
+def test_polymorphic_ui_model_unions_disjoint_children(test_ui_model):
+    """Children that only one variant declares are both present in the union."""
+    ui_model = test_ui_model(_polymorphic_element(), extra_types=_POLY_TYPES)
+    assert set(ui_model["children"]) == {"name", "orcid", "ror"}
+    assert ui_model["input"] == "polymorphic"
+
+
+def test_polymorphic_ui_model_required_is_anded_across_variants(test_ui_model):
+    """'name' is required only in person - the union must not require it."""
+    ui_model = test_ui_model(_polymorphic_element(), extra_types=_POLY_TYPES)
+    assert "required" not in ui_model["children"]["name"]
+
+
+def test_polymorphic_ui_model_conflicting_texts_take_the_first_variant(test_ui_model):
+    """Variants disagree on 'name' help - the first declaring variant's text wins."""
+    ui_model = test_ui_model(_polymorphic_element(), extra_types=_POLY_TYPES)
+    assert ui_model["children"]["name"]["help"] == {"en": "Person name"}
+
+
+def test_polymorphic_ui_model_agreeing_required_is_kept(test_ui_model):
+    """A child required by every declaring variant stays required in the union."""
+    types = {
+        "Person": {
+            "type": "object",
+            "properties": {"name": {"type": "keyword", "required": True}},
+        },
+        "Organization": {
+            "type": "object",
+            "properties": {"name": {"type": "keyword", "required": True}},
+        },
+    }
+    ui_model = test_ui_model(_polymorphic_element(), extra_types=types)
+    assert ui_model["children"]["name"]["required"] is True
+
+
+def test_polymorphic_ui_model_variants_keyed_by_discriminator(test_ui_model):
+    """Per-variant deviations from the union are available under 'variants'.
+
+    A variant child identical to the union carries no information and is
+    dropped - the lookup contract is variants[value] first, union as fallback.
+    """
+    ui_model = test_ui_model(_polymorphic_element(), extra_types=_POLY_TYPES)
+    assert ui_model["discriminator"] == "kind"
+    assert set(ui_model["variants"]) == {"person", "organization"}
+    # 'name' differs from the union in both variants (person: required,
+    # organization: different help) and is kept whole in both
+    assert ui_model["variants"]["person"]["children"]["name"]["required"] is True
+    assert ui_model["variants"]["person"]["children"]["name"]["help"] == {"en": "Person name"}
+    assert ui_model["variants"]["organization"]["children"]["name"]["help"] == {"en": "Organization name"}
+    # 'orcid'/'ror' are declared by exactly one variant each, so they always
+    # equal the union and are not repeated under 'variants'
+    assert "orcid" not in ui_model["variants"]["person"]["children"]
+    assert "ror" not in ui_model["variants"]["organization"]["children"]
+
+
+def test_polymorphic_ui_model_variants_do_not_repeat_the_unchanged_union(test_ui_model):
+    """Two identical variants shrink 'variants' to a fraction of the union's size.
+
+    Guard for the ui model size fix: repeating every variant's subtree inside
+    variants grew mbdb's model by hundreds of kilobytes (oarepo_ui inlines the
+    ui model into every deposit page). With the diff-only 'variants', adding a
+    second identical variant must not noticeably grow the ui model.
+    """
+    identical_variant = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "keyword", "required": True, "help": {"en": "Person name"}},
+            "orcid": {"type": "keyword"},
+        },
+    }
+    one = test_ui_model(
+        {"type": "polymorphic", "discriminator": "kind", "oneof": [{"discriminator": "person", "type": "Person"}]},
+        extra_types={"Person": identical_variant},
+    )
+    two = test_ui_model(
+        {
+            "type": "polymorphic",
+            "discriminator": "kind",
+            "oneof": [
+                {"discriminator": "person", "type": "Person"},
+                {"discriminator": "person2", "type": "Person2"},
+            ],
+        },
+        extra_types={"Person": identical_variant, "Person2": identical_variant},
+    )
+    # the identical second variant contributes no children to 'variants' -
+    # with the old full-subtree representation it would repeat the union's
+    # children wholesale
+    assert two["variants"]["person2"].get("children", {}) == {}
+    # compare the JSON size of a one-variant model against the same model with
+    # two identical variants: near-constant growth instead of +1 union copy
+    growth = len(json.dumps(two)) - len(json.dumps(one))
+    assert growth < len(json.dumps(one["children"]))
+
+
+def test_polymorphic_ui_model_nested_polymorphic_variant_children_are_merged(test_ui_model):
+    """A variant that is itself polymorphic contributes its own merged children."""
+    types = {
+        "Hybrid": {
+            "type": "polymorphic",
+            "discriminator": "subtype",
+            "oneof": [
+                {"discriminator": "a", "type": "SubA"},
+                {"discriminator": "b", "type": "SubB"},
+            ],
+        },
+        "SubA": {"type": "object", "properties": {"shared": {"type": "keyword"}, "only_a": {"type": "keyword"}}},
+        "SubB": {"type": "object", "properties": {"shared": {"type": "keyword"}, "only_b": {"type": "int"}}},
+        "Plain": {"type": "object", "properties": {"plain": {"type": "keyword"}}},
+    }
+    element = {
+        "type": "polymorphic",
+        "discriminator": "kind",
+        "oneof": [
+            {"discriminator": "hybrid", "type": "Hybrid"},
+            {"discriminator": "plain", "type": "Plain"},
+        ],
+    }
+    ui_model = test_ui_model(element, extra_types=types)
+    # the nested polymorphic variant's own union is merged into the outer union
+    assert set(ui_model["children"]) == {"shared", "only_a", "only_b", "plain"}
+    # and its exact per-variant texts stay available
+    assert set(ui_model["variants"]["hybrid"]["variants"]) == {"a", "b"}
+
+
+def test_polymorphic_ui_model_array_child_merged_across_variants(test_ui_model):
+    """An array field whose item fields differ between variants merges with the same rules.
+
+    The item node lives under 'child' (not 'children'), so without merging it
+    the first variant's items would silently win for every other variant.
+    """
+    types = {
+        "WithArrayA": {
+            "type": "object",
+            "properties": {
+                "items_field": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "code": {"type": "keyword", "required": True},
+                        },
+                    },
+                },
+            },
+        },
+        "WithArrayB": {
+            "type": "object",
+            "properties": {
+                "items_field": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "code": {"type": "keyword"},
+                        },
+                    },
+                },
+            },
+        },
+    }
+    element = {
+        "type": "polymorphic",
+        "discriminator": "kind",
+        "oneof": [
+            {"discriminator": "a", "type": "WithArrayA"},
+            {"discriminator": "b", "type": "WithArrayB"},
+        ],
+    }
+    ui_model = test_ui_model(element, extra_types=types)
+    # 'required' inside the array items is ANDed across variants, same rule as
+    # for 'children': it holds only if *every* declaring variant requires it
+    assert "required" not in ui_model["children"]["items_field"]["child"]["children"]["code"]
+    # the variant keeps its own exact item shape
+    assert ui_model["variants"]["a"]["children"]["items_field"]["child"]["children"]["code"]["required"] is True
+
+
+def test_polymorphic_ui_model_oneof_item_without_discriminator_or_type_is_skipped(test_ui_model):
+    """Malformed oneof entries are skipped, same as in create_mapping/create_json_schema."""
+    element = _polymorphic_element()
+    element["oneof"] = [{"no_discriminator": True}, *element["oneof"]]
+    ui_model = test_ui_model(element, extra_types=_POLY_TYPES)
+    assert set(ui_model["children"]) == {"name", "orcid", "ror"}
+    assert set(ui_model["variants"]) == {"person", "organization"}

@@ -240,6 +240,111 @@ def test_create_relations_nested_resolver_flattens_nested_lazy_relation_fields(l
     assert set(fields) == {"direct.nested"}
 
 
+def test_create_relations_through_polymorphic_variants_dedupes_identical_relations(datatype_registry):
+    """The same relation declared by two variants registers only once."""
+    variant = {
+        "type": "object",
+        "properties": {
+            "related": {
+                "type": "lazy-pid-relation",
+                "model": "some_self_referencing_model",
+                "keys": ["id"],
+            }
+        },
+    }
+    element = {
+        "type": "polymorphic",
+        "discriminator": "entry_type",
+        "oneof": [
+            {"discriminator": "a", "type": "VariantA"},
+            {"discriminator": "b", "type": "VariantB"},
+        ],
+    }
+    datatype_registry.add_types({"VariantA": variant, "VariantB": copy.deepcopy(variant)})
+
+    polymorphic = datatype_registry.get_type({"type": "polymorphic"})
+    relations = polymorphic.create_relations(element, ["entries"])
+
+    names = [getattr(r, "name", None) for r in relations]
+    assert names.count("entries.related") == 1
+
+
+def test_create_relations_through_polymorphic_variants_raises_on_conflicting_relations(datatype_registry):
+    """Same field name, different relation definitions across variants: fail loudly."""
+    element = {
+        "type": "polymorphic",
+        "discriminator": "entry_type",
+        "oneof": [
+            {
+                "discriminator": "a",
+                "type": "object",
+                "properties": {
+                    "related": {
+                        "type": "lazy-pid-relation",
+                        "model": "some_self_referencing_model",
+                        "keys": ["id"],
+                    }
+                },
+            },
+            {
+                "discriminator": "b",
+                "type": "object",
+                "properties": {
+                    "related": {
+                        "type": "lazy-pid-relation",
+                        "model": "some_self_referencing_model",
+                        "keys": ["id", "metadata.title"],
+                    }
+                },
+            },
+        ],
+    }
+
+    polymorphic = datatype_registry.get_type({"type": "polymorphic"})
+    with pytest.raises(ValueError, match=r"Conflicting relation definitions for 'entries\.related'"):
+        polymorphic.create_relations(element, ["entries"])
+
+
+def test_create_relations_through_polymorphic_variants(datatype_registry, lazy_pid_relation):
+    """A relation declared as a property of a polymorphic variant is discovered.
+
+    PolymorphicDataType.create_relations must descend into its variants (as
+    visit does) - otherwise the relation exists in the schema/mapping/ui
+    model but is never registered as a relation system field at all.
+    """
+    element = {
+        "type": "polymorphic",
+        "discriminator": "entry_type",
+        "oneof": [
+            {
+                "discriminator": "sample",
+                "type": "object",
+                "properties": {
+                    "related": {
+                        "type": "lazy-pid-relation",
+                        "model": "some_self_referencing_model",
+                        "keys": ["id"],
+                    }
+                },
+            },
+            {
+                "discriminator": "plain",
+                "type": "object",
+                "properties": {"label": {"type": "keyword"}},
+            },
+        ],
+    }
+
+    polymorphic = datatype_registry.get_type({"type": "polymorphic"})
+    relations = polymorphic.create_relations(element, ["entries"])
+
+    # one variant contributes AddPIDRelation + AddLazyRelation for "related";
+    # the other contributes nothing
+    names = [getattr(r, "name", None) for r in relations]
+    assert "entries.related" in names
+    assert len([n for n in names if n == "entries.related"]) == 1
+
+
 # ---------------------------------------------------------------------------
 # _descend_marshmallow_schema
 # ---------------------------------------------------------------------------

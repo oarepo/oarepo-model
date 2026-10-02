@@ -672,3 +672,130 @@ def test_internal_relation_nested_key_service_create_and_search(
     # Query for the other protein's provider - should not match
     no_hits = service.search(identity_simple, q='metadata.primary_protein.provider.name:"Beta Labs"', size=25, page=1)
     assert no_hits.total == 0
+
+
+@pytest.mark.parametrize(
+    ("relation", "expected_label"),
+    [
+        # target path metadata.general.proteins: `general` is a named type (General),
+        # its `proteins` items are a named type (Protein)
+        ("primary_protein", {"en": "Protein name"}),
+        # target path metadata.general.entities: items are a named polymorphic type
+        # (Entity) whose variants are named types
+        ("primary_entity", {"en": "Entity name"}),
+    ],
+)
+def test_internal_relation_named_types_ui_model(app, internal_relation_named_types_model, relation, expected_label):
+    """Relation keys must be resolved through named types, as real models write them.
+
+    The target path of an internal relation is walked through the model's declarative
+    types. A node like `{"type": "General"}` refers to a named type and has no inline
+    "properties"; the walk must follow the reference (and, for a polymorphic type, merge
+    its variants) instead of failing with "oneOf must be a list" and falling back to a
+    generic key, which shows up here as the label {"und": "name"}.
+    """
+    ui_model = internal_relation_named_types_model.ui_model
+    node = ui_model["children"]["metadata"]["children"][relation]["children"]["name"]
+
+    # a fallback node would be labelled {"und": "name"} instead
+    assert node["label"] == expected_label
+
+
+# ---------------------------------------------------------------------------
+# lazy structures combined with polymorphic types
+# ---------------------------------------------------------------------------
+
+
+def test_internal_relation_named_types_nested_relation_registered(app, internal_relation_named_types_model):
+    """A relation inside the keys of an internal relation behind a named type is discovered.
+
+    Pattern: test_internal_relation_nested_relation_field_registered, but the
+    target path (metadata.general.proteins) crosses the named type General.
+    The declarative walk must follow the reference - otherwise the nested
+    'language' vocabulary relation is never registered on record.relations
+    (and a "Failed to resolve target properties" warning is logged instead).
+    """
+    record = internal_relation_named_types_model.Record({"metadata": {}})
+    assert "metadata.primary_protein_full.language" in record.relations._fields
+
+
+def test_internal_relation_named_types_no_target_properties_warning(app, internal_relation_named_types_model, caplog):
+    """The named-type-following walk must not log the 'Failed to resolve' warning."""
+    with caplog.at_level("WARNING", logger="oarepo_model"):
+        fields = internal_relation_named_types_model.Record({"metadata": {}}).relations._fields
+    assert fields
+    assert not [r for r in caplog.records if "Failed to resolve target properties" in r.message]
+
+
+def test_polymorphic_variant_containing_internal_relation_builds_and_resolves(app, internal_relation_named_types_model):
+    """An internal relation nested inside a polymorphic variant resolves at runtime.
+
+    The model build must not resolve the relation's lazy UI model while merging
+    the variants' children (the model is still being built - the merge keeps
+    such nodes opaque), and a real record must dereference the relation stored
+    inside the variant the same as anywhere else.
+    """
+    m = internal_relation_named_types_model
+
+    # ui model merged across the two variants carries the relation node lazily,
+    # and the exact per-variant models are reachable too
+    mixed = m.ui_model["children"]["metadata"]["children"]["mixed_entries"]
+    assert set(mixed["child"]["variants"]) == {"sample", "reference"}
+
+    record = m.Record(
+        {
+            "metadata": {
+                "general": {
+                    "proteins": [{"id": "p1", "name": "Hemoglobin"}],
+                },
+                "mixed_entries": [
+                    {
+                        "entry_type": "sample",
+                        "label": "Sample 1",
+                        "related_protein": {"id": "p1"},
+                    }
+                ],
+            },
+        },
+    )
+
+    # the relation lives one array level deep (mixed_entries items): the result
+    # is an iterator over the array's resolved relation values
+    resolved = getattr(record.relations, "metadata.mixed_entries.related_protein")()
+    assert next(iter(resolved))["name"] == "Hemoglobin"
+
+
+def test_internal_relation_key_path_through_polymorphic_variant(app, internal_relation_named_types_model):
+    """A relation key reaching inside a polymorphic variant (details.code) resolves.
+
+    'details' is polymorphic inside the entities' variants; the lazy UI model,
+    marshmallow schema and dereference machinery must merge the variants to
+    find 'code', not stop at the polymorphic node.
+    """
+    m = internal_relation_named_types_model
+
+    # the ui model of the relation key resolves the label through the
+    # polymorphic 'details' node (the fallback would show {"und": "code"})
+    node = m.ui_model["children"]["metadata"]["children"]["primary_entity_detail"]
+    assert node["children"]["details"]["children"]["code"]["label"] == {"en": "Gene code"}
+
+    record = m.Record(
+        {
+            "metadata": {
+                "general": {
+                    "entities": [
+                        {
+                            "id": "e1",
+                            "entity_type": "person",
+                            "name": "Insulin",
+                            "details": {"details_type": "gene", "code": "INS"},
+                        }
+                    ],
+                },
+                "primary_entity_detail": {"id": "e1"},
+            },
+        },
+    )
+
+    resolved = getattr(record.relations, "metadata.primary_entity_detail")()
+    assert resolved["details"]["code"] == "INS"

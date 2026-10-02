@@ -245,3 +245,115 @@ def test_walk_type_tree_path_raises_for_a_non_object_leaf():
     root = {"a": {"type": "string"}}
     with pytest.raises(TypeError):
         walk_type_tree_path(root, "a")
+
+
+# ---------------------------------------------------------------------------
+# walk_type_tree_path / walk_type_tree_path_leaf with a named-type registry
+# ---------------------------------------------------------------------------
+
+# A raw declarative tree the way model_metadata.types looks: named types are
+# referenced ({"type": "General"}) instead of inlined, and a polymorphic type
+# is written with a lowercase "oneof".
+_DECLARATIVE_TYPES = {
+    "General": {
+        "type": "object",
+        "properties": {
+            "proteins": {"type": "array", "items": {"type": "Protein"}},
+            "entities": {"type": "array", "items": {"type": "Entity"}},
+        },
+    },
+    "Protein": {
+        "type": "object",
+        "properties": {
+            "id": {"type": "keyword"},
+            "name": {"type": "keyword"},
+        },
+    },
+    "Entity": {
+        "type": "polymorphic",
+        "discriminator": "entity_type",
+        "oneof": [
+            {"discriminator": "person", "type": "NamedPersonEntity"},
+            {"discriminator": "organization", "type": "NamedOrganizationEntity"},
+        ],
+    },
+    "NamedPersonEntity": {
+        "type": "object",
+        "properties": {"id": {"type": "keyword"}, "entity_type": {"type": "keyword"}},
+    },
+    "NamedOrganizationEntity": {
+        "type": "object",
+        "properties": {"id": {"type": "keyword"}, "ror": {"type": "keyword"}},
+    },
+    "Recursive": {"type": "Recursive"},
+}
+
+_DECLARATIVE_ROOT = {
+    "general": {"type": "General"},
+    "recursive": {"type": "Recursive"},
+}
+
+
+def test_walk_type_tree_path_circular_named_type_raises():
+    # a type whose own definition refers straight back to itself would resolve
+    # forever - the cycle must be detected instead
+    with pytest.raises(TypeError, match="Circular named type reference"):
+        walk_type_tree_path(_DECLARATIVE_ROOT, "recursive", types=_DECLARATIVE_TYPES)
+
+
+def test_walk_type_tree_path_follows_named_type_reference():
+    properties = walk_type_tree_path(_DECLARATIVE_ROOT, "general", types=_DECLARATIVE_TYPES)
+    assert set(properties) == {"proteins", "entities"}
+
+
+def test_walk_type_tree_path_follows_named_type_inside_array_items():
+    properties = walk_type_tree_path(_DECLARATIVE_ROOT, "general.proteins", types=_DECLARATIVE_TYPES)
+    assert set(properties) == {"id", "name"}
+
+
+def test_walk_type_tree_path_merges_declarative_polymorphic_oneof_variants():
+    properties = walk_type_tree_path(_DECLARATIVE_ROOT, "general.entities", types=_DECLARATIVE_TYPES)
+    assert set(properties) == {"id", "entity_type", "ror"}
+
+
+def test_walk_type_tree_path_leaf_resolves_through_named_types():
+    leaf = walk_type_tree_path_leaf(_DECLARATIVE_ROOT, "general.entities.ror", types=_DECLARATIVE_TYPES)
+    assert leaf == {"type": "keyword"}
+
+
+def test_walk_type_tree_path_without_types_fails_on_named_type():
+    # documents the pre-types behaviour: named refs are not followed
+    with pytest.raises(TypeError, match="Cannot descend into"):
+        walk_type_tree_path(_DECLARATIVE_ROOT, "general", types=None)
+
+
+def test_walk_type_tree_path_unknown_named_type_reference_fails_loudly():
+    root = {"a": {"type": "NotDeclared"}}
+    with pytest.raises(TypeError, match="Cannot descend into"):
+        walk_type_tree_path(root, "a", types=_DECLARATIVE_TYPES)
+
+
+def test_walk_type_tree_path_leaf_fully_resolves_a_named_type_leaf():
+    # a key that *is* a named object type: the leaf must come back with the
+    # referenced definition inlined, as a cross-model relation copies it into
+    # a model that does not declare the named type
+    types = {
+        "Unit": {
+            "type": "object",
+            "properties": {
+                "value": {"type": "double"},
+                "symbol": {"type": "Symbol", "label": {"en": "Unit symbol"}},
+            },
+        },
+        "Symbol": {"type": "keyword"},
+        "General": {
+            "type": "object",
+            "properties": {"molecular_weight": {"type": "Unit"}},
+        },
+    }
+    leaf = walk_type_tree_path_leaf({"general": {"type": "General"}}, "general.molecular_weight", types=types)
+    # named ref merged in, and the nested "symbol" ref inlined as well -
+    # no dangling {"type": "Symbol"} reference remains in the subtree
+    assert leaf["type"] == "object"
+    assert leaf["properties"]["value"] == {"type": "double"}
+    assert leaf["properties"]["symbol"] == {"type": "keyword", "label": {"en": "Unit symbol"}}
