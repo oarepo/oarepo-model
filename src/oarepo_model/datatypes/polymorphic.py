@@ -618,7 +618,7 @@ def _ui_equal(a: Any, b: Any) -> bool:
     Plain dict ``==`` descends into *nested* containers, and a lazy
     ReferenceUIModel a few levels down (e.g. an internal relation inside an
     array item inside a variant) resolves on iteration - which imports the
-    model that is still being built and kills the build (review.md P3-F1).
+    model that is still being built and kills the build.
     Identical lazy objects compare equal by identity; a different lazy (or a
     lazy vs a real value) counts as different, so the variant keeps it.
     """

@@ -360,7 +360,7 @@ def _resolve_declarative_type_node(
     branches) pass through unchanged, so the same resolver is safe to apply
     before any walk, declarative or built.
 
-    Copying strategy (P2-F5): the merger *mutates its destination* but never
+    Copying strategy: the merger *mutates its destination* but never
     its sources - a referred definition is deep-copied once per type name
     (`_memo`, one per call tree) and only then merged per node; a reference
     carrying only scalar overrides (the common case) takes a shallow copy of
@@ -538,8 +538,7 @@ type PathWalker = Callable[..., Mapping[str, Any]]
 
 Both take (root, path) plus walker-specific keyword arguments; a Protocol
 spelling of this (``__call__(root, path, /, **kwargs)``) rejects implementations
-that do not themselves accept arbitrary kwargs, so it stays a plain alias
-(see the P2-F6 discussion in review.md).
+that do not themselves accept arbitrary kwargs, so it stays a plain alias.
 """
 
 

@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from invenio_records_resources.services.records.config import SearchOptions
 from invenio_records_resources.services.records.params.facets import FacetsParam
@@ -20,7 +20,7 @@ from oarepo_model.customizations import AddClass, AddList, Customization
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable
+    from collections.abc import Generator, Iterable, Mapping
 
     from invenio_records_resources.services.records.params.base import ParamInterpreter
 
@@ -74,7 +74,7 @@ class RecordSearchOptionsPreset(Preset):
         yield AddDictionary("FacetGroups", {}, exists_ok=True)
 
         class RecordSearchOptionsMixin(ModelMixin, SearchOptions):
-            facets = Dependency("RecordFacets")
+            facets = cast("Mapping[str, Any]", Dependency("RecordFacets"))
             facet_groups = Dependency("FacetGroups")
             extra_param_interpreter_classes = Dependency("extra_param_interpreter_classes")
 
@@ -85,7 +85,7 @@ class RecordSearchOptionsPreset(Preset):
                     self.extra_param_interpreter_classes,
                 )
 
-            query_parser_cls = staticmethod(
+            query_parser_cls = staticmethod(  # ty: ignore[invalid-assignment]
                 QueryParser.factory(
                     tree_transformer_cls=SearchQueryValidator,
                 )
