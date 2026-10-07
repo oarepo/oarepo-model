@@ -1097,8 +1097,7 @@ internal_relation_named_types_model_types = {
 # variant's own children - an array of objects with the relation inside - the shape of
 # mbdb's `Result.entities_involved[].entity` (`Entity_and_stoichiometry`). The relation's
 # UI model is a lazy ReferenceUIModel three levels below the variant child; building the
-# polymorphic UI model must never resolve it, because the model is still being built
-# (review.md P3-F1).
+# polymorphic UI model must never resolve it, because the model is still being built.
 internal_relation_nested_in_variant_model_types = {
     "Metadata": {
         "properties": {

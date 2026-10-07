@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, cast, override
 
 from invenio_drafts_resources.services.records.config import SearchDraftsOptions
 from invenio_records_resources.services.records.queryparser import QueryParser
@@ -26,7 +26,7 @@ from oarepo_model.presets.records_resources.services.records.search_options impo
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from oarepo_model.builder import InvenioModelBuilder
     from oarepo_model.model import InvenioModel
@@ -47,7 +47,7 @@ class DraftSearchOptionsPreset(Preset):
         yield AddDictionary("DraftFacetGroups", {}, exists_ok=True)
 
         class DraftSearchOptionsMixin(ModelMixin, SearchDraftsOptions):
-            facets = Dependency("RecordFacets")
+            facets = cast("Mapping[str, Any]", Dependency("RecordFacets"))
             facet_groups = Dependency("DraftFacetGroups")
             extra_param_interpreter_classes = Dependency("extra_param_interpreter_classes")
 
@@ -58,7 +58,7 @@ class DraftSearchOptionsPreset(Preset):
                     self.extra_param_interpreter_classes,
                 )
 
-            query_parser_cls = staticmethod(
+            query_parser_cls = staticmethod(  # ty: ignore[invalid-assignment]
                 QueryParser.factory(
                     tree_transformer_cls=SearchQueryValidator,
                 )

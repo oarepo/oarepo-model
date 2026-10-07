@@ -806,7 +806,7 @@ def test_polymorphic_ui_model_does_not_resolve_relation_nested_inside_variant(
 ):
     """Building the UI model must not resolve a lazy relation nested deep inside a variant.
 
-    Regression test for review.md P3-F1. `BindingResult.proteins_involved[].protein` is an
+    `BindingResult.proteins_involved[].protein` is an
     internal relation whose UI model is a lazy ReferenceUIModel three levels below the variant
     child (`proteins_involved` -> `child` -> `children.protein`), as in mbdb's
     `Result.entities_involved[].entity`. Shrinking the per-variant UI models to their
