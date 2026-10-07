@@ -799,3 +799,29 @@ def test_internal_relation_key_path_through_polymorphic_variant(app, internal_re
 
     resolved = getattr(record.relations, "metadata.primary_entity_detail")()
     assert resolved["details"]["code"] == "INS"
+
+
+def test_polymorphic_ui_model_does_not_resolve_relation_nested_inside_variant(
+    build_internal_relation_nested_in_variant_model,
+):
+    """Building the UI model must not resolve a lazy relation nested deep inside a variant.
+
+    Regression test for review.md P3-F1. `BindingResult.proteins_involved[].protein` is an
+    internal relation whose UI model is a lazy ReferenceUIModel three levels below the variant
+    child (`proteins_involved` -> `child` -> `children.protein`), as in mbdb's
+    `Result.entities_involved[].entity`. Shrinking the per-variant UI models to their
+    differences compared these children with `==`. Dict equality descends into the lazy node,
+    which resolves it by importing the model that is still being built, so the build fails
+    with ModuleNotFoundError. A relation placed *directly* under the variant does not show the
+    bug (see test_polymorphic_variant_containing_internal_relation_builds_and_resolves),
+    because the top-level isinstance(node, dict) guard skips the comparison there.
+    """
+    model = build_internal_relation_nested_in_variant_model()
+
+    results = model.ui_model["children"]["metadata"]["children"]["results"]["child"]
+    # the union carries the nested relation node (still unresolved, so only check presence)
+    proteins_involved = results["children"]["proteins_involved"]
+    assert "protein" in proteins_involved["child"]["children"]
+    # the variant that declares the field keeps it: a lazy node can not be compared without
+    # resolving it, so it never counts as "identical to the union"
+    assert "proteins_involved" in results["variants"]["binding"]["children"]

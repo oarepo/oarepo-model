@@ -48,6 +48,7 @@ See https://nrp-cz.github.io/docs/customize/model_backend/model_reference#polymo
 from __future__ import annotations
 
 import copy
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, override
 
 import marshmallow as ma
@@ -62,8 +63,6 @@ from oarepo_model.utils import readonly_dict_merger
 from .base import DataType
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from oarepo_model.customizations.base import Customization
     from oarepo_model.utils import ArrayPathMember
 
@@ -566,7 +565,7 @@ def _pid_field_identity(pid_field: Any) -> tuple[Any, ...] | None:
 
     A LazyModelPIDFieldContext resolves its target model on *any* attribute
     access (__getattr__), which must not happen here (the model may still be
-    building) - its own _model_name is read directly instead. Everything else
+    building) - its own model_name is read directly instead. Everything else
     is identified by its class and any declared type context on the instance
     dict (a vocabulary's _type_id), never through property/attribute resolve.
     """
@@ -613,6 +612,28 @@ def _dedupe_variant_relations(relations: list[Customization]) -> list[Customizat
     return result
 
 
+def _ui_equal(a: Any, b: Any) -> bool:
+    """Deep equality of UI model nodes that never resolves a lazy mapping.
+
+    Plain dict ``==`` descends into *nested* containers, and a lazy
+    ReferenceUIModel a few levels down (e.g. an internal relation inside an
+    array item inside a variant) resolves on iteration - which imports the
+    model that is still being built and kills the build (review.md P3-F1).
+    Identical lazy objects compare equal by identity; a different lazy (or a
+    lazy vs a real value) counts as different, so the variant keeps it.
+    """
+    if a is b:
+        return True
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(_ui_equal(a[k], b[k]) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_ui_equal(x, y) for x, y in zip(a, b, strict=True))
+    if isinstance(a, Mapping) or isinstance(b, Mapping):
+        # a lazily-resolved node on either side: can not compare without resolving -> kept
+        return False
+    return a == b
+
+
 def _shrink_variants_to_diffs(
     variants: dict[str, dict[str, Any]],
     union_children: dict[str, Any],
@@ -623,12 +644,12 @@ def _shrink_variants_to_diffs(
     so a variant subtree identical to it carries no information - and the ui
     model is embedded into every deposit page. A child that is not a plain
     dict on either side (a lazily-resolved reference) can not be compared
-    without resolving it, so it is always kept.
+    without resolving it (see _ui_equal), so it is always kept.
     """
 
     def _differs(name: str, node: Any) -> bool:
         union_node = union_children.get(name)
-        return not (isinstance(node, dict) and isinstance(union_node, dict) and node == union_node)
+        return not (isinstance(node, dict) and isinstance(union_node, dict) and _ui_equal(node, union_node))
 
     shrunk: dict[str, dict[str, Any]] = {}
     for discriminator_value, variant in variants.items():

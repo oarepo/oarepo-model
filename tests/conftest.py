@@ -1093,6 +1093,92 @@ internal_relation_named_types_model_types = {
 }
 
 
+# A polymorphic array whose variant contains an internal relation *nested below* the
+# variant's own children - an array of objects with the relation inside - the shape of
+# mbdb's `Result.entities_involved[].entity` (`Entity_and_stoichiometry`). The relation's
+# UI model is a lazy ReferenceUIModel three levels below the variant child; building the
+# polymorphic UI model must never resolve it, because the model is still being built
+# (review.md P3-F1).
+internal_relation_nested_in_variant_model_types = {
+    "Metadata": {
+        "properties": {
+            "proteins": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "keyword"},
+                        "name": {"type": "keyword", "label": {"en": "Protein name"}},
+                    },
+                },
+            },
+            "results": {
+                "type": "array",
+                "items": {"type": "NestedResult"},
+            },
+        },
+    },
+    "NestedResult": {
+        "type": "polymorphic",
+        "discriminator": "result_type",
+        "oneof": [
+            {"discriminator": "binding", "type": "BindingResult"},
+            {"discriminator": "other", "type": "OtherResult"},
+        ],
+    },
+    "BindingResult": {
+        "type": "object",
+        "properties": {
+            "result_type": {"type": "keyword"},
+            "proteins_involved": {
+                "type": "array",
+                "items": {"type": "ProteinAndStoichiometry"},
+            },
+        },
+    },
+    "OtherResult": {
+        "type": "object",
+        "properties": {
+            "result_type": {"type": "keyword"},
+            "note": {"type": "keyword"},
+        },
+    },
+    "ProteinAndStoichiometry": {
+        "type": "object",
+        "properties": {
+            "protein": {
+                "type": "internal-relation",
+                "target": "metadata.proteins",
+                "keys": ["id", "name"],
+            },
+            "copy_number": {"type": "double"},
+        },
+    },
+}
+
+
+@pytest.fixture
+def build_internal_relation_nested_in_variant_model(empty_model):
+    """Return a builder (not the model), so a failing build fails the test body, not fixture setup.
+
+    The model is deliberately not part of `extra_entry_points`: if its build breaks, only the
+    test using it fails instead of every test that needs the app.
+    """
+    from oarepo_model.presets.internal_relations import internal_relations_preset
+    from oarepo_model.presets.records_resources import records_resources_preset
+    from oarepo_model.presets.relations import relations_preset
+    from oarepo_model.presets.ui import ui_preset
+
+    def _build():
+        return _build_model(
+            "irnvr",
+            internal_relation_nested_in_variant_model_types,
+            [records_resources_preset, relations_preset, internal_relations_preset, ui_preset],
+        )
+
+    return _build
+
+
 @pytest.fixture(scope="session")
 def internal_relation_named_types_model(empty_model):
     """Model with internal relations whose target paths go through named (and polymorphic) types."""
