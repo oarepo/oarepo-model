@@ -32,10 +32,6 @@ def test_dump_marshmallow(app, cli_runner, empty_model):
     assert "class runtime_models_test.TestRecordSchema(" in result.output
     assert "class runtime_models_test.TestMetadataSchema(" in result.output
     assert "    title = fields.String(" in result.output
-    # non-generated nested schema is included without --generated
-    assert "class oarepo_model.presets.records_resources.services.files.record_with_files_schema.FilesSchema(" in (
-        result.output
-    )
 
 
 def test_dump_marshmallow_generated(app, cli_runner, empty_model):

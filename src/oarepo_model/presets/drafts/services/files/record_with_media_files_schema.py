@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, override
 
 import marshmallow as ma
+from invenio_rdm_records.services.schemas.files import FilesSchema
 from marshmallow_utils.fields import (
     NestedAttribute,
 )
@@ -40,24 +41,8 @@ class RecordWithMediaFilesSchemaPreset(Preset):
         model: InvenioModel,
         dependencies: dict[str, Any],
     ) -> Generator[Customization]:
-        class MediaFilesSchema(ma.Schema):
-            """Media files metadata schema."""
-
-            enabled = ma.fields.Bool()
-
-            @override
-            def get_attribute(self, obj: Any, attr: str, default: Any) -> Any:
-                """Override how attributes are retrieved when dumping.
-
-                NOTE: We have to access by attribute because although we are loading
-                    from an external pure dict, but we are dumping from a data-layer
-                    object whose fields should be accessed by attributes and not
-                    keys. Access by key runs into FilesManager key access protection
-                    and raises.
-                """
-                return getattr(obj, attr, default)
 
         class RecordWithMediaFilesMixin(ma.Schema):
-            media_files = NestedAttribute(MediaFilesSchema)
+            media_files = NestedAttribute(FilesSchema)
 
         yield PrependMixin("RecordSchema", RecordWithMediaFilesMixin)
