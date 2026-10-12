@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
-from oarepo_model.customizations import CopyFile, Customization, PatchJSONFile
+from oarepo_model.customizations import CopyFile, Customization
 from oarepo_model.presets import Preset
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class DraftMappingPreset(Preset):
-    """Preset for record service class."""
+    """Preset for creating draft record Opensearch mapping configuration."""
 
     depends_on = ("record-mapping",)
     provides = ("draft-mapping",)
@@ -40,55 +40,3 @@ class DraftMappingPreset(Preset):
             target_module_name="mappings",
             target_file_path=f"os-v2/{model.base_name}/draft-metadata-v{model.version}.json",
         )
-
-        parent_mapping = {
-            "mappings": {
-                "properties": {
-                    "bucket_id": {"type": "keyword", "index": False},
-                    "versions": {
-                        "properties": {
-                            "index": {"type": "integer"},
-                            "is_latest": {"type": "boolean"},
-                            "is_latest_draft": {"type": "boolean"},
-                            "latest_id": {"type": "keyword"},
-                            "latest_index": {"type": "integer"},
-                            "next_draft_id": {"type": "keyword"},
-                        },
-                    },
-                    "has_draft": {"type": "boolean"},
-                    "publication_status": {"type": "keyword"},
-                    "is_published": {"type": "boolean"},
-                    "pid": {
-                        "properties": {
-                            "obj_type": {"type": "keyword", "index": False},
-                            "pid_type": {"type": "keyword", "index": False},
-                            "pk": {"type": "long", "index": False},
-                            "status": {"type": "keyword", "index": False},
-                        },
-                    },
-                    "fork_version_id": {"type": "long"},
-                    "parent": {
-                        "properties": {
-                            "$schema": {"type": "keyword", "index": False},
-                            "id": {"type": "keyword"},
-                            "uuid": {"type": "keyword", "index": False},
-                            "version_id": {"type": "long"},
-                            "created": {"type": "date"},
-                            "updated": {"type": "date"},
-                            "pid": {
-                                "properties": {
-                                    "obj_type": {"type": "keyword", "index": False},
-                                    "pid_type": {"type": "keyword", "index": False},
-                                    "pk": {"type": "long", "index": False},
-                                    "status": {"type": "keyword", "index": False},
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        }
-
-        yield PatchJSONFile("draft-mapping", parent_mapping)
-
-        yield PatchJSONFile("record-mapping", parent_mapping)
