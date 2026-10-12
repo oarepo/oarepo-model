@@ -370,7 +370,7 @@ class PolymorphicDataType(DataType):
 class PolymorphicField(ma.fields.Field):
     """Custom marshmallow field class that supports handling polymorphic fields."""
 
-    default_error_messages: Mapping[str, str] = {"unknown_type": "Unknown type '{type}'."}
+    default_error_messages: Mapping[str, str] = {"unknown_type": "Unknown type '{type}'."}  # ty: ignore[invalid-attribute-override]
 
     def __init__(
         self,

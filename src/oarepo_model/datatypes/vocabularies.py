@@ -48,7 +48,6 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from invenio_records_resources.records.systemfields.pid import PIDFieldContext
-    from invenio_vocabularies.records.systemfields.pid import VocabularyPIDFieldContext
     from marshmallow import Schema
 
     from oarepo_model.utils import ArrayPathMember
@@ -192,7 +191,7 @@ class VocabularyDataType(FacetMixin, PIDRelation):
 
                 return cast(
                     "PIDFieldContext",
-                    cast("VocabularyPIDFieldContext", Vocabulary.pid).with_type_ctx(vocab_type),
+                    Vocabulary.pid.with_type_ctx(vocab_type),
                 )
 
     @override

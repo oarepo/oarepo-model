@@ -103,7 +103,7 @@ class DraftServiceConfigPreset(Preset):
             )
 
             @property
-            def links_search_drafts(
+            def links_search_drafts(  # ty: ignore[invalid-property-type-override]
                 self,
             ) -> dict[str, Link | EndpointLink | Callable[..., Link | EndpointLink]]:
                 supercls_links: LinksMapping = getattr(super(), "links_search_drafts", {})
@@ -114,7 +114,7 @@ class DraftServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search_versions(self) -> dict[str, Link | EndpointLink | Callable[..., Link | EndpointLink]]:
+            def links_search_versions(self) -> dict[str, Link | EndpointLink | Callable[..., Link | EndpointLink]]:  # ty: ignore[invalid-property-type-override]
                 supercls_links: LinksMapping = getattr(super(), "links_search_versions", {})
                 links = {
                     **supercls_links,

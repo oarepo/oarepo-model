@@ -610,7 +610,7 @@ class ArrayDataType(FacetMixin, DataType):
 class PermissiveSchema(marshmallow.Schema):
     """A permissive schema that allows any properties."""
 
-    class Meta:
+    class Meta:  # ty: ignore[invalid-attribute-override]
         """Meta class for PermissiveSchema."""
 
         unknown = marshmallow.INCLUDE

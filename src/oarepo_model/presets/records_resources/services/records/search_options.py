@@ -79,7 +79,7 @@ class RecordSearchOptionsPreset(Preset):
             extra_param_interpreter_classes = Dependency("extra_param_interpreter_classes")
 
             @property
-            def params_interpreters_cls(self) -> Any:
+            def params_interpreters_cls(self) -> Any:  # ty: ignore[invalid-property-type-override]
                 return resolve_params_interpreters(
                     super().params_interpreters_cls,
                     self.extra_param_interpreter_classes,

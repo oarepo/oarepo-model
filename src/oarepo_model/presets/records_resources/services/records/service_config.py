@@ -112,7 +112,7 @@ class RecordServiceConfigPreset(Preset):
             search_items_use_full_links: bool = False
 
             @property
-            def components(self) -> tuple[type[ServiceComponent], ...]:
+            def components(self) -> tuple[type[ServiceComponent], ...]:  # ty: ignore[invalid-property-type-override]
                 # the ComponentsOrderingMixin will take care of ordering as it is prepended to this class
                 return (
                     *super().components,
@@ -125,7 +125,7 @@ class RecordServiceConfigPreset(Preset):
             model = builder.model.name
 
             @property
-            def links_item(self) -> LinksMapping:
+            def links_item(self) -> LinksMapping:  # ty: ignore[invalid-property-type-override]
                 supercls_links: LinksMapping = getattr(super(), "links_item", {})
 
                 links = {
@@ -149,7 +149,7 @@ class RecordServiceConfigPreset(Preset):
                 return {k: v for k, v in links.items() if v is not None}
 
             @property
-            def links_search(self) -> LinksMapping:
+            def links_search(self) -> LinksMapping:  # ty: ignore[invalid-property-type-override]
                 supercls_links: LinksMapping = getattr(super(), "links_search", {})
                 links = {
                     **supercls_links,
