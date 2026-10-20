@@ -21,6 +21,7 @@ from invenio_records_resources.services.records.links import RecordEndpointLink
 from oarepo_model.customizations import AddClass, AddToList, Customization, PrependMixin
 from oarepo_model.model import Dependency, InvenioModel, ModelMixin
 from oarepo_model.presets import Preset
+from oarepo_model.presets.records_resources.services.files.file_processors import get_file_processors
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -72,6 +73,8 @@ class DraftFileServiceConfigPreset(Preset):
                     params=["pid_value", "key"],
                 ),
             }
+
+            file_processors: ClassVar[list] = [*FileServiceConfig.file_processors, *get_file_processors()]
 
         yield AddClass("DraftFileServiceConfig", clazz=FileServiceConfig)
         yield PrependMixin("DraftFileServiceConfig", DraftFileServiceConfigMixin)
