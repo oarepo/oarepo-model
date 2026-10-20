@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from invenio_records_resources.services.files.processors.base.FileProcessor import FileProcessor
+    from invenio_records_resources.services.files.processors.base import FileProcessor
 
 from invenio_base.utils import entry_points
 
