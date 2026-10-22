@@ -72,6 +72,8 @@ class SignpostingPreset(Preset):
             code="lset",
             name=_("linkset"),
             mimetype="application/linkset",
+            # RFC 9264 registers no extension and the mimetype guess gives .bin; the body is plain text
+            extension=".txt",
             serializer=LinksetSignpostingSerializer(),
             display=True,
             oai_metadata_prefix=None,
