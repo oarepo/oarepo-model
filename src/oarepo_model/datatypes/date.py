@@ -70,7 +70,9 @@ _STRICT_INTERVAL_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}$")
 class KeepOriginalStringMixin(marshmallow.fields.Field):
     """Mixin schema to keep the original string value."""
 
-    SERIALIZATION_FUNCS: Mapping[str, Callable] = {"iso": lambda val: val}
+    SERIALIZATION_FUNCS: dict[str, Callable[[Any], str | float]] = {  # noqa: RUF012 - must match marshmallow's type
+        "iso": lambda val: val,
+    }
 
     @override
     def deserialize(
