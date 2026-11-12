@@ -42,6 +42,7 @@ from typing import Any, override
 
 import marshmallow.fields
 import marshmallow.validate
+from marshmallow_utils.fields import SanitizedHTML
 
 from oarepo_model.utils import ReadOnlyDict
 
@@ -195,3 +196,14 @@ class FulltextWithKeywordDataType(KeywordDataType):
             facets,
             path_suffix=path_suffix or ".keyword",
         )
+
+
+class HTMLWithKeywordDataType(FulltextWithKeywordDataType):
+    """A data type representing a sanitized html field with keyword validation in the Oarepo model.
+
+    This class can be extended to create custom sanitized html with keyword data types.
+    """
+
+    TYPE = "html+keyword"
+
+    marshmallow_field_class = SanitizedHTML
