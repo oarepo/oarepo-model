@@ -4,14 +4,14 @@
 """Tests for string data types.
 
 Covers:
-- enum validation on keyword / fulltext / fulltext+keyword
+- enum validation on keyword / fulltext / fulltext+keyword / html+keyword
 - pattern validation
 - required + implicit min_length=1 behaviour
 - field options: dump_only, load_only, allow_none
 - marshmallow_validate option: string form, tuple form with/without args and kwargs
-- facet generation: fulltext → no facet; keyword → facet; fulltext+keyword → .keyword suffix
-- mapping types for all three string types
-- JSON schema type for all three string types
+- facet generation: fulltext → no facet; keyword → facet; fulltext+keyword and html+keyword → .keyword suffix
+- mapping types for all four string types
+- JSON schema type for all four string types
 - url type: URL validation, keyword mapping, uri JSON schema format
 """
 
@@ -426,6 +426,14 @@ class TestStringFacets:
         fields = [e.get("field", "") for e in entries]
         assert "metadata.title.keyword" in fields
 
+    def test_html_keyword_facet_uses_keyword_suffix(self, datatype_registry):
+        """The html+keyword facet must reference its .keyword sub-field."""
+        dt = datatype_registry.get_type({"type": "html+keyword"})
+        result = dt.get_facet("metadata.description", {"type": "html+keyword"}, [], {})
+        facet_def = result["metadata.description"]
+        entries = facet_def if isinstance(facet_def, list) else [facet_def]
+        assert "metadata.description.keyword" in [entry.get("field", "") for entry in entries]
+
 
 # ===========================================================================
 # Mapping types
@@ -437,7 +445,12 @@ class TestStringMappings:
 
     @pytest.mark.parametrize(
         ("type_name", "mapping_type"),
-        [("keyword", "keyword"), ("fulltext", "text"), ("fulltext+keyword", "text")],
+        [
+            ("keyword", "keyword"),
+            ("fulltext", "text"),
+            ("fulltext+keyword", "text"),
+            ("html+keyword", "text"),
+        ],
     )
     def test_mapping_type(self, datatype_registry, type_name, mapping_type):
         """Return the Elasticsearch mapping type matching the string datatype."""
@@ -450,7 +463,13 @@ class TestStringMappings:
         mapping = dt.create_mapping({"type": "fulltext+keyword"})
         assert mapping["fields"]["keyword"]["type"] == "keyword"
 
-    @pytest.mark.parametrize("type_name", ["keyword", "fulltext"])
+    def test_html_keyword_mapping_has_keyword_subfield(self, datatype_registry):
+        """Return a text mapping with a keyword sub-field for html+keyword."""
+        dt = datatype_registry.get_type({"type": "html+keyword"})
+        mapping = dt.create_mapping({"type": "html+keyword"})
+        assert mapping["fields"]["keyword"] == {"type": "keyword", "ignore_above": 256}
+
+    @pytest.mark.parametrize("type_name", ["keyword", "fulltext", "fulltext+keyword", "html+keyword"])
     def test_json_schema_type_is_string(self, datatype_registry, type_name):
         """Return a JSON schema of type string for the string datatypes."""
         dt = datatype_registry.get_type({"type": type_name})
@@ -500,3 +519,19 @@ class TestUrl:
         """Return a JSON schema string with the uri format."""
         dt = datatype_registry.get_type({"type": "url"})
         assert dt.create_json_schema({"type": "url"}) == {"type": "string", "format": "uri"}
+
+
+# ===========================================================================
+# HTML + keyword type
+# ===========================================================================
+
+
+class TestHtmlWithKeyword:
+    """html+keyword sanitizes HTML while keeping keyword string constraints."""
+
+    def test_sanitizes_html(self, datatype_registry):
+        """Remove unsafe tags while preserving allowed HTML markup."""
+        schema = make_schema(datatype_registry, {"type": "html+keyword"})
+        assert schema.load({"a": "<p>Hello <strong>world</strong></p><script>alert(1)</script>"}) == {
+            "a": "<p>Hello <strong>world</strong></p>alert(1)"
+        }
